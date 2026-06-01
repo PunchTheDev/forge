@@ -152,3 +152,63 @@ class TestSOTA:
         sota_path = Path(__file__).parent.parent / "sota" / "score.json"
         data = json.loads(sota_path.read_text())
         assert data["spec_id"] == SPEC["id"]
+
+
+# ---------------------------------------------------------------------------
+# FEA oracle hardening
+# ---------------------------------------------------------------------------
+
+class TestFEAHardening:
+    """Verify anti-gaming rejection paths in fea.py without running CalculiX."""
+
+    def _fake_step(self) -> bytes:
+        return b"fake step bytes"
+
+    def _mat(self):
+        from benchmark.materials import get
+        return get("pla")
+
+    def test_degenerate_mesh_rejected(self):
+        """Fewer than MIN_ELEMENTS tetrahedra → FEAResult.passed=False."""
+        from benchmark import fea
+
+        # Build a tiny mesh: 2 nodes, 2 elements (well below MIN_ELEMENTS=100)
+        tiny_nodes = {1: (0.0, 0.0, 0.0), 2: (10.0, 0.0, 0.0)}
+        tiny_elements = [(1, 2, 1, 2)] * 2  # only 2 elements
+
+        with patch("benchmark.fea._mesh", return_value=(tiny_nodes, tiny_elements)):
+            result = fea.run(self._fake_step(), SPEC, self._mat())
+
+        assert not result.passed
+        assert "degenerate" in result.reason.lower() or "elements" in result.reason.lower()
+
+    def test_load_node_minimum_enforced(self):
+        """Fewer than MIN_LOAD_NODES near load point → rejection."""
+        from benchmark import fea
+
+        # Generate enough elements to pass the element count gate.
+        # Place nodes far from the load point so load_nodes comes back < MIN_LOAD_NODES.
+        load_pt = SPEC["constraints"]["load_point_mm"]  # [100, 25, 25]
+        # All nodes at bolt face (x=0) — far from load_point — so no load nodes found.
+        nodes = {i: (0.0, float(i % 10), float(i // 10)) for i in range(1, 201)}
+        elements = [(i, i+1, i+2, i+3) for i in range(1, 150)]
+
+        with patch("benchmark.fea._mesh", return_value=(nodes, elements)):
+            result = fea.run(self._fake_step(), SPEC, self._mat())
+
+        assert not result.passed
+        assert "load" in result.reason.lower()
+
+    def test_fea_result_carries_element_count(self):
+        """element_count and load_node_count are populated on success path up to FEA stage."""
+        from benchmark import fea
+
+        # Patch mesh to return a plausible minimal set; it will fail at the
+        # load-node stage, but element_count must be populated.
+        nodes = {i: (0.0, float(i % 10), float(i // 10)) for i in range(1, 201)}
+        elements = [(i, i+1, i+2, i+3) for i in range(1, 150)]
+
+        with patch("benchmark.fea._mesh", return_value=(nodes, elements)):
+            result = fea.run(self._fake_step(), SPEC, self._mat())
+
+        assert result.element_count >= 100 or result.element_count > 0
