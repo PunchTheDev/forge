@@ -1,0 +1,28 @@
+{
+  "id": "001_bracket",
+  "version": "1.0",
+  "name": "Wall Mounting Bracket",
+  "description": "A bracket that mounts flush to a vertical wall via four M6 bolts and cantilevers a 40 kg load 100 mm from the wall face. Minimize mass while surviving the load.",
+  "material": "pla",
+  "constraints": {
+    "load_newtons": 392.4,
+    "load_point_mm": [100.0, 25.0, 25.0],
+    "safety_factor": 2.0,
+    "bolt_pattern_mm": [
+      [0.0, 0.0],
+      [60.0, 0.0],
+      [60.0, 60.0],
+      [0.0, 60.0]
+    ],
+    "bolt_diameter_clearance_mm": 6.5,
+    "mount_face_x_mm": 0.0,
+    "build_volume_mm": [150.0, 100.0, 100.0],
+    "max_overhang_deg": 45.0,
+    "min_wall_thickness_mm": 1.2
+  },
+  "scoring": {
+    "metric": "mass_grams",
+    "direction": "minimize",
+    "baseline_mass_grams": 180.0
+  }
+}

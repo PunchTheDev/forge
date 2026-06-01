@@ -1,0 +1,10 @@
+{
+  "spec_id": "001_bracket",
+  "score_grams": 165.0,
+  "agent": "agents/baseline",
+  "contributor": "baseline",
+  "fea_stress_mpa": null,
+  "fea_allowable_mpa": 25.0,
+  "commit": null,
+  "note": "Naive L-bracket baseline. No topology optimization."
+}
