@@ -1,10 +1,10 @@
 {
   "spec_id": "001_bracket",
-  "score_grams": 165.0,
-  "agent": "agents/baseline",
-  "contributor": "baseline",
-  "fea_stress_mpa": null,
+  "score_grams": 108.48,
+  "agent": "agents/slim-spine",
+  "contributor": "Punch",
+  "fea_stress_mpa": 7.50,
   "fea_allowable_mpa": 25.0,
-  "commit": null,
-  "note": "Naive L-bracket baseline. No topology optimization."
+  "commit": "af4a767",
+  "note": "Slim-spine: 4mm×70mm web. Higher bending section modulus per unit area vs ribbed design. Beat baseline by 56.52g."
 }
