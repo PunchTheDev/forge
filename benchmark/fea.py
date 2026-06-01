@@ -52,6 +52,12 @@ def run(step_bytes: bytes, spec: dict, mat: dict) -> FEAResult:
         bolt_nodes = _find_bolt_nodes(nodes, spec)
         load_nodes = _find_load_nodes(nodes, spec)
 
+        if not bolt_nodes:
+            return FEAResult(
+                passed=False,
+                reason=f"No bolt nodes found near mount face (x=0 ± 8mm, bolt centers). Mesh size={MESH_SIZE_MM}mm",
+            )
+
         if not load_nodes:
             return FEAResult(passed=False, reason="No nodes found near load application point")
 
@@ -246,7 +252,9 @@ def _run_ccx(workdir: str, jobname: str) -> None:
         timeout=120,
     )
     if result.returncode != 0:
-        raise RuntimeError(result.stderr.decode()[-2000:])
+        # ccx writes most output to stdout, not stderr
+        out = (result.stdout.decode(errors="replace") + result.stderr.decode(errors="replace"))[-2000:]
+        raise RuntimeError(out or f"exit code {result.returncode}")
 
 
 def _parse_frd(frd_path: str) -> float | None:
