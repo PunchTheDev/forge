@@ -27,9 +27,16 @@ class FEAResult:
     max_stress_mpa: float = 0.0
     allowable_mpa: float = 0.0
     reason: str = ""
+    element_count: int = 0
+    load_node_count: int = 0
 
 
 MESH_SIZE_MM = 4.0  # element characteristic length — coarse but fast
+
+# Anti-gaming thresholds
+MIN_ELEMENTS = 100       # reject trivially sparse meshes
+MIN_LOAD_NODES = 3       # load must be distributed; a single nub at the exact load
+                         # coordinate is numerically degenerate and easy to game
 
 
 def run(step_bytes: bytes, spec: dict, mat: dict) -> FEAResult:
@@ -49,6 +56,14 @@ def run(step_bytes: bytes, spec: dict, mat: dict) -> FEAResult:
         if not nodes or not elements:
             return FEAResult(passed=False, reason="Empty mesh produced by gmsh")
 
+        # Reject trivially sparse meshes — a part with fewer than MIN_ELEMENTS
+        # tetrahedra is either a near-zero-volume shell or a gameable nub.
+        if len(elements) < MIN_ELEMENTS:
+            return FEAResult(
+                passed=False,
+                reason=f"Degenerate mesh: only {len(elements)} elements (min {MIN_ELEMENTS})",
+            )
+
         bolt_nodes = _find_bolt_nodes(nodes, spec)
         load_nodes = _find_load_nodes(nodes, spec)
 
@@ -56,25 +71,51 @@ def run(step_bytes: bytes, spec: dict, mat: dict) -> FEAResult:
             return FEAResult(
                 passed=False,
                 reason=f"No bolt nodes found near mount face (x=0 ± 8mm, bolt centers). Mesh size={MESH_SIZE_MM}mm",
+                element_count=len(elements),
             )
 
-        if not load_nodes:
-            return FEAResult(passed=False, reason="No nodes found near load application point")
+        # Require load to be distributed across enough nodes so a single-nub
+        # geometry can't pass by concentrating stress at one integration point.
+        if len(load_nodes) < MIN_LOAD_NODES:
+            return FEAResult(
+                passed=False,
+                reason=(
+                    f"Too few nodes near load point: {len(load_nodes)} (min {MIN_LOAD_NODES}). "
+                    "Part must have material distributed at the load application zone."
+                ),
+                element_count=len(elements),
+                load_node_count=len(load_nodes),
+            )
 
         _write_inp(inp_path, nodes, elements, bolt_nodes, load_nodes, spec, mat)
 
         try:
             _run_ccx(tmpdir, "job")
         except Exception as e:
-            return FEAResult(passed=False, reason=f"CalculiX failed: {e}")
+            return FEAResult(
+                passed=False,
+                reason=f"CalculiX failed: {e}",
+                element_count=len(elements),
+                load_node_count=len(load_nodes),
+            )
 
         frd_path = os.path.join(tmpdir, "job.frd")
         if not os.path.exists(frd_path):
-            return FEAResult(passed=False, reason="CalculiX produced no .frd output")
+            return FEAResult(
+                passed=False,
+                reason="CalculiX produced no .frd output",
+                element_count=len(elements),
+                load_node_count=len(load_nodes),
+            )
 
         max_stress = _parse_frd(frd_path)
         if max_stress is None:
-            return FEAResult(passed=False, reason="Could not parse stress from .frd")
+            return FEAResult(
+                passed=False,
+                reason="Could not parse stress from .frd",
+                element_count=len(elements),
+                load_node_count=len(load_nodes),
+            )
 
         passed = max_stress <= allowable
         return FEAResult(
@@ -82,6 +123,8 @@ def run(step_bytes: bytes, spec: dict, mat: dict) -> FEAResult:
             max_stress_mpa=max_stress,
             allowable_mpa=allowable,
             reason="" if passed else f"Max stress {max_stress:.1f} MPa > allowable {allowable:.1f} MPa",
+            element_count=len(elements),
+            load_node_count=len(load_nodes),
         )
 
 

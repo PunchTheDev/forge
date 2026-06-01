@@ -34,6 +34,8 @@ class EvalResult:
     reason: str
     fea_stress_mpa: float | None = None
     fea_allowable_mpa: float | None = None
+    fea_element_count: int | None = None
+    fea_load_node_count: int | None = None
     elapsed_seconds: float = 0.0
     step_bytes: bytes | None = None  # raw STEP output; populated only on pass
 
@@ -76,6 +78,8 @@ def evaluate(agent_path: str, spec_path: str) -> EvalResult:
             reason=fea_result.reason,
             fea_stress_mpa=fea_result.max_stress_mpa,
             fea_allowable_mpa=fea_result.allowable_mpa,
+            fea_element_count=fea_result.element_count or None,
+            fea_load_node_count=fea_result.load_node_count or None,
             elapsed_seconds=agent_result.elapsed_seconds,
         )
 
@@ -86,6 +90,8 @@ def evaluate(agent_path: str, spec_path: str) -> EvalResult:
         reason="",
         fea_stress_mpa=fea_result.max_stress_mpa,
         fea_allowable_mpa=fea_result.allowable_mpa,
+        fea_element_count=fea_result.element_count or None,
+        fea_load_node_count=fea_result.load_node_count or None,
         elapsed_seconds=agent_result.elapsed_seconds,
         step_bytes=step_bytes,
     )
@@ -112,6 +118,8 @@ def main() -> None:
         "reason": result.reason,
         "fea_stress_mpa": result.fea_stress_mpa,
         "fea_allowable_mpa": result.fea_allowable_mpa,
+        "fea_element_count": result.fea_element_count,
+        "fea_load_node_count": result.fea_load_node_count,
         "elapsed_seconds": result.elapsed_seconds,
     }
 
