@@ -3,7 +3,7 @@ FEA pipeline: gmsh meshing → CalculiX solve → max von Mises stress extractio
 
 Workflow:
   1. Write STEP bytes to a temp file.
-  2. gmsh imports STEP, generates C3D10 (10-node tet) mesh.
+  2. gmsh imports STEP, generates C3D4 (4-node linear tet) mesh.
   3. Write CalculiX .inp file with BCs and load.
   4. Run `ccx` solver.
   5. Parse .frd output for max von Mises stress.
@@ -52,6 +52,12 @@ def run(step_bytes: bytes, spec: dict, mat: dict) -> FEAResult:
         bolt_nodes = _find_bolt_nodes(nodes, spec)
         load_nodes = _find_load_nodes(nodes, spec)
 
+        if not bolt_nodes:
+            return FEAResult(
+                passed=False,
+                reason=f"No bolt nodes found near mount face (x=0 ± 8mm, bolt centers). Mesh size={MESH_SIZE_MM}mm",
+            )
+
         if not load_nodes:
             return FEAResult(passed=False, reason="No nodes found near load application point")
 
@@ -89,8 +95,8 @@ def _mesh(step_path: str, tmpdir: str) -> tuple[dict, list]:
     gmsh.option.setNumber("General.Verbosity", 0)
     gmsh.option.setNumber("Mesh.CharacteristicLengthMin", MESH_SIZE_MM)
     gmsh.option.setNumber("Mesh.CharacteristicLengthMax", MESH_SIZE_MM)
-    gmsh.option.setNumber("Mesh.Algorithm3D", 4)  # Frontal-Delaunay
-    gmsh.option.setNumber("Mesh.ElementOrder", 2)  # Quadratic tets → C3D10
+    gmsh.option.setNumber("Mesh.Algorithm3D", 1)  # Delaunay — more robust than Frontal
+    gmsh.option.setNumber("Mesh.ElementOrder", 1)  # Linear tets (C3D4) — avoids Jacobian issues near curved surfaces
 
     gmsh.model.add("part")
     gmsh.merge(step_path)
@@ -104,7 +110,7 @@ def _mesh(step_path: str, tmpdir: str) -> tuple[dict, list]:
 
 
 def _parse_msh(msh_path: str) -> tuple[dict, list]:
-    """Parse gmsh .msh v4 file. Returns nodes dict {id: (x,y,z)} and C3D10 element list."""
+    """Parse gmsh .msh v4 file. Returns nodes dict {id: (x,y,z)} and C3D4 element list."""
     nodes: dict[int, tuple[float, float, float]] = {}
     elements: list[tuple[int, ...]] = []
 
@@ -115,10 +121,10 @@ def _parse_msh(msh_path: str) -> tuple[dict, list]:
     node_block_match = re.search(r"\$Nodes\n(.*?)\$EndNodes", content, re.DOTALL)
     if node_block_match:
         lines = node_block_match.group(1).strip().split("\n")
-        i = 1  # skip header
+        i = 1  # skip overall header
         while i < len(lines):
             parts = lines[i].split()
-            if len(parts) == 4:  # entity block header: num_dim, tag, parametric, num_nodes
+            if len(parts) == 4:  # entity block header: dim tag parametric numNodes
                 num_nodes = int(parts[3])
                 node_ids = [int(lines[i + 1 + j]) for j in range(num_nodes)]
                 for j, nid in enumerate(node_ids):
@@ -128,18 +134,20 @@ def _parse_msh(msh_path: str) -> tuple[dict, list]:
             else:
                 i += 1
 
-    # Elements section — type 11 = 10-node tet (C3D10)
+    # Elements section — type 4 = 4-node linear tet (C3D4)
     elem_block_match = re.search(r"\$Elements\n(.*?)\$EndElements", content, re.DOTALL)
     if elem_block_match:
         lines = elem_block_match.group(1).strip().split("\n")
-        i = 1
+        i = 1  # skip overall header
         while i < len(lines):
             parts = lines[i].split()
             if len(parts) == 4:
-                entity_dim, entity_tag, elem_type, num_elems = int(parts[0]), int(parts[1]), int(parts[2]), int(parts[3])
+                entity_dim, entity_tag, elem_type, num_elems = (
+                    int(parts[0]), int(parts[1]), int(parts[2]), int(parts[3])
+                )
                 for j in range(num_elems):
                     elem_line = lines[i + 1 + j].split()
-                    if elem_type == 11:  # C3D10
+                    if elem_type == 4:  # C3D4: 4-node linear tetrahedron
                         elements.append(tuple(int(x) for x in elem_line))
                 i += 1 + num_elems
             else:
@@ -197,7 +205,7 @@ def _write_inp(
         for nid, (x, y, z) in nodes.items():
             f.write(f"{nid}, {x:.6f}, {y:.6f}, {z:.6f}\n")
 
-        f.write("*ELEMENT, TYPE=C3D10, ELSET=SOLID\n")
+        f.write("*ELEMENT, TYPE=C3D4, ELSET=SOLID\n")
         for elem in elements:
             f.write(", ".join(str(n) for n in elem) + "\n")
 
@@ -246,7 +254,11 @@ def _run_ccx(workdir: str, jobname: str) -> None:
         timeout=120,
     )
     if result.returncode != 0:
-        raise RuntimeError(result.stderr.decode()[-2000:])
+        # ccx writes most output to stdout, not stderr
+        raw = (result.stdout.decode(errors="replace") + result.stderr.decode(errors="replace"))
+        # Collapse to single line so it survives JSON→shell→JS round-trips
+        brief = " ".join(raw.split())[-500:] or f"exit code {result.returncode}"
+        raise RuntimeError(brief)
 
 
 def _parse_frd(frd_path: str) -> float | None:

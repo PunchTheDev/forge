@@ -8,6 +8,7 @@ on:
 jobs:
   evaluate:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     permissions:
       pull-requests: write
 
@@ -38,16 +39,20 @@ jobs:
         if: steps.agent.outputs.found == 'true'
         run: |
           RESULTS=""
+          FINAL=""
           for i in 1 2 3; do
+            # Capture stdout; allow non-zero exit so we can surface the JSON error.
+            # --json-compact produces a single-line JSON for safe shell handling.
             OUT=$(docker run --rm \
               -v "${{ github.workspace }}:/forge" \
               forge-eval \
               --agent /forge/${{ steps.agent.outputs.path }} \
               --spec /forge/specs/001_bracket.json \
-              --json)
+              --json-compact 2>/dev/null) || true
             echo "Run $i: $OUT"
-            SCORE=$(echo "$OUT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('score','null'))")
+            SCORE=$(echo "$OUT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('score','null'))" 2>/dev/null || echo "null")
             RESULTS="$RESULTS $SCORE"
+            FINAL="$OUT"
           done
 
           # Check determinism: all three scores must match
@@ -57,14 +62,7 @@ jobs:
             exit 1
           fi
 
-          # Grab final result JSON
-          FINAL=$(docker run --rm \
-            -v "${{ github.workspace }}:/forge" \
-            forge-eval \
-            --agent /forge/${{ steps.agent.outputs.path }} \
-            --spec /forge/specs/001_bracket.json \
-            --json)
-
+          # Write single-line JSON to GITHUB_OUTPUT
           echo "result=$FINAL" >> "$GITHUB_OUTPUT"
 
       - name: Load current SOTA

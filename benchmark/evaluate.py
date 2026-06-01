@@ -19,7 +19,11 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from benchmark import geometry, fea, materials
-from benchmark.sandbox import run_agent
+from benchmark.sandbox import preload_ocp, run_agent
+
+# Pre-load OCP modules before any subprocess is forked.
+# On Linux (fork-based multiprocessing) this makes OCP import free in workers.
+preload_ocp()
 
 
 @dataclass
@@ -89,21 +93,26 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Forge benchmark evaluator")
     parser.add_argument("--agent", required=True, help="Path to agent.py")
     parser.add_argument("--spec", required=True, help="Path to spec JSON")
-    parser.add_argument("--json", action="store_true", help="Output JSON")
+    parser.add_argument("--json", action="store_true", help="Output pretty JSON")
+    parser.add_argument("--json-compact", action="store_true", help="Output single-line JSON (safe for shell capture)")
     args = parser.parse_args()
 
     result = evaluate(args.agent, args.spec)
 
+    payload = {
+        "passed": result.passed,
+        "score": result.score,
+        "stage": result.stage,
+        "reason": result.reason,
+        "fea_stress_mpa": result.fea_stress_mpa,
+        "fea_allowable_mpa": result.fea_allowable_mpa,
+        "elapsed_seconds": result.elapsed_seconds,
+    }
+
     if args.json:
-        print(json.dumps({
-            "passed": result.passed,
-            "score": result.score,
-            "stage": result.stage,
-            "reason": result.reason,
-            "fea_stress_mpa": result.fea_stress_mpa,
-            "fea_allowable_mpa": result.fea_allowable_mpa,
-            "elapsed_seconds": result.elapsed_seconds,
-        }, indent=2))
+        print(json.dumps(payload, indent=2))
+    elif args.json_compact:
+        print(json.dumps(payload, separators=(",", ":")))
     else:
         if result.passed:
             print(f"PASSED  score={result.score:.2f} g  stress={result.fea_stress_mpa:.1f}/{result.fea_allowable_mpa:.1f} MPa  t={result.elapsed_seconds:.1f}s")
