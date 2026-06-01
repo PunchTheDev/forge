@@ -1,24 +1,29 @@
 """
 Resource-limit enforcement for agent execution.
-Runs the agent's generate() in a subprocess with CPU time and memory caps.
+Runs the agent's generate() in a subprocess with CPU time caps.
+
+Note: RLIMIT_AS (virtual address space) is intentionally NOT set here.
+OCP/OpenCASCADE maps large amounts of virtual memory via shared libraries
+(often >10 GB of address space) even when actual RSS is well under 1 GB.
+Setting RLIMIT_AS kills OCP agents before they can run. Container-level
+memory limits (Docker --memory flag) enforce actual RAM budgets instead.
 """
 
 from __future__ import annotations
 
 import importlib.util
 import json
-import os
-import pickle
 import resource
-import signal
 import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
 
 
-TIMEOUT_SECONDS = 60
-MEMORY_LIMIT_BYTES = 4 * 1024 ** 3  # 4 GB
+# Wall-clock timeout: 120s to give OCP time to load and run.
+# RLIMIT_CPU (actual CPU time) is set to 90s inside the subprocess.
+TIMEOUT_SECONDS = 120
+CPU_SECONDS = 90
 
 
 @dataclass
@@ -53,7 +58,7 @@ def run_agent(agent_path: str, spec: dict) -> AgentResult:
     if proc.is_alive():
         proc.kill()
         proc.join()
-        return AgentResult(success=False, elapsed_seconds=elapsed, error="Agent timed out (60s limit)")
+        return AgentResult(success=False, elapsed_seconds=elapsed, error=f"Agent timed out ({TIMEOUT_SECONDS}s wall-clock limit)")
 
     if proc.exitcode != 0:
         err = "Agent process crashed"
@@ -99,13 +104,11 @@ def _agent_worker(agent_path: str, spec_json: str, result_queue) -> None:
 
 
 def _apply_rlimits() -> None:
-    """Apply memory and CPU time limits to the current process."""
-    try:
-        resource.setrlimit(resource.RLIMIT_AS, (MEMORY_LIMIT_BYTES, MEMORY_LIMIT_BYTES))
-    except (ValueError, resource.error):
-        pass  # Best-effort on platforms that don't support it
+    """Apply CPU time limit to the current process.
 
+    RLIMIT_AS is intentionally omitted — see module docstring.
+    """
     try:
-        resource.setrlimit(resource.RLIMIT_CPU, (TIMEOUT_SECONDS, TIMEOUT_SECONDS + 5))
+        resource.setrlimit(resource.RLIMIT_CPU, (CPU_SECONDS, CPU_SECONDS + 5))
     except (ValueError, resource.error):
         pass
