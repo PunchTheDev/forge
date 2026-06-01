@@ -35,6 +35,7 @@ class EvalResult:
     fea_stress_mpa: float | None = None
     fea_allowable_mpa: float | None = None
     elapsed_seconds: float = 0.0
+    step_bytes: bytes | None = None  # raw STEP output; populated only on pass
 
 
 def evaluate(agent_path: str, spec_path: str) -> EvalResult:
@@ -86,6 +87,7 @@ def evaluate(agent_path: str, spec_path: str) -> EvalResult:
         fea_stress_mpa=fea_result.max_stress_mpa,
         fea_allowable_mpa=fea_result.allowable_mpa,
         elapsed_seconds=agent_result.elapsed_seconds,
+        step_bytes=step_bytes,
     )
 
 
@@ -95,9 +97,13 @@ def main() -> None:
     parser.add_argument("--spec", required=True, help="Path to spec JSON")
     parser.add_argument("--json", action="store_true", help="Output pretty JSON")
     parser.add_argument("--json-compact", action="store_true", help="Output single-line JSON (safe for shell capture)")
+    parser.add_argument("--step-out", metavar="PATH", help="Write STEP bytes to this path on pass")
     args = parser.parse_args()
 
     result = evaluate(args.agent, args.spec)
+
+    if args.step_out and result.step_bytes is not None:
+        Path(args.step_out).write_bytes(result.step_bytes)
 
     payload = {
         "passed": result.passed,
