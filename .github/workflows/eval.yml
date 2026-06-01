@@ -111,3 +111,44 @@ jobs:
               issue_number: context.issue.number,
               body
             });
+
+      - name: Record submission to forge-api
+        if: steps.agent.outputs.found == 'true'
+        env:
+          FORGE_API_URL: ${{ secrets.FORGE_API_URL }}
+          EVAL_RESULT: ${{ steps.eval.outputs.result }}
+          AGENT_PATH: ${{ steps.agent.outputs.path }}
+          CONTRIBUTOR: ${{ github.event.pull_request.user.login }}
+          COMMIT_HASH: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.number }}
+        run: |
+          python3 - <<'PYEOF'
+import json, os, urllib.request, urllib.error
+
+url_base = os.environ.get("FORGE_API_URL", "").strip()
+if not url_base:
+    print("FORGE_API_URL not set — skipping submission record.")
+    raise SystemExit(0)
+
+result = json.loads(os.environ["EVAL_RESULT"])
+payload = {
+    "spec_id": "001_bracket",
+    "agent_path": os.environ["AGENT_PATH"],
+    "contributor": os.environ["CONTRIBUTOR"],
+    "commit_hash": os.environ["COMMIT_HASH"],
+    "mass_grams": result.get("score") or 0.0,
+    "fea_stress_mpa": result.get("fea_stress_mpa") or 0.0,
+    "fea_allowable_mpa": result.get("fea_allowable_mpa") or 0.0,
+    "passed": bool(result.get("passed", False)),
+    "pr_number": int(os.environ["PR_NUMBER"]),
+    "notes": f"CI eval — PR #{os.environ['PR_NUMBER']}",
+}
+body = json.dumps(payload).encode()
+url = url_base.rstrip("/") + "/submissions"
+req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"}, method="POST")
+try:
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        print(f"Submission recorded: {resp.read().decode()[:120]}")
+except urllib.error.URLError as e:
+    print(f"forge-api POST failed (non-blocking): {e}", flush=True)
+PYEOF
