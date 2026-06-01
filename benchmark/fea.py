@@ -12,12 +12,12 @@ Workflow:
 
 from __future__ import annotations
 
+import math
 import os
 import re
 import subprocess
-import struct
 import tempfile
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 
@@ -288,6 +288,3 @@ def _parse_frd(frd_path: str) -> float | None:
                         pass
 
     return max_vm if max_vm > 0 else None
-
-
-import math  # noqa: E402 — needed by module-level helpers

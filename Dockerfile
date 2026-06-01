@@ -13,9 +13,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-pip \
     python3-dev \
     calculix-ccx \
-    libgl1-mesa-glx \
+    libgl1 \
     libglu1-mesa \
     libgomp1 \
+    libxrender1 \
+    libxext6 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /forge
