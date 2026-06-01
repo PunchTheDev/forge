@@ -19,9 +19,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxrender1 \
     libxext6 \
     libxcursor1 \
+    libxfixes3 \
+    libxft2 \
     libxinerama1 \
     libxrandr2 \
     libxi6 \
+    libfontconfig1 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /forge
