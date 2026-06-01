@@ -19,7 +19,11 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from benchmark import geometry, fea, materials
-from benchmark.sandbox import run_agent
+from benchmark.sandbox import preload_ocp, run_agent
+
+# Pre-load OCP modules before any subprocess is forked.
+# On Linux (fork-based multiprocessing) this makes OCP import free in workers.
+preload_ocp()
 
 
 @dataclass
