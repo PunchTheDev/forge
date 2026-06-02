@@ -27,13 +27,13 @@ Arm within plate:
 Bolt ring (margin=5.05mm): clearance = 5.05-4.25 = 0.80mm = spec min_wall ✓
 Pocket-to-bolt (bolt_clear=5.05mm): clearance = 5.05-4.25 = 0.80mm = spec min_wall ✓
 
-Pocket z-range (with h_root cap):
-  pkt_z0 = 0 + 5.05 = 5.05mm; pkt_z1_raw = 40 - 5.05 = 34.95mm → capped to 31mm
-  Left:  y=5.05→45mm (39.95mm wide), z=5.05→31mm (25.95mm tall); area=1036mm²
-  Right: y=55→74.95mm (19.95mm wide), z=5.05→31mm (25.95mm tall); area=518mm²
-  vs v4 Left: y=6.25→44mm (37.75mm), z=6.25→33.75mm (27.5mm); area=1038mm²
-  vs v4 Right: y=56→73.75mm (17.75mm), z=same; area=488mm²
-  Pocket gain: (1554-1526)×1.2=34mm³ → 0.09g
+Pocket z-range (with min_wall gap below arm top):
+  pkt_z0 = 5.05mm; pkt_z1 = min(34.95, 31-0.8) = 30.2mm (= h_root - min_wall)
+  Left:  y=5.05→45mm (39.95mm), z=5.05→30.2mm (25.15mm); area=1005mm²
+  Right: y=55→74.95mm (19.95mm), z=5.05→30.2mm (25.15mm); area=502mm²
+  vs v4: Left 37.75×27.5=1038mm², Right 17.75×27.5=488mm²; total=1526mm²
+  v5 total: 1507mm² → pocket volume 1507×1.2=1808mm³ (-23mm³ vs v4 → -0.06g)
+  Pockets save 0.06g LESS than v4 (pockets are smaller due to shorter z-range)
 
 Stress estimate (same analysis as before):
   v4 I = 9,204 mm⁴, c=17mm, FEA=24.7 MPa
@@ -42,8 +42,8 @@ Stress estimate (same analysis as before):
 
 Mass estimate (savings over v4):
   h_root 34→31mm: web ΔV = 124×2×((29.4+28.4)/2-(32.4+28.4)/2) = 124×2×1.5 = 372mm³ → 1.00g
-  pockets (h_root cap in z): +0.09g
-  Total savings: ~1.09g → target: 41.81 - 1.09 = 40.72g
+  pockets (min_wall gap cap): -0.06g (pockets actually smaller than v4 in z)
+  Total savings: ~0.94g → target: 41.81 - 0.94 = 40.87g
 """
 
 from __future__ import annotations
@@ -138,7 +138,10 @@ def generate(spec: dict) -> bytes:
     arm_y_max = y_center + flange_w / 2   # 54.0mm
 
     pkt_z0 = min(bz_coords) + bolt_clear
-    pkt_z1 = min(max(bz_coords) - bolt_clear, h_root)  # cap: pocket must not exceed arm height
+    # Cap pkt_z1: must stay at least min_wall below arm top to avoid junction stress.
+    # v4 precedent: pkt_z1=33.75mm < h_root=34mm (0.25mm gap) → passed at 24.7 MPa.
+    # Capping AT h_root (0mm gap) fails (194.3 MPa). min_wall=0.8mm gap for safety.
+    pkt_z1 = min(max(bz_coords) - bolt_clear, h_root - min_wall)
 
     # Left pocket
     lpkt_y0 = min(by_coords) + bolt_clear
