@@ -1,28 +1,32 @@
 """
-Thin-plate bracket: mid-arm with plate_t reduced to 2.0mm (spec-001).
+Thin-plate v2: mid-tight with plate_t=2.5mm and pocket_depth=1.3mm (spec-001).
 
-Key insight: net plate volume = plate_t × (plate_area - pocket_area) + pocket_area × min_wall
-With min_wall=1.2mm and pocket_area fixed, reducing plate_t reduces net plate mass.
-Minimum plate_t = pocket_depth + min_wall. With pocket_depth=0.8mm: plate_t=2.0mm.
+Baseline: mid-tight (23.84g, 15.2 MPa, 60.8% of 25 MPa allowable).
+thin-plate v1 (2.0mm plate) failed at 43.9 MPa — plate too thin.
 
-At plate_t=2.0mm, max pocket_depth = plate_t - min_wall = 2.0 - 1.2 = 0.8mm.
+Stress scaling from 3.0mm → 2.5mm: σ ∝ 1/plate_t² → 15.2 × (3.0/2.5)² = 21.9 MPa < 25 MPa ✓
+(Conservative: shallower pockets at 1.3mm leave more plate material → stress might be lower)
 
-Changes from pocket-18 (25.11g target, plate_t=3.0mm, pocket_depth=1.8mm):
-  plate_t    3.0mm → 2.0mm
-  pocket_depth 1.8mm → 0.8mm (forced by min_wall=1.2mm)
+Changes from mid-tight:
+  plate_t      : 3.0mm → 2.5mm
+  pocket_depth : 1.8mm → 1.3mm  (pocket_remaining = 2.5 - 1.3 = 1.2mm = min_wall ✓)
 
-Mass comparison:
-  Old net plate = 3.0 × 69.5² - 1.8 × 1955 = 14,490 - 3,519 = 10,971 mm³ → 13.60g
-  New net plate = 2.0 × 69.5² - 0.8 × 1955 = 9,660 - 1,564 = 8,096 mm³  → 10.04g
-  Saving: 3.56g  → target: 25.11 - 3.56 = ~21.5g
+Mass savings vs mid-tight (23.84g):
+  plate volume savings:
+    Plate (solid, before holes/pockets): plate_y=68.9mm, plate_z=68.9mm
+    ΔV_plate = 68.9 × 68.9 × 0.5 = 2373mm³ → 2373 × 1.24e-3 = 2.94g saved
+  pocket savings lost (1.8→1.3mm, 0.5mm less depth):
+    pocket_area ≈ left(16.25×50.5) + right(26.25×50.5) = 820+1325 = 2145mm²
+    ΔV_pocket_lost = 2145 × 0.5 = 1073mm³ → 1073 × 1.24e-3 = 1.33g less savings
+  Net: 2.94 - 1.33 = 1.61g → target: 23.84 - 1.61 = 22.23g
 
-Note: losing some pocket depth savings vs pocket-18, but net plate volume is still lower.
+Wall checks:
+  bolt ring: margin - bolt_r = 4.45 - 3.25 = 1.2mm = min_wall ✓
+  pocket remaining: plate_t - pocket_depth = 2.5 - 1.3 = 1.2mm = min_wall ✓
+  pocket-bolt bridge: bolt_clear - bolt_r = 4.75 - 3.25 = 1.5mm > min_wall ✓
+  flange_t = 1.2mm = min_wall ✓
 
-Arm unchanged from mid-arm: h_root=70mm, h_tip=15mm, flange_w=6mm, web_w=2mm, flange_t=1.5mm
-
-Structural check: current FEA at pocket-15 = 14.3 MPa (57.2% of allowable 25 MPa).
-Plate stress headroom: 42.8%. Thinning plate by 33% should remain well within limits —
-plate mainly transfers bolt BCs to arm root, not a primary bending element.
+All other parameters identical to mid-tight (23.84g, PR #64).
 """
 
 from __future__ import annotations
@@ -32,7 +36,7 @@ import tempfile
 
 
 def generate(spec: dict) -> bytes:
-    """Return STEP bytes for a thin-plate wall bracket (plate_t=2.0mm)."""
+    """Return STEP bytes for thin-plate wall bracket (plate_t=2.5mm)."""
     from OCP.BRepAlgoAPI import BRepAlgoAPI_Cut, BRepAlgoAPI_Fuse
     from OCP.BRepPrimAPI import BRepPrimAPI_MakeBox, BRepPrimAPI_MakeCylinder
     from OCP.Interface import Interface_Static
@@ -43,23 +47,24 @@ def generate(spec: dict) -> bytes:
     bolt_pattern = c["bolt_pattern_mm"]
     bolt_d = c["bolt_diameter_clearance_mm"]
     lp = c["load_point_mm"]           # [100, 25, 25]
+    min_wall = c.get("min_wall_thickness_mm", 1.2)
 
     by_coords = [p[0] for p in bolt_pattern]
     bz_coords = [p[1] for p in bolt_pattern]
     bolt_r = bolt_d / 2.0
-    margin = bolt_r + 1.5
+    margin = bolt_r + min_wall              # 4.45mm
 
-    plate_t  = 2.0                    # reduced from 3.0mm — single change from mid-arm
+    plate_t  = 2.5
     plate_y0 = min(by_coords) - margin
     plate_y1 = max(by_coords) + margin
     plate_z0 = min(bz_coords) - margin
     plate_z1 = max(bz_coords) + margin
 
-    arm_len  = lp[0] + 4.0            # 104mm
+    arm_len  = lp[0] + 2.0            # 102mm (same as mid-tight)
 
     web_w    = 2.0
     flange_w = 6.0
-    flange_t = 1.5
+    flange_t = 1.2                    # = min_wall
     h_root   = 70.0
     h_tip    = 15.0
     y_center = lp[1]                  # 25mm
@@ -107,12 +112,10 @@ def generate(spec: dict) -> bytes:
         cut_op.Build()
         shape = cut_op.Shape()
 
-    # ── Wall-face pockets: 0.8mm deep (1.2mm remaining = spec min_wall) ──────
-    # plate_t=2.0mm: max pocket_depth = 2.0 - 1.2 = 0.8mm
-    pocket_depth = 0.8
-
-    bolt_clear = bolt_r + 2.0
-    arm_buf    = 2.0
+    # ── Wall-face pockets: 1.3mm deep (leaving 1.2mm = min_wall of 2.5mm plate) ──
+    pocket_depth = 1.3
+    bolt_clear = bolt_r + 1.5          # 4.75mm: 1.5mm bridge (same as mid-tight)
+    arm_buf    = 1.0
 
     arm_y_min = y_center - flange_w / 2   # 22.0mm
     arm_y_max = y_center + flange_w / 2   # 28.0mm
@@ -120,7 +123,6 @@ def generate(spec: dict) -> bytes:
     pkt_z0 = min(bz_coords) + bolt_clear
     pkt_z1 = max(bz_coords) - bolt_clear
 
-    # Left pocket
     lpkt_y0 = min(by_coords) + bolt_clear
     lpkt_y1 = arm_y_min - arm_buf
     if lpkt_y1 > lpkt_y0 + 2.0 and pkt_z1 > pkt_z0 + 2.0:
@@ -132,7 +134,6 @@ def generate(spec: dict) -> bytes:
         cut_op.Build()
         shape = cut_op.Shape()
 
-    # Right pocket
     rpkt_y0 = arm_y_max + arm_buf
     rpkt_y1 = max(by_coords) - bolt_clear
     if rpkt_y1 > rpkt_y0 + 2.0 and pkt_z1 > pkt_z0 + 2.0:
