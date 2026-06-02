@@ -63,7 +63,10 @@ def generate(spec: dict) -> bytes:
     flange_w = 12.0
     flange_t = 2.5
     h_root   = 80.0                            # limited by build_volume_z=90mm
-    h_tip    = 20.0                            # taper down at tip
+    # h_tip must ensure arm has material near load point z.
+    # Arm height at x=lp[0]: h(lp[0]) = h_root-(h_root-h_tip)*lp[0]/arm_len ≥ lp[2]+5
+    # For spec 002: lp[2]=45mm → h_tip must be ≥ 50mm to reach above load point.
+    h_tip    = max(flange_t * 6, lp[2] + 5.0)  # 50mm for spec 002 (lp[2]=45mm)
     y_center = lp[1]                           # 50mm — load point y
 
     # ── Arm ───────────────────────────────────────────────────────────────────
