@@ -7,6 +7,9 @@ FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+# Limit threading to avoid OCP/OpenMP segfaults in constrained containers.
+ENV OMP_NUM_THREADS=1
+ENV OPENBLAS_NUM_THREADS=1
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
@@ -31,6 +34,8 @@ WORKDIR /forge
 
 COPY requirements.txt .
 RUN pip3 install --no-cache-dir --break-system-packages -r requirements.txt
+# Verify OCP loads at build time; fail fast if the install is broken.
+RUN python3 -c "from OCP.BRepAlgoAPI import BRepAlgoAPI_Cut; print('OCP OK')"
 
 COPY . .
 

@@ -69,6 +69,29 @@ jobs:
         if: steps.agent.outputs.found == 'true' && steps.dedup.outputs.cached != 'true'
         run: docker build -t forge-eval .
 
+      - name: Verify OCP in subprocess
+        if: steps.agent.outputs.found == 'true' && steps.dedup.outputs.cached != 'true'
+        run: |
+          # Confirm OCP works inside a subprocess spawned by the container.
+          # This catches SIGSEGV / SIGILL from bad OCP installs before wasting
+          # time on the full evaluation.
+          docker run --rm \
+            --network none \
+            --security-opt no-new-privileges \
+            --memory 4g --cpus 2 \
+            forge-eval \
+            python3 -c "
+import subprocess, sys
+result = subprocess.run(
+    [sys.executable, '-c', 'from OCP.BRepAlgoAPI import BRepAlgoAPI_Cut; print(\"OCP subprocess OK\")'],
+    capture_output=True, text=True, timeout=60
+)
+print('stdout:', result.stdout.strip())
+print('stderr:', result.stderr.strip())
+print('returncode:', result.returncode)
+sys.exit(result.returncode)
+"
+
       - name: Run evaluation (3× determinism check)
         id: eval
         if: steps.agent.outputs.found == 'true' && steps.dedup.outputs.cached != 'true'
