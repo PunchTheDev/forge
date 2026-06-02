@@ -8,6 +8,7 @@ Exit codes:
   0  — STEP bytes written to --out path
   1  — agent raised an exception (message on stderr)
   2  — generate() returned non-bytes (message on stderr)
+  3  — unexpected error outside the agent try/except (message on stderr)
 """
 
 from __future__ import annotations
@@ -36,10 +37,18 @@ def main() -> None:
     except (ValueError, OSError):
         pass
 
-    spec = json.loads(Path(args.spec).read_text())
+    try:
+        spec = json.loads(Path(args.spec).read_text())
+    except Exception as e:
+        print(f"Cannot read spec {args.spec}: {e}", file=sys.stderr)
+        sys.exit(3)
 
     sys.path.insert(0, str(Path(args.agent).parent))
     loader_spec = importlib.util.spec_from_file_location(Path(args.agent).stem, args.agent)
+    if loader_spec is None:
+        print(f"Cannot locate agent module: {args.agent}", file=sys.stderr)
+        sys.exit(3)
+
     mod = importlib.util.module_from_spec(loader_spec)
 
     try:
@@ -57,4 +66,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except BaseException as exc:
+        print(f"{type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
+        raise SystemExit(3)
