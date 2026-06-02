@@ -30,13 +30,41 @@ jobs:
             echo "found=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Build eval image
+      - name: Check duplicate submission
+        id: dedup
         if: steps.agent.outputs.found == 'true'
+        env:
+          FORGE_API_URL: ${{ secrets.FORGE_API_URL }}
+          COMMIT_HASH: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ -z "$FORGE_API_URL" ]; then
+            echo "cached=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            "${FORGE_API_URL}/submissions?commit_hash=${COMMIT_HASH}&passed_only=false&limit=1")
+          if [ "$STATUS" != "200" ]; then
+            echo "forge-api unreachable ($STATUS) — proceeding with eval."
+            echo "cached=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          COUNT=$(curl -s \
+            "${FORGE_API_URL}/submissions?commit_hash=${COMMIT_HASH}&passed_only=false&limit=1" \
+            | python3 -c "import sys,json; print(len(json.load(sys.stdin)))")
+          if [ "$COUNT" -gt "0" ]; then
+            echo "Commit ${COMMIT_HASH} already scored — skipping eval."
+            echo "cached=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "cached=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build eval image
+        if: steps.agent.outputs.found == 'true' && steps.dedup.outputs.cached != 'true'
         run: docker build -t forge-eval .
 
       - name: Run evaluation (3× determinism check)
         id: eval
-        if: steps.agent.outputs.found == 'true'
+        if: steps.agent.outputs.found == 'true' && steps.dedup.outputs.cached != 'true'
         run: |
           RESULTS=""
           FINAL=""
@@ -72,13 +100,13 @@ jobs:
 
       - name: Load current SOTA
         id: sota
-        if: steps.agent.outputs.found == 'true'
+        if: steps.agent.outputs.found == 'true' && steps.dedup.outputs.cached != 'true'
         run: |
           SOTA=$(cat sota/score.json | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('score_grams', 9999))")
           echo "mass=$SOTA" >> "$GITHUB_OUTPUT"
 
       - name: Post score comment
-        if: steps.agent.outputs.found == 'true'
+        if: steps.agent.outputs.found == 'true' && steps.dedup.outputs.cached != 'true'
         uses: actions/github-script@v7
         with:
           script: |
@@ -118,7 +146,7 @@ jobs:
             });
 
       - name: Record submission to forge-api
-        if: steps.agent.outputs.found == 'true'
+        if: steps.agent.outputs.found == 'true' && steps.dedup.outputs.cached != 'true'
         env:
           FORGE_API_URL: ${{ secrets.FORGE_API_URL }}
           EVAL_RESULT: ${{ steps.eval.outputs.result }}
