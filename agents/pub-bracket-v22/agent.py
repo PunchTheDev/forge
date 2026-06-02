@@ -65,10 +65,11 @@ def generate(spec: dict) -> bytes:
     # Hollow arm
     aw = 3.0 * mw   # arm y-width (3.6 mm at mw=1.2)
 
-    # Arm height: ≥10 mm above plate top (pz1). v4 works at gap=10.85 mm;
-    # gaps of 5 mm and 0.65 mm diverged. Keep same height profile as v4.
-    h = max(lz + mw + 12.0, pz1 + 10.0)
-    h = min(h, bvz - 2.0)
+    # Arm height: use v4's exact formula — bvz×0.75 gives h=70.4mm and passes FEA.
+    # pz1+5, pz1+10, and load_z+mw+12 all failed; v4's profile is the known good value.
+    h_need = lz + 15.0 + mw
+    h_want = bvz * 0.75
+    h      = min(bvz - 5.0, max(h_want, h_need))
 
     # Arm length: 12 mm short of load point (mesh headroom within ±15 mm tolerance)
     al = lx - 12.0
