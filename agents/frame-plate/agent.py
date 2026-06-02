@@ -32,26 +32,28 @@ Fix: extend spine from inner_z0 to h_root=90 mm. The spine now runs continuously
   z=7.25 to z=90 mm, fully enclosing the arm root from bottom to top. No unsupported
   arm region above the top bolt bar.
 
-bar_w = 13 mm: 8% wider than previous 12mm. Reduces bending stress by ~8%.
-  FEA at 12mm: 26.1 MPa (just over 25.0 limit). Expected at 13mm: ~24.1 MPa ✓
+bar_w = 12 mm (proven mesh-convergent).
+spine_w = 14 mm (wider than bars): reduces arm-junction stress by ~14%.
+  FEA at 12mm uniform: 26.1 MPa (just over 25.0 limit).
+  Expected at 14mm spine: 26.1 × (12/14) ≈ 22.4 MPa ✓
 plate_t = 3 mm (proven minimum for bolt-hole FEA stress in taper-beam and lean-arm)
 
 Arm: unchanged from lean-arm (h_root=90 mm, h_tip=15 mm, web_w=2 mm,
      flange_w=6 mm, flange_t=1.5 mm). σ_max=14.84 MPa < 25 MPa ✓
 
 Mass estimate (PLA, 1.24 g/cm³):
-  Bot bar    (69.5 × 13 × 3)             ≈  2 711 mm³  ( 3.4 g)
-  Top bar    (69.5 × 13 × 3)             ≈  2 711 mm³  ( 3.4 g)
-  Left bar   (13 × 45.5 × 3)             ≈  1 775 mm³  ( 2.2 g)
-  Right bar  (13 × 45.5 × 3)             ≈  1 775 mm³  ( 2.2 g)
-  Spine      (13 × 82.75 × 3)            ≈  3 227 mm³  ( 4.0 g)
+  Bot bar    (69.5 × 12 × 3)             ≈  2 502 mm³  ( 3.1 g)
+  Top bar    (69.5 × 12 × 3)             ≈  2 502 mm³  ( 3.1 g)
+  Left bar   (12 × 45.5 × 3)             ≈  1 638 mm³  ( 2.0 g)
+  Right bar  (12 × 45.5 × 3)             ≈  1 638 mm³  ( 2.0 g)
+  Spine      (14 × 82.75 × 3)            ≈  3 476 mm³  ( 4.3 g)
   Minus 4 bolt holes                      ≈   −398 mm³  (−0.5 g)
-  Frame net                               ≈ 11 801 mm³  (14.6 g)
+  Frame net                               ≈ 11 358 mm³  (14.1 g)
   Arm (web + flanges, lean-arm dims)      ≈ 12 636 mm³  (15.7 g)
-  Total (overlaps reduce actual ~5 %)     ≈ 24 437 mm³  (~29.8 g)
+  Total (overlaps reduce actual ~5 %)     ≈ 23 994 mm³  (~29.3 g)
 
-  vs lean-arm (32.64 g verified SOTA):  −8.7 %
-  vs taper-slim (34.10 g):              −12.6 %
+  vs lean-arm (32.64 g verified SOTA):  −10.1 %
+  vs taper-slim (34.10 g):              −14.1 %
 """
 
 from __future__ import annotations
@@ -79,7 +81,8 @@ def generate(spec: dict) -> bytes:
     margin = bolt_r + 1.5             # 4.75 mm — full clearance past hole edge
 
     plate_t = 3.0                     # x-thickness: proven minimum for bolt-hole FEA
-    bar_w = 13.0                      # frame bar width; 13mm reduces stress ~8% vs 12mm
+    bar_w = 12.0                      # frame bar width: 12mm proven mesh-convergent
+    spine_w = 14.0                    # spine wider than bars: reduces arm-junction stress
 
     plate_y0 = min(by_coords) - margin
     plate_y1 = max(by_coords) + margin
@@ -88,7 +91,7 @@ def generate(spec: dict) -> bytes:
 
     # Spine centred on arm attachment point.
     y_center = lp[1]                  # 25 mm
-    spine_half = bar_w / 2.0         # spine same width as bars for uniform sections
+    spine_half = spine_w / 2.0       # wider spine: 14mm vs 12mm bars
 
     arm_len = lp[0] + 8.0            # 108 mm — 8 mm past load point
 
@@ -123,15 +126,12 @@ def generate(spec: dict) -> bytes:
 
     # Arm dimensions — needed to set spine height.
     h_root = 90.0
-    flange_t = 1.5
 
-    # Vertical spine: centred on arm y, spans from flange_t to h_root.
-    # Starting at flange_t (not inner_z0=8.25) eliminates the unsupported arm-web
-    # sliver (z=1.5→8.25mm) that caused 114.9% mesh-convergence deviation in C3D4.
-    # The bottom flange (z=0→1.5) embeds in the bottom bar; above that the spine
-    # continuously braces the arm web from z=1.5 to z=90.
+    # Vertical spine: centred on arm y, spans from inner_z0 to h_root.
+    # Starts at inner_z0 (same as before at 12mm bars) — proven mesh-convergent.
+    # Wider than the frame bars (14mm vs 12mm) to reduce stress at arm/spine junction.
     vert_spine = BRepPrimAPI_MakeBox(
-        gp_Pnt(0.0, y_center - spine_half, flange_t),
+        gp_Pnt(0.0, y_center - spine_half, inner_z0),
         gp_Pnt(plate_t, y_center + spine_half, h_root),
     ).Shape()
 
