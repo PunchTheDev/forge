@@ -1,0 +1,30 @@
+{
+  "id": "003_pipe_clamp_bracket",
+  "version": "1.0",
+  "name": "Stainless Steel Pipe-Clamp Bracket",
+  "description": "A 316 stainless steel wall bracket for supporting a 100 kg process pipe 150 mm from the wall face. Mounts via six M10 bolts in a 3×2 grid. Stainless 316 is 3× denser than aluminum and 6.4× denser than PLA — every cubic millimeter costs far more than in plastic or aluminum designs. Optimal topology will be extreme open-lattice or thin-walled I-beam sections. Minimize mass while surviving the combined bending and shear load.",
+  "material": "stainless_316",
+  "constraints": {
+    "load_newtons": 981.0,
+    "load_point_mm": [150.0, 50.0, 45.0],
+    "safety_factor": 2.5,
+    "bolt_pattern_mm": [
+      [0.0,  0.0],
+      [50.0, 0.0],
+      [100.0, 0.0],
+      [0.0,  60.0],
+      [50.0, 60.0],
+      [100.0, 60.0]
+    ],
+    "bolt_diameter_clearance_mm": 10.5,
+    "mount_face_x_mm": 0.0,
+    "build_volume_mm": [180.0, 120.0, 100.0],
+    "max_overhang_deg": 45.0,
+    "min_wall_thickness_mm": 0.5
+  },
+  "scoring": {
+    "metric": "mass_grams",
+    "direction": "minimize",
+    "baseline_mass_grams": 1500.0
+  }
+}
