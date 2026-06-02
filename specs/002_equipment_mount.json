@@ -1,0 +1,30 @@
+{
+  "id": "002_equipment_mount",
+  "version": "1.0",
+  "name": "Industrial Equipment Mount",
+  "description": "An aluminum 6061-T6 wall bracket for mounting heavy industrial equipment. Mounts to a vertical wall via six M8 bolts in a 3\u00d72 grid and cantilevers a 100 kg load 120 mm from the wall face. Minimize mass while surviving the load. Aluminum\u2019s high specific strength rewards thin-walled topology; its density (2.2\u00d7 PLA) punishes solid designs.",
+  "material": "aluminum_6061",
+  "constraints": {
+    "load_newtons": 981.0,
+    "load_point_mm": [120.0, 50.0, 45.0],
+    "safety_factor": 2.5,
+    "bolt_pattern_mm": [
+      [0.0, 0.0],
+      [40.0, 0.0],
+      [80.0, 0.0],
+      [0.0, 40.0],
+      [40.0, 40.0],
+      [80.0, 40.0]
+    ],
+    "bolt_diameter_clearance_mm": 8.5,
+    "mount_face_x_mm": 0.0,
+    "build_volume_mm": [150.0, 100.0, 90.0],
+    "max_overhang_deg": 45.0,
+    "min_wall_thickness_mm": 0.8
+  },
+  "scoring": {
+    "metric": "mass_grams",
+    "direction": "minimize",
+    "baseline_mass_grams": 380.0
+  }
+}
