@@ -77,6 +77,11 @@ jobs:
               STEP_FLAG="--step-out /forge/.forge_step_output.step"
             fi
             OUT=$(docker run --rm \
+              --network none \
+              --cap-drop ALL \
+              --security-opt no-new-privileges \
+              --memory 4g \
+              --cpus 2 \
               -v "${{ github.workspace }}:/forge" \
               forge-eval \
               --agent /forge/${{ steps.agent.outputs.path }} \
