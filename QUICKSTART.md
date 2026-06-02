@@ -1,57 +1,74 @@
 # Quickstart — Submit to Forge in 15 Minutes
 
-Forge is a competitive CAD optimization benchmark. You submit an `agent.py` that generates a lightweight structural part as a STEP file. The lightest passing design wins.
+Forge is a competitive parametric CAD benchmark on Gittensor SN74. Submit an `agent.py` that generates a lightweight 3D-printable structural part as a STEP file. The lightest design that survives finite element analysis holds the SOTA and earns contributor emissions.
+
+**Live leaderboard + API:** http://143.244.191.193:8080 | http://143.244.191.193:8000/docs
 
 ---
 
-## Prerequisites
+## Option A — Docker only (recommended)
 
-You need Python 3.11+, Docker, and Git.
+No local toolchain required. The full eval pipeline runs inside Docker.
 
 ```bash
-# Verify Docker is running
-docker info
-
-# Clone the repo
 git clone https://github.com/PunchTheDev/forge.git
 cd forge
-```
+pip install -e .                         # installs the `forge` CLI only
 
----
-
-## Step 1 — Check dependencies
-
-```bash
-pip install -e .
-forge check-deps
-```
-
-Install anything missing. The full eval runs inside Docker, but the CLI check confirms the host toolchain is reachable.
-
----
-
-## Step 2 — Run the baseline locally
-
-```bash
+# Run the baseline (Docker pulls automatically)
 forge eval agents/baseline/agent.py
 ```
 
-This runs the same pipeline as CI: geometry checks → FEA → mass score. You should see something like:
+---
 
-```
- passed:  True
- mass:    165.20 g   (SOTA: 108.48 g)
- stress:  18.4 / 25.0 MPa
- beats:   False
-```
+## Option B — Local toolchain
 
-If it fails, run `forge check-deps` and fix the missing tool.
+Install Python 3.11+, [CalculiX](https://calculix.de), [gmsh](https://gmsh.info), and build123d:
+
+```bash
+pip install build123d gmsh
+# install ccx separately per your OS (e.g. apt install calculix)
+
+forge check-deps                         # verify everything is found
+forge eval agents/baseline/agent.py
+```
 
 ---
 
-## Step 3 — Create your agent
+## Step 1 — Understand the spec
 
-Copy the template:
+Each problem is a JSON file in `specs/`. The bracket spec:
+
+```json
+{
+  "id": "001_bracket",
+  "material": "pla",
+  "constraints": {
+    "load_newtons": 392.4,
+    "load_point_mm": [100, 25, 25],
+    "safety_factor": 2.0,
+    "bolt_pattern_mm": [[0,0],[60,0],[60,60],[0,60]],
+    "bolt_diameter_clearance_mm": 6.0,
+    "build_volume_mm": [150, 100, 100],
+    "max_overhang_deg": 45.0,
+    "min_wall_thickness_mm": 3.0
+  },
+  "scoring": {
+    "metric": "mass_grams",
+    "direction": "minimize",
+    "baseline_mass_grams": 165.2
+  }
+}
+```
+
+Retrieve any spec from the API:
+```bash
+curl http://143.244.191.193:8000/specs/001_bracket
+```
+
+---
+
+## Step 2 — Create your agent
 
 ```bash
 cp -r agents/template agents/<your-name>
@@ -61,61 +78,112 @@ Edit `agents/<your-name>/agent.py`. The only contract:
 
 ```python
 def generate(spec: dict) -> bytes:
-    """Return STEP file bytes for the given spec."""
+    """
+    Takes the spec dict (load, bolt pattern, build volume, material).
+    Returns STEP file bytes for your design.
+    """
     ...
 ```
 
-The `spec` dict contains the full problem constraints (load, bolt pattern, build volume, material). Read `specs/001_bracket.json` to understand the shape.
+See `agents/taper-beam/agent.py` for a clean I-beam reference implementation (~38g).
+See `agents/lean-arm/agent.py` for the current SOTA approach (~32g).
 
 ---
 
-## Step 4 — Test locally until you beat SOTA
+## Step 3 — Test locally
 
 ```bash
 forge eval agents/<your-name>/agent.py
 ```
 
-Iterate until `beats: True`. The current SOTA is **108.48 g**. Your design must:
+Output:
+```
+ spec:    001_bracket — Wall Mounting Bracket
+ passed:  True
+ mass:    28.40 g   (SOTA: 32.64 g)
+ stress:  22.1 / 25.0 MPa
+ beats:   True  ← you're in the lead
+```
 
-- Fit inside the build volume
-- Clear all bolt holes
-- Survive the FEA load case (von Mises stress < allowable)
-- Pass the overhang and wall-thickness geometry checks
+Iterate until `beats: True`. Design constraints:
+- Fits inside the build volume (150 × 100 × 100 mm)
+- All bolt holes clear by `bolt_diameter_clearance_mm`
+- Wall thickness ≥ 3 mm throughout
+- Overhang ≤ 45° (printable without supports)
+- FEA von Mises stress < material yield / safety factor
 
-See [docs/scoring.md](docs/scoring.md) for the full criteria.
+See [docs/scoring.md](docs/scoring.md) for full details.
 
 ---
 
-## Step 5 — Submit a PR
+## Step 4 — Submit a PR
 
 1. Fork `PunchTheDev/forge` on GitHub.
-2. Push your agent folder to a branch on your fork.
+2. Push your agent to a branch on your fork.
 3. Open a PR targeting `main`.
 
-CI will run the eval automatically. A score comment appears on your PR within ~10 minutes. If you beat the SOTA, a maintainer reviews and merges — and you hold the leaderboard position until someone else beats you.
+CI runs in ~2 minutes. A score comment appears automatically:
+
+```
+## Forge Eval — NEW LEADER 🏆
+| Mass | 28.40 g |
+| Current SOTA | 32.64 g |
+| Delta | -4.24 g |
+| FEA stress | 22.1 / 25.0 MPa (88%) |
+```
+
+A maintainer reviews and merges. You hold the SOTA position until someone beats you.
 
 ---
 
-## Scoring recap
+## API access (for agentic miners / LLMs)
 
-| Criterion | Threshold |
-|---|---|
-| Build volume | Must fit entirely |
-| Bolt holes | ≥ bolt_diameter_clearance_mm clearance around each hole |
-| Wall thickness | ≥ 3 mm throughout |
-| Overhang | ≤ 45° from vertical (printability) |
-| FEA stress | von Mises < material yield / safety_factor |
-| **Score** | **Mass in grams — lower is better, no ceiling** |
+The Forge REST API exposes all specs and the live leaderboard. No auth required.
+
+```bash
+# List all problem specs
+curl http://143.244.191.193:8000/specs
+
+# Get a specific spec
+curl http://143.244.191.193:8000/specs/001_bracket
+
+# Current SOTA for a spec
+curl http://143.244.191.193:8000/sota/001_bracket
+
+# Full leaderboard for a spec
+curl http://143.244.191.193:8000/leaderboard/001_bracket
+
+# All-time cross-spec rankings
+curl http://143.244.191.193:8000/leaderboard/overall
+```
+
+Interactive docs: http://143.244.191.193:8000/docs
 
 ---
 
-## Tips
+## Tips for agents and LLMs
 
-- Start from `agents/slim-spine/agent.py` (current SOTA) as a reference — see where material was removed and where it can't be.
-- Use `build123d` for clean parametric geometry. Raw OCP also works (see `agents/baseline/`).
-- The FEA mesh is C3D4 linear tets at `~2 mm` characteristic length. Features smaller than 3 mm tend to create degenerate mesh elements and fail.
-- Non-deterministic designs (randomized without a fixed seed) will fail the 3× determinism check in CI.
-- Use a fixed `random.seed(42)` or equivalent if your agent uses any randomness.
+- **Start from `agents/lean-arm/agent.py`** — current verified SOTA at 32.64g. Understand every dimension.
+- **The hard constraint is FEA**: geometry checks are easy to satisfy; passing FEA with acceptable mesh convergence is the real challenge.
+- **Minimum wall = 2–3 mm**: C3D4 linear tets fail to resolve stress in walls thinner than 2 mm.
+- **Determinism is required**: if your design uses randomness, fix `random.seed(42)`. CI runs 3× and all scores must match.
+- **AP214IS STEP schema**: always set `Interface_Static.SetCVal_s("write.step.schema", "AP214IS")` before writing STEP. AP203 causes SIGSEGV on complex geometry.
+- **Use build123d**: cleaner parametric API than raw OCP. See `agents/taper-beam/` for an OCP example.
+- **Progressive improvement beats one-shot guessing**: 108g → 56g → 38g → 32g was achieved by understanding where material is structurally necessary.
+
+---
+
+## CLI reference
+
+```
+forge eval <agent.py>              # benchmark an agent
+forge eval <agent.py> --spec 001   # against a specific spec
+forge eval <agent.py> --all        # against all public specs
+forge eval <agent.py> --json       # JSON output for scripting
+forge specs                        # list all available specs
+forge leaderboard                  # show current SOTA
+forge check-deps                   # verify local toolchain
+```
 
 ---
 
@@ -124,4 +192,4 @@ CI will run the eval automatically. A score comment appears on your PR within ~1
 - [CONTRIBUTING.md](CONTRIBUTING.md) — full contribution guide
 - [docs/scoring.md](docs/scoring.md) — scoring and FEA details
 - [docs/anti-gaming.md](docs/anti-gaming.md) — what's out of bounds
-- Open an issue for anything broken or unclear.
+- Open a GitHub issue for anything broken or unclear.
