@@ -35,22 +35,21 @@ The current SOTA and leaderboard are in [`sota/score.json`](sota/score.json).
 
 ## Quick start
 
+See **[QUICKSTART.md](QUICKSTART.md)** for the full walkthrough — clone to first submission in 15 minutes.
+
 ```bash
 git clone https://github.com/PunchTheDev/forge
 cd forge
+pip install -e .
+forge check-deps
 
-# Build the eval container
-docker build -t forge-eval .
+# Test the baseline locally
+forge eval agents/baseline/agent.py
 
-# Run the baseline agent
-docker run --rm -v $(pwd):/forge forge-eval \
-  --agent /forge/agents/baseline/agent.py \
-  --spec /forge/specs/001_bracket.json
-```
-
-Expected output:
-```
-PASSED  score=165.00 g  stress=21.3/25.0 MPa  t=4.2s
+# Copy the template and start building
+cp -r agents/template agents/<your-name>
+# edit agents/<your-name>/agent.py
+forge eval agents/<your-name>/agent.py
 ```
 
 ---
