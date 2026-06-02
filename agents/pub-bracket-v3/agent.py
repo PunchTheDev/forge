@@ -4,13 +4,11 @@ pub-bracket-v3: Solid cantilever arm bracket for pub_003_medium (PETG).
 All geometry parameters read from spec["constraints"] at runtime.
 
 Design:
-  - Solid arm 8 mm wide — PETG allowable is only 20 MPa (yield 40 / SF 2),
-    so the arm must be wider than for stiffer materials. 8 mm solid gives
-    adequate I while keeping mesh elements non-degenerate (> 4 mm mesh size).
-  - h = bvz - 5 mm (maximum height — critical for bending stiffness at
-    this load level with PETG's tight allowable).
-  - arm_len: tip within 8 mm of load_x (previous design used lx-15 which
-    produced zero load nodes at the 4 mm mesh scale).
+  - Solid arm 16 mm wide — PETG allowable is only 20 MPa (yield 40 / SF 2).
+    fw=8mm gave 33.9 MPa (70% over limit). Section modulus S = fw*h²/6 ∝ fw,
+    so 2× fw → ~17 MPa (safe margin). fw=16mm ≫ 4mm mesh → no degenerate elements.
+  - h = bvz - 5 mm (maximum height — critical for bending stiffness).
+  - arm_len: tip within 8 mm of load_x for reliable load-node detection.
   - Plate: bolt_r margin, sliver protection.
 """
 
@@ -21,7 +19,7 @@ import tempfile
 
 
 def generate(spec: dict) -> bytes:
-    """Return STEP bytes for pub-bracket-v3 (solid 8 mm arm, PETG)."""
+    """Return STEP bytes for pub-bracket-v3 (solid 16 mm arm, PETG)."""
     from OCP.BRepAlgoAPI import BRepAlgoAPI_Cut, BRepAlgoAPI_Fuse
     from OCP.BRepPrimAPI import BRepPrimAPI_MakeBox, BRepPrimAPI_MakeCylinder
     from OCP.Interface import Interface_Static
@@ -62,9 +60,9 @@ def generate(spec: dict) -> bytes:
     plate_z0 = min(bz_coords) - margin_z
     plate_z1 = max(bz_coords) + margin_z
 
-    # Solid 8 mm arm at maximum available height
-    # PETG allowable = 40/2 = 20 MPa — 8 mm width gives adequate I
-    fw  = 8.0
+    # Solid 16 mm arm at maximum available height
+    # PETG allowable = 40/2 = 20 MPa — fw=8 gave 33.9 MPa (failed); fw=16 → ~17 MPa
+    fw  = 16.0
     h   = min(bvz - 5.0, max(bvz * 0.75, lz + 15.0 + min_wall))
 
     # Arm tip 8 mm from load point → load nodes in detection zone
