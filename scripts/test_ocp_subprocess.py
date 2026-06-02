@@ -121,10 +121,13 @@ for i,(by,bz) in enumerate(bolt_pattern):
     cop=BRepAlgoAPI_Cut(shape,hole); cop.Build(); shape=cop.Shape()
     w(f'step6.{i}: cut OK\n')
 
+w('step7a: before STEPControl_Writer()\n')
 writer=STEPControl_Writer()
+w('step7b: before SetCVal_s\n')
 Interface_Static.SetCVal_s('write.step.schema','AP203')
+w('step7c: before Transfer\n')
 writer.Transfer(shape,STEPControl_AsIs)
-w('step7: Transfer OK\n')
+w('step7d: Transfer OK\n')
 import tempfile,os
 with tempfile.NamedTemporaryFile(suffix='.step',delete=False) as f: path=f.name
 writer.Write(path)
