@@ -42,6 +42,11 @@ for idx, spec in enumerate(specs):
         step_out_path = f".forge_step_{spec_id}.step"
         step_flag = []
         if run_i == runs - 1:
+            # Pre-create the output file world-writable so the container
+            # (--cap-drop ALL removes CAP_DAC_OVERRIDE) can write to it.
+            with open(step_out_path, "wb"):
+                pass
+            os.chmod(step_out_path, 0o666)
             step_flag = ["--step-out", f"/forge/{step_out_path}"]
 
         cmd = [
