@@ -1,0 +1,14 @@
+{
+  "spec_id": "002_equipment_mount",
+  "score_grams": 25.84,
+  "agent": "agents/al-bracket-v19",
+  "contributor": "Punch",
+  "fea_stress_mpa": 76.73,
+  "fea_allowable_mpa": 110.4,
+  "fea_element_count": 6632,
+  "fea_load_node_count": 24,
+  "fea_convergence_deviation": null,
+  "commit": "4c478e6",
+  "note": "al-bracket-v19: hollow box arm (fw=3mm, h=31mm, t_wall=0.8mm), plate_t=0.8mm=min_wall. 76.73 MPa (69.5% of allowable). All parameters at floor. CI-verified PR #96.",
+  "verified": true
+}
