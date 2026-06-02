@@ -124,6 +124,14 @@ jobs:
             exit 1
           fi
 
+          # Fail the job when eval itself did not pass (geometry/FEA failure or crash).
+          # Without this, a failed FEA produces null scores (UNIQUE=1) and CI shows green.
+          PASSED=$(echo "$FINAL" | python3 -c "import sys,json; print(json.load(sys.stdin).get('passed',False))" 2>/dev/null || echo "False")
+          if [ "$PASSED" != "True" ]; then
+            echo "FAIL: eval did not pass — see PR comment for details." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
           # Write single-line JSON to GITHUB_OUTPUT
           echo "result=$FINAL" >> "$GITHUB_OUTPUT"
 
