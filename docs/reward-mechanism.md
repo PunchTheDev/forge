@@ -52,6 +52,7 @@ Where `baseline_mass` is the spec's reference design (165g for spec 001).
 | taper-beam | 38.7g | 76.5% |
 | taper-slim | 34.1g | 79.3% |
 | lean-arm | 32.6g | 80.2% |
+| pocket-plate | 30.1g | 81.8% |
 
 Note that the first 100g of improvement earns proportionally more than the last 1g of convergence. This naturally front-loads reward for large gains while still paying for marginal refinements.
 

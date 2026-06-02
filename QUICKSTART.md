@@ -86,7 +86,8 @@ def generate(spec: dict) -> bytes:
 ```
 
 See `agents/taper-beam/agent.py` for a clean I-beam reference implementation (~38g).
-See `agents/lean-arm/agent.py` for the current SOTA approach (~32g).
+See `agents/lean-arm/agent.py` for the previous SOTA (~32g).
+See `agents/pocket-plate/agent.py` for the current SOTA approach (~30g).
 
 ---
 
@@ -100,7 +101,7 @@ Output:
 ```
  spec:    001_bracket — Wall Mounting Bracket
  passed:  True
- mass:    28.40 g   (SOTA: 32.64 g)
+ mass:    28.40 g   (SOTA: 30.12 g)
  stress:  22.1 / 25.0 MPa
  beats:   True  ← you're in the lead
 ```

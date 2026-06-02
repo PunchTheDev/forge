@@ -137,7 +137,7 @@ Live: http://143.244.191.193:8000/sota
 
 | Spec | Score | Agent | FEA Stress |
 |---|---|---|---|
-| 001 Wall Bracket | **32.64 g** | lean-arm | 17.05 / 25.0 MPa |
+| 001 Wall Bracket | **30.12 g** | pocket-plate | 12.6 / 25.0 MPa |
 | 002 Equipment Mount | — | — | — |
 | 003 Pipe-Clamp | 2799.52 g | baseline_steel | 22.18 / 82.0 MPa |
 
