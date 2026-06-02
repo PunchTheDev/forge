@@ -124,6 +124,13 @@ jobs:
             exit 1
           fi
 
+          # Fail if FEA did not pass (score=null means geometry or FEA error)
+          PASSED=$(echo "$FINAL" | python3 -c "import sys,json; print(json.load(sys.stdin).get('passed', False))" 2>/dev/null || echo "False")
+          if [ "$PASSED" != "True" ]; then
+            echo "FAIL: evaluation did not pass — $(echo "$FINAL" | python3 -c "import sys,json; print(json.load(sys.stdin).get('reason','unknown'))" 2>/dev/null)" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
           # Write single-line JSON to GITHUB_OUTPUT
           echo "result=$FINAL" >> "$GITHUB_OUTPUT"
 

@@ -323,7 +323,7 @@ def _write_inp(
         f.write("*ELASTIC\n")
         f.write(f"{E}, {nu}\n")
         f.write("*DENSITY\n")
-        f.write(f"{rho}\n")
+        f.write(f"{rho:.6e}\n")  # fixed-format: avoids Python's long repr for floats
 
         f.write("*SOLID SECTION, MATERIAL=MAT, ELSET=SOLID\n")
         f.write("\n")
