@@ -1,43 +1,43 @@
 """
 Aluminum bracket for spec 002_equipment_mount (Al6061-T6, 100kg, 120mm arm).
 
-Root cause of all prior i-beam-al failures (PRs #40-43, #48 v1):
-  v1 (#48): h_root=45, h_tip=15: arm top at x=120mm = 16mm, load z=45mm
-    gap=29mm > 15mm FEA search tolerance → "too few nodes near load point"
-  PRs #40-43: h_root=80, h_tip=50: arm sticks 34.25mm above plate
-    junction stress concentration → 163.7 MPa >> 110.4 MPa allowable
+Failure history:
+  PRs #40-43: h_root=80, h_tip=50 → arm 34.25mm above plate → junction stress 163.7 MPa
+  PR #48 v1:  h_root=45, h_tip=15 → arm top at x=120mm = 16mm → load gap=29mm > 15mm tol
+  PR #48 v2:  h_root=50, h_tip=32 → arm extends 4.25mm above plate → junction stress 112.3 MPa
+                                     (allowable 110.4 MPa) — junction stress + 3x higher moment
 
-Fix:
-  h_root = 50mm  (arm extends 4.25mm above plate_z1=45.75mm, similar to spec-001 proven 5.25mm)
-  h_tip  = 32mm  (arm top at x=120mm = 32.6mm; gap to load z=45mm = 12.4mm < 15mm tol)
-  Taper ratio: 50/32 = 1.56:1 (very mild, guaranteed mesh-stable)
+Fix (v3):
+  h_root = 43mm  → arm top flange z=[40.5,43mm], plate_z1=45.75mm → arm FULLY within plate
+                    no junction stress concentration (like spec-001's fully-supported arm) ✓
+  h_tip  = 31mm  → arm top at x=120mm = 31.4mm; gap to load z=45mm = 13.6mm < 15mm tol ✓
+  flange_w=10mm  → bolt at (y=40,z=0) hole edge at y=44.25mm;
+                    flange_w=12mm: arm starts at y=44mm (0.25mm overlap with bolt hole!)
+                    flange_w=10mm: arm starts at y=45mm (0.75mm clearance) ✓
+
+Taper: 43/31 = 1.39:1 (mild, mesh-stable)
 
 Load node check:
-  h(x=120) = h_root - (h_root-h_tip) * 120/124 = 50 - 18*0.968 = 32.6mm
-  |32.6 - lp_z=45| = 12.4mm < tol=15mm ✓
+  h(x=120) = 43 - (43-31)*120/124 = 43 - 11.6 = 31.4mm
+  |31.4 - lp_z=45| = 13.6mm < tol=15mm ✓
 
-Overhang analysis:
-  arm top flange: z=[47.5, 50mm], plate_z1=45.75mm → 4.25mm of arm above plate
-  spec-001 mid-arm proved 5.25mm overhang (h_root=70, plate_z1=64.75mm) is safe at 14.7 MPa
-  4.25mm overhang is smaller → junction stress concentration not an issue ✓
-
-Material: Al6061-T6, allowable = 276/2.5 = 110.4 MPa, density = 2.71 g/cm3
-
-Section modulus at arm root (h_root=50mm, flange_w=12mm, flange_t=2.5mm, web_w=2mm):
+Section modulus at arm root (h_root=43mm, flange_w=10mm, flange_t=2.5mm, web_w=2mm):
   M         = 981 × 120 = 117,720 N·mm
-  c         = 25mm
-  I_web     = 2 × (45)^3/12 = 15,188 mm4
-  I_flange  = 2 × 12 × 2.5 × (25-1.25)^2 = 33,834 mm4
-  I_total   = 49,022 mm4
-  sigma     = 117,720 × 25 / 49,022 = 60.0 MPa  (54.3% of 110.4 MPa ✓)
+  c         = 21.5mm
+  I_web     = 2 × (38)^3/12 = 9,162 mm4
+  I_flange  = 2 × 10 × 2.5 × (21.5-1.25)^2 = 20,494 mm4
+  I_total   = 29,656 mm4
+  sigma     = 117,720 × 21.5 / 29,656 = 85.3 MPa  (77.3% of 110.4 MPa ✓)
 
 Mass estimate (Al density 2.71e-3 g/mm3):
-  Web avg h: (45+27)/2=36mm → 124×2×36=8,928 mm3 → 24.2g
-  Flanges:   2×124×12×2.5  = 7,440 mm3 → 20.2g
+  Web avg h: (38+26)/2=32mm → 124×2×32=7,936 mm3 → 21.5g
+  Flanges:   2×124×10×2.5  = 6,200 mm3 → 16.8g
   Plate solid: 3×91.5×51.5 = 14,147 mm3 → 38.3g
   6 bolt holes: -1,021 mm3 → -2.8g
-  Pockets (1.8mm deep): Left 1,770 + Right 680 = 2,450 mm3 → -6.6g
-  Total = 73.3g   (vs 380g baseline, -80.7%)
+  Pockets (1.8mm deep):
+    Left  (y: 6.25→43mm, z: 6.25→33.75mm): 1.8×36.75×27.5=1,818mm3 → -4.9g
+    Right (y: 57→73.75mm, z: 6.25→33.75mm): 1.8×16.75×27.5=829mm3 → -2.2g
+  Total = 66.7g   (vs 380g baseline, -82.4%)
 """
 
 from __future__ import annotations
@@ -73,10 +73,10 @@ def generate(spec: dict) -> bytes:
     arm_len  = lp[0] + 4.0                     # 124mm
 
     web_w    = 2.0
-    flange_w = 12.0
+    flange_w = 10.0   # 10mm: arm edge at y=45mm, 0.75mm clear of bolt at y=40 (hole r=4.25)
     flange_t = 2.5
-    h_root   = 50.0   # 4.25mm above plate_z1; comparable to spec-001's proven 5.25mm overhang
-    h_tip    = 32.0   # arm top at x=120mm = 32.6mm; gap to load z=45mm = 12.4mm < 15mm tol
+    h_root   = 43.0   # arm fully within plate: top at z=43mm < plate_z1=45.75mm → no junction
+    h_tip    = 31.0   # arm top at x=120mm = 31.4mm; gap to load z=45mm = 13.6mm < 15mm tol
     y_center = lp[1]  # 50mm
 
     # ── Arm ───────────────────────────────────────────────────────────────────
@@ -128,13 +128,13 @@ def generate(spec: dict) -> bytes:
     bolt_clear = bolt_r + 2.0                   # 6.25mm buffer
     arm_buf    = 2.0
 
-    arm_y_min = y_center - flange_w / 2         # 44mm
-    arm_y_max = y_center + flange_w / 2         # 56mm
+    arm_y_min = y_center - flange_w / 2         # 45mm
+    arm_y_max = y_center + flange_w / 2         # 55mm
 
     pkt_z0 = min(bz_coords) + bolt_clear        # 6.25mm
     pkt_z1 = max(bz_coords) - bolt_clear        # 33.75mm
 
-    # Left pocket (y: 6.25 → 42mm)
+    # Left pocket (y: 6.25 → 43mm)
     lpkt_y0 = min(by_coords) + bolt_clear
     lpkt_y1 = arm_y_min - arm_buf
     if lpkt_y1 > lpkt_y0 + 2.0 and pkt_z1 > pkt_z0 + 2.0:
@@ -146,7 +146,7 @@ def generate(spec: dict) -> bytes:
         cut_op.Build()
         shape = cut_op.Shape()
 
-    # Right pocket (y: 58 → 73.75mm)
+    # Right pocket (y: 57 → 73.75mm)
     rpkt_y0 = arm_y_max + arm_buf
     rpkt_y1 = max(by_coords) - bolt_clear
     if rpkt_y1 > rpkt_y0 + 2.0 and pkt_z1 > pkt_z0 + 2.0:
