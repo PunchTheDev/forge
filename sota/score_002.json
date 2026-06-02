@@ -1,0 +1,14 @@
+{
+  "spec_id": "002_equipment_mount",
+  "score_grams": 32.01,
+  "agent": "agents/al-bracket-v15",
+  "contributor": "Punch",
+  "fea_stress_mpa": 41.4,
+  "fea_allowable_mpa": 110.4,
+  "fea_element_count": null,
+  "fea_load_node_count": null,
+  "fea_convergence_deviation": null,
+  "commit": "8306901a0ba9b7da093ef25760f6ac4fee558db5",
+  "note": "al-bracket-v15: hollow box arm (fw=5mm, h=32mm, t_wall=0.8mm), plate_t=1.5mm. Topology change from I-beam. 41.4 MPa (37.5% of allowable). CI-verified PR #85.",
+  "verified": true
+}
