@@ -55,6 +55,15 @@ def _header(title: str) -> None:
     print(f"  {'─' * 64}")
 
 
+def _fmt_score(score: float, metric: str) -> str:
+    """Format a score value with its correct unit."""
+    if metric == "stiffness_to_weight":
+        return f"{score:.2f} N/(mm·g)"
+    if metric == "deflection_mm":
+        return f"{score:.4f}mm"
+    return f"{score:.2f}g"
+
+
 # ---------------------------------------------------------------------------
 # forge new <name>
 # ---------------------------------------------------------------------------
@@ -108,8 +117,16 @@ def cmd_specs(args: argparse.Namespace) -> int:
             load = c.get("load_newtons", "?")
             bv = c.get("build_volume_mm", [])
             bv_str = f"{bv[0]:.0f}x{bv[1]:.0f}x{bv[2]:.0f}" if len(bv) == 3 else "?"
-            baseline = s.get("scoring", {}).get("baseline_mass_grams", "?")
-            baseline_str = f"{baseline:.1f}g" if isinstance(baseline, (int, float)) else "?"
+            sc = s.get("scoring", {})
+            metric = sc.get("metric", "mass_grams")
+            baseline = (
+                sc.get("baseline_mass_grams")
+                or sc.get("baseline_stiffness_to_weight")
+                or sc.get("baseline_deflection_mm")
+                or "?"
+            )
+            unit = {"mass_grams": "g", "stiffness_to_weight": "N/(mm·g)", "deflection_mm": "mm"}.get(metric, "")
+            baseline_str = f"{baseline:.2f}{unit}" if isinstance(baseline, (int, float)) else "?"
             print(f"  {sid:<20} {name:<28} {mat:<12} {load:>8}N  {bv_str:>18}  {baseline_str:>10}")
         print()
         return 0
@@ -163,26 +180,35 @@ def cmd_leaderboard(args: argparse.Namespace) -> int:
                 spec_id = spec_entry.get("spec_id", "?")
                 entries = spec_entry.get("entries", [])
                 sota = sota_map.get(spec_id, {})
-                sota_mass = sota.get("score_grams", None)
+                sota_score = sota.get("score") or sota.get("score_grams") or sota.get("mass_grams")
+                sota_metric = sota.get("score_metric", "mass_grams")
                 baseline = None
 
                 print(f"\n  Spec: {BOLD}{spec_id}{RESET}")
-                if sota_mass:
-                    print(f"  SOTA: {GREEN}{sota_mass:.2f}g{RESET}  ({sota.get('contributor', '?')})")
-                print(f"  {'RANK':<6} {'CONTRIBUTOR':<24} {'MASS':>8}  {'VS SOTA':>10}")
+                if sota_score:
+                    print(f"  SOTA: {GREEN}{_fmt_score(sota_score, sota_metric)}{RESET}  ({sota.get('contributor', '?')})")
+                print(f"  {'RANK':<6} {'CONTRIBUTOR':<24} {'SCORE':>12}  {'VS SOTA':>10}")
                 print(f"  {'─' * 56}")
                 for e in entries[:10]:
                     rank = e.get("rank", "?")
                     contrib = e.get("contributor", "?")[:22]
-                    mass = e.get("mass_grams", 0)
-                    if sota_mass:
-                        delta = mass - sota_mass
-                        vs = f"{delta:+.2f}g"
-                        color = GREEN if delta == 0 else YELLOW
+                    score = e.get("score") or e.get("mass_grams", 0)
+                    sm = e.get("score_metric", "mass_grams")
+                    score_str = _fmt_score(score, sm)
+                    if sota_score:
+                        direction = sota.get("score_direction", "minimize")
+                        if direction == "maximize":
+                            delta_pct = (score - sota_score) / sota_score * 100
+                            vs = f"{delta_pct:+.1f}%"
+                            color = GREEN if delta_pct >= 0 else YELLOW
+                        else:
+                            delta = score - sota_score
+                            vs = f"{delta:+.2f}"
+                            color = GREEN if delta <= 0 else YELLOW
                     else:
                         vs = "—"
                         color = RESET
-                    print(f"  {rank:<6} {contrib:<24} {mass:>8.2f}g  {color}{vs:>10}{RESET}")
+                    print(f"  {rank:<6} {contrib:<24} {score_str:>12}  {color}{vs:>10}{RESET}")
         elif isinstance(lb_data, dict) and "entries" in lb_data:
             # Overall leaderboard format
             print(f"\n  {'RANK':<6} {'CONTRIBUTOR':<24} {'SPECS':>6}  {'WINS':>6}  {'AVG SCORE':>10}")
@@ -210,8 +236,10 @@ def cmd_leaderboard(args: argparse.Namespace) -> int:
             return 1
 
         _header("Leaderboard  (local fallback)")
-        score = sota.get("score_grams") or sota.get("mass_grams", "?")
-        print(f"  SOTA score:  {GREEN}{score}g{RESET}")
+        score = sota.get("score") or sota.get("score_grams") or sota.get("mass_grams", "?")
+        metric = sota.get("score_metric", "mass_grams")
+        score_str = _fmt_score(score, metric) if isinstance(score, (int, float)) else str(score)
+        print(f"  SOTA score:  {GREEN}{score_str}{RESET}")
         print(f"  Agent:       {sota.get('agent', '?')}")
         print(f"  Contributor: {sota.get('contributor', '?')}")
         print(f"  FEA stress:  {sota.get('fea_stress_mpa', '?')} / {sota.get('fea_allowable_mpa', '?')} MPa")
@@ -270,22 +298,32 @@ def cmd_status(args: argparse.Namespace) -> int:
         elapsed = result.get("elapsed_seconds", "?")
 
         sota = sota_map.get(spec_id, {})
-        sota_mass = sota.get("score_grams")
+        sota_score = sota.get("score") or sota.get("score_grams") or sota.get("mass_grams")
+        sota_metric = sota.get("score_metric", "mass_grams")
+        sota_direction = sota.get("score_direction", "minimize")
+        result_metric = result.get("score_metric", "mass_grams")
 
-        if sota_mass and mass is not None:
-            delta = mass - sota_mass
-            if delta < 0:
-                vs_str = f"{GREEN}beats SOTA by {abs(delta):.2f}g  ({sota_mass:.2f}g -> {mass:.2f}g){RESET}"
+        if sota_score and mass is not None:
+            if sota_direction == "maximize":
+                delta_pct = (mass - sota_score) / sota_score * 100
+                if delta_pct > 0:
+                    vs_str = f"{GREEN}beats SOTA by {delta_pct:.1f}%  ({_fmt_score(sota_score, sota_metric)} → {_fmt_score(mass, result_metric)}){RESET}"
+                else:
+                    vs_str = f"{YELLOW}{abs(delta_pct):.1f}% below SOTA  ({_fmt_score(sota_score, sota_metric)}){RESET}"
             else:
-                vs_str = f"{YELLOW}{delta:.2f}g above SOTA  ({sota_mass:.2f}g){RESET}"
+                delta = mass - sota_score
+                if delta < 0:
+                    vs_str = f"{GREEN}beats SOTA by {abs(delta):.3g}  ({_fmt_score(sota_score, sota_metric)} → {_fmt_score(mass, result_metric)}){RESET}"
+                else:
+                    vs_str = f"{YELLOW}{delta:.3g} above SOTA  ({_fmt_score(sota_score, sota_metric)}){RESET}"
         elif mass is not None:
             vs_str = "(no live SOTA to compare)"
         else:
             vs_str = ""
 
-        mass_str = f"{mass:.2f}g" if mass is not None else "?"
+        score_str = _fmt_score(mass, result_metric) if mass is not None else "?"
         elapsed_str = f"{elapsed:.1f}s" if isinstance(elapsed, (int, float)) else "?"
-        _ok(f"{mass_str}  stress={stress}/{allowable} MPa  t={elapsed_str}")
+        _ok(f"{score_str}  stress={stress}/{allowable} MPa  t={elapsed_str}")
         if vs_str:
             print(f"         {vs_str}")
 
