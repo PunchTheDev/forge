@@ -1,0 +1,14 @@
+{
+  "spec_id": "003_pipe_clamp_bracket",
+  "score_grams": 161.19,
+  "agent": "agents/ss-bracket-v7",
+  "contributor": "Punch",
+  "fea_stress_mpa": 15.30,
+  "fea_allowable_mpa": 82.0,
+  "fea_element_count": 11853,
+  "fea_load_node_count": 59,
+  "fea_convergence_deviation": null,
+  "commit": "0ec6ec1",
+  "note": "ss-bracket-v7: h=53mm (arm top 7mm from upper bolt z=60, within 8mm tol), arm_len=140mm, fw=8mm, t_wall=1.0mm, plate_t=0.5mm. 15.30 MPa (18.7% of allowable). CI-verified PR #101.",
+  "verified": true
+}
