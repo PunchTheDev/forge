@@ -6,8 +6,8 @@ Improvement over v4: shorter arm length + closed hollow tip.
     Arm-plate junction needs ≥10 mm above pz1 to avoid mesh divergence.
   - arm_len = load_x − 12 mm = 71.3 mm (vs 75 mm in v4)
   - Same hollow cross-section as v4 (fw = 3×mw = 3.6 mm)
-  - End cap (mw=1.2mm) closes hollow tip: eliminates open-edge stress concentration
-    that caused 25.8 MPa (3.3% over limit) without cap.
+  - Inner cavity ends at al-mw (not al): tip is inherently solid, no Fuse needed.
+    Fusing a coplanar end-cap box caused BRep degeneracy (+17 MPa); shortening inner is clean.
 
 Analytical check (PLA, 25 MPa allowable):
   h ≈ 69.6 mm, al = 71.3 mm
@@ -84,19 +84,14 @@ def generate(spec: dict) -> bytes:
         gp_Pnt(al,  yc + aw / 2, h),
     ).Shape()
 
+    # Inner cavity ends mw short of arm tip so the tip is inherently solid (no Fuse needed).
+    # Fusing a coplanar end-cap box caused geometry issues (+17 MPa); shortening inner is cleaner.
     inner = BRepPrimAPI_MakeBox(
-        gp_Pnt(pt, yc - aw / 2 + mw, mw),
-        gp_Pnt(al, yc + aw / 2 - mw, h - mw),
+        gp_Pnt(pt,      yc - aw / 2 + mw, mw),
+        gp_Pnt(al - mw, yc + aw / 2 - mw, h - mw),
     ).Shape()
 
     arm = BRepAlgoAPI_Cut(outer, inner).Shape()
-
-    # End cap: close hollow arm tip to eliminate open-edge stress concentration
-    end_cap = BRepPrimAPI_MakeBox(
-        gp_Pnt(al - mw, yc - aw / 2, 0.0),
-        gp_Pnt(al,      yc + aw / 2, h),
-    ).Shape()
-    arm = BRepAlgoAPI_Fuse(arm, end_cap).Shape()
 
     plate = BRepPrimAPI_MakeBox(
         gp_Pnt(0.0, py0, pz0),
