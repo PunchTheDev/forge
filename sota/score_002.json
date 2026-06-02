@@ -1,0 +1,14 @@
+{
+  "spec_id": "002_equipment_mount",
+  "score_grams": 39.157770351699455,
+  "agent": "agents/al-bracket-v7",
+  "contributor": "Punch",
+  "fea_stress_mpa": 38.64198220682785,
+  "fea_allowable_mpa": 110.4,
+  "fea_element_count": 6294,
+  "fea_load_node_count": 12,
+  "fea_convergence_deviation": null,
+  "commit": "3f6d15ccb3f84ff8b2c2a6458b2ce9617c04f773",
+  "note": "Al-bracket v7: h_root=32mm (from 34mm), h_tip=30mm, flange_w=6mm, arm_len=121mm. Reduces h_root by 2mm saving ~0.95g. 38.64 MPa (35.0% of allowable). 3x deterministic CI-verified.",
+  "verified": true
+}
