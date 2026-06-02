@@ -63,7 +63,7 @@ def generate(spec: dict) -> bytes:
     flange_w = 12.0
     flange_t = 2.5
     h_root   = 80.0                            # limited by build_volume_z=90mm
-    h_tip    = 20.0                            # taper down at tip
+    h_tip    = 20.0                            # taper from root to tip (ratio 4:1 ≤ 6:1 mesh-stable)
     y_center = lp[1]                           # 50mm — load point y
 
     # ── Arm ───────────────────────────────────────────────────────────────────
