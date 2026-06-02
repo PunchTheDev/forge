@@ -1,14 +1,14 @@
 {
   "spec_id": "pub_003_medium",
-  "score_grams": 53.79575926506847,
-  "agent": "agents/pub-bracket-v15",
+  "score_grams": 44.745645003018716,
+  "agent": "agents/pub-bracket-v17",
   "contributor": "Punch",
-  "fea_stress_mpa": 13.051273578625038,
+  "fea_stress_mpa": 13.283167739091608,
   "fea_allowable_mpa": 20.0,
-  "fea_element_count": 14628,
-  "fea_load_node_count": 82,
+  "fea_element_count": 14666,
+  "fea_load_node_count": 80,
   "fea_convergence_deviation": null,
-  "commit": "a71406d018621002515816ceb31019e64eb67e2f",
-  "note": "pub-bracket-v15: wide hollow-box arm h=51mm (9.9mm clearance above load_z=39.6mm). Mesh-stable, 13.05 MPa (65.3% of 20 MPa PETG allowable). CI-verified PR #133.",
+  "commit": "690339b",
+  "note": "pub-bracket-v17: t_wall=1.2mm (from 1.5mm), wide hollow-box arm h=51mm, 32.5mm clearance. 13.28 MPa (66.4% of 20 MPa PETG allowable). -16.8% from v15. CI-verified PR #137.",
   "verified": true
 }
