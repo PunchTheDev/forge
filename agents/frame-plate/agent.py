@@ -32,26 +32,26 @@ Fix: extend spine from inner_z0 to h_root=90 mm. The spine now runs continuously
   z=7.25 to z=90 mm, fully enclosing the arm root from bottom to top. No unsupported
   arm region above the top bolt bar.
 
-bar_w = 12 mm: plate edge to bolt hole outer edge = 4.75 mm (from margin formula),
-                hole outer edge to bar inner edge = 12 − (bolt_r + 4.75) = 4.0 mm ✓
+bar_w = 13 mm: 8% wider than previous 12mm. Reduces bending stress by ~8%.
+  FEA at 12mm: 26.1 MPa (just over 25.0 limit). Expected at 13mm: ~24.1 MPa ✓
 plate_t = 3 mm (proven minimum for bolt-hole FEA stress in taper-beam and lean-arm)
 
 Arm: unchanged from lean-arm (h_root=90 mm, h_tip=15 mm, web_w=2 mm,
      flange_w=6 mm, flange_t=1.5 mm). σ_max=14.84 MPa < 25 MPa ✓
 
 Mass estimate (PLA, 1.24 g/cm³):
-  Bot bar    (69.5 × 12 × 3)             ≈  2 502 mm³  ( 3.1 g)
-  Top bar    (69.5 × 12 × 3)             ≈  2 502 mm³  ( 3.1 g)
-  Left bar   (12 × 45.5 × 3)             ≈  1 638 mm³  ( 2.0 g)
-  Right bar  (12 × 45.5 × 3)             ≈  1 638 mm³  ( 2.0 g)
-  Spine      (12 × 82.75 × 3)            ≈  2 979 mm³  ( 3.7 g)
+  Bot bar    (69.5 × 13 × 3)             ≈  2 711 mm³  ( 3.4 g)
+  Top bar    (69.5 × 13 × 3)             ≈  2 711 mm³  ( 3.4 g)
+  Left bar   (13 × 45.5 × 3)             ≈  1 775 mm³  ( 2.2 g)
+  Right bar  (13 × 45.5 × 3)             ≈  1 775 mm³  ( 2.2 g)
+  Spine      (13 × 82.75 × 3)            ≈  3 227 mm³  ( 4.0 g)
   Minus 4 bolt holes                      ≈   −398 mm³  (−0.5 g)
-  Frame net                               ≈ 10 861 mm³  (13.5 g)
+  Frame net                               ≈ 11 801 mm³  (14.6 g)
   Arm (web + flanges, lean-arm dims)      ≈ 12 636 mm³  (15.7 g)
-  Total (overlaps reduce actual ~5 %)     ≈ 23 497 mm³  (28.6 g)
+  Total (overlaps reduce actual ~5 %)     ≈ 24 437 mm³  (~29.8 g)
 
-  vs lean-arm (32.64 g verified SOTA):  −12.4 %
-  vs taper-slim (34.10 g):              −16.2 %
+  vs lean-arm (32.64 g verified SOTA):  −8.7 %
+  vs taper-slim (34.10 g):              −12.6 %
 """
 
 from __future__ import annotations
@@ -79,7 +79,7 @@ def generate(spec: dict) -> bytes:
     margin = bolt_r + 1.5             # 4.75 mm — full clearance past hole edge
 
     plate_t = 3.0                     # x-thickness: proven minimum for bolt-hole FEA
-    bar_w = 12.0                      # frame bar width; 4.0 mm net past bolt hole edge
+    bar_w = 13.0                      # frame bar width; 13mm reduces stress ~8% vs 12mm
 
     plate_y0 = min(by_coords) - margin
     plate_y1 = max(by_coords) + margin
