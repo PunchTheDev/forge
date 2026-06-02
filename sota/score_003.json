@@ -1,0 +1,14 @@
+{
+  "spec_id": "003_pipe_clamp_bracket",
+  "score_grams": 212.45,
+  "agent": "agents/ss-bracket-v5",
+  "contributor": "Punch",
+  "fea_stress_mpa": 50.80,
+  "fea_allowable_mpa": 82.0,
+  "fea_element_count": 14922,
+  "fea_load_node_count": 168,
+  "fea_convergence_deviation": null,
+  "commit": "ea145d3",
+  "note": "ss-bracket-v5: hollow box arm (fw=8mm, h=70mm, t_wall=1.0mm), plate_t=0.5mm=min_wall. 50.80 MPa (61.9% of allowable). CI-verified PR #99.",
+  "verified": true
+}
