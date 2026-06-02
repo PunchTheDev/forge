@@ -48,16 +48,16 @@ jobs:
             echo "cached=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            "${FORGE_API_URL}/submissions?commit_hash=${COMMIT_HASH}&passed_only=false&limit=1")
+          STATUS=$(curl -sf --max-time 10 -o /dev/null -w "%{http_code}" \
+            "${FORGE_API_URL}/submissions?commit_hash=${COMMIT_HASH}&passed_only=false&limit=1" || echo "000")
           if [ "$STATUS" != "200" ]; then
             echo "forge-api unreachable ($STATUS) — proceeding with eval."
             echo "cached=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          COUNT=$(curl -s \
+          COUNT=$(curl -sf --max-time 10 \
             "${FORGE_API_URL}/submissions?commit_hash=${COMMIT_HASH}&passed_only=false&limit=1" \
-            | python3 -c "import sys,json; print(len(json.load(sys.stdin)))")
+            | python3 -c "import sys,json; print(len(json.load(sys.stdin)))" || echo "0")
           if [ "$COUNT" -gt "0" ]; then
             echo "Commit ${COMMIT_HASH} already scored — skipping eval."
             echo "cached=true" >> "$GITHUB_OUTPUT"
@@ -127,7 +127,7 @@ jobs:
           SPEC_ID="${{ steps.agent.outputs.spec_id }}"
           SOTA=9999
           if [ -n "$FORGE_API_URL" ]; then
-            API_SOTA=$(curl -sf "${FORGE_API_URL}/sota/${SPEC_ID}" \
+            API_SOTA=$(curl -sf --max-time 10 "${FORGE_API_URL}/sota/${SPEC_ID}" \
               | python3 -c "import sys,json; print(json.load(sys.stdin).get('score_grams', 9999))" 2>/dev/null || echo "")
             if [ -n "$API_SOTA" ] && [ "$API_SOTA" != "9999" ]; then
               SOTA="$API_SOTA"
