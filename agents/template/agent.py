@@ -34,7 +34,7 @@ def generate(spec: dict) -> bytes:
             spec["safety_factor"]                       — FEA stress safety factor
 
     Returns:
-        STEP file as raw bytes. Must be valid AP203 STEP.
+        STEP file as raw bytes. Must be valid AP214IS STEP.
 
     Notes:
         - Must be deterministic: same spec → same bytes every call.
@@ -69,7 +69,7 @@ def generate(spec: dict) -> bytes:
 # ---------------------------------------------------------------------------
 
 def _to_step_bytes(shape) -> bytes:
-    """Convert an OCP TopoDS_Shape to STEP AP203 bytes."""
+    """Convert an OCP TopoDS_Shape to STEP AP214IS bytes."""
     import os
     import tempfile
 
@@ -77,7 +77,7 @@ def _to_step_bytes(shape) -> bytes:
     from OCP.STEPControl import STEPControl_AsIs, STEPControl_Writer
 
     writer = STEPControl_Writer()
-    Interface_Static.SetCVal_s("write.step.schema", "AP203")
+    Interface_Static.SetCVal_s("write.step.schema", "AP214IS")
     writer.Transfer(shape, STEPControl_AsIs)
 
     with tempfile.NamedTemporaryFile(suffix=".step", delete=False) as f:
