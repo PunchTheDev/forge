@@ -1,0 +1,56 @@
+{
+  "id": "r03_013_hard",
+  "version": "1.0",
+  "name": "Cantilever Bracket \u2014 SS316 \u2014 86 kg @ 122 mm [hard, deflection]",
+  "description": "A hard-difficulty cantilever bracket in Stainless Steel 316. Mounts flush to a vertical wall and cantilevers a 86.0 kg load 122 mm from the wall face. Minimize tip deflection under load \u2014 maximize absolute stiffness regardless of mass.",
+  "material": "stainless_316",
+  "constraints": {
+    "load_newtons": 843.87,
+    "load_point_mm": [
+      122.4,
+      46.4,
+      46.0
+    ],
+    "safety_factor": 2.5,
+    "bolt_pattern_mm": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        54.8,
+        0.0
+      ],
+      [
+        109.6,
+        0.0
+      ],
+      [
+        0.0,
+        54.8
+      ],
+      [
+        54.8,
+        54.8
+      ],
+      [
+        109.6,
+        54.8
+      ]
+    ],
+    "bolt_diameter_clearance_mm": 7.0,
+    "mount_face_x_mm": 0.0,
+    "build_volume_mm": [
+      129.5,
+      92.8,
+      92.1
+    ],
+    "max_overhang_deg": 40.0,
+    "min_wall_thickness_mm": 1.5
+  },
+  "scoring": {
+    "metric": "deflection_mm",
+    "direction": "minimize",
+    "baseline_deflection_mm": 0.000442
+  }
+}

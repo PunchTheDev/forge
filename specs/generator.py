@@ -142,6 +142,28 @@ def _baseline_stiffness_to_weight(
     return round(stiffness / mass_g, 6)  # N/(mm·g)
 
 
+def _baseline_deflection_mm(
+    load_n: float,
+    arm_mm: float,
+    build_volume: list[float],
+    material: str,
+) -> float:
+    """Euler-Bernoulli tip deflection of a solid rectangular cantilever beam.
+
+    Serves as the baseline upper bound for deflection_mm: a naive solid-block
+    design with the full build-volume cross-section. Real optimised designs
+    should achieve lower deflection by stacking material efficiently.
+    Returns mm.
+    """
+    E = _YOUNGS_MPa[material]
+    L = arm_mm
+    b = build_volume[1]
+    h = build_volume[2]
+    I = (b * h**3) / 12.0
+    delta_mm = (load_n * L**3) / (3.0 * E * I)
+    return round(max(delta_mm, 1e-6), 6)
+
+
 def generate(
     spec_id: str,
     tier: str = "medium",
@@ -188,6 +210,14 @@ def generate(
             "baseline_stiffness_to_weight": baseline_stw,
         }
         obj_phrase = "Maximize stiffness-to-weight ratio while surviving the load."
+    elif scoring_metric == "deflection_mm":
+        baseline_defl = _baseline_deflection_mm(load_n, arm_mm, bv, material)
+        scoring_block = {
+            "metric": "deflection_mm",
+            "direction": "minimize",
+            "baseline_deflection_mm": baseline_defl,
+        }
+        obj_phrase = "Minimize tip deflection under load — maximize absolute stiffness regardless of mass."
     else:
         baseline_mass = _baseline_mass(arm_mm, bv, material, t.safety_factor)
         scoring_block = {
@@ -236,7 +266,11 @@ _MAT_LABEL_LONG: dict[str, str] = {
 
 def _name(tier: str, material: str, load_kg: float, arm_mm: float, metric: str = "mass_grams") -> str:
     mat_label = _MAT_LABEL.get(material, material)
-    metric_tag = "stiffness" if metric == "stiffness_to_weight" else "mass"
+    metric_tag = (
+        "stiffness" if metric == "stiffness_to_weight"
+        else "deflection" if metric == "deflection_mm"
+        else "mass"
+    )
     return f"Cantilever Bracket — {mat_label} — {load_kg:.0f} kg @ {arm_mm:.0f} mm [{tier}, {metric_tag}]"
 
 
@@ -277,7 +311,7 @@ def main() -> None:
     parser.add_argument("--tier", choices=list(TIERS), default="medium")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--id-prefix", default="gen")
-    parser.add_argument("--metric", choices=["mass_grams", "stiffness_to_weight"], default="mass_grams")
+    parser.add_argument("--metric", choices=["mass_grams", "stiffness_to_weight", "deflection_mm"], default="mass_grams")
     parser.add_argument("--out-dir", type=Path, default=None, help="Write specs to this directory")
     parser.add_argument("--preview", action="store_true", help="Pretty-print one spec and exit")
     args = parser.parse_args()

@@ -34,6 +34,7 @@ METRICS: dict[str, str] = {
     "mass_grams": "minimize",
     "volume_mm3": "minimize",
     "stiffness_to_weight": "maximize",  # N/(mm·g) — stiffer and lighter wins
+    "deflection_mm": "minimize",        # absolute tip deflection — maximize raw stiffness
 }
 
 
@@ -65,13 +66,15 @@ def _compute_score(
     """Compute the objective score for a passed evaluation."""
     if metric == "volume_mm3":
         return geo.volume_mm3
-    if metric == "stiffness_to_weight":
+    if metric in ("stiffness_to_weight", "deflection_mm"):
         disp = fea_result.max_displacement_mm
         if disp is None or disp <= 0:
             raise ValueError(
-                "stiffness_to_weight requires displacement output from FEA. "
+                f"{metric} requires displacement output from FEA. "
                 "Displacement was zero or not parsed — check FEA .frd output."
             )
+        if metric == "deflection_mm":
+            return disp  # minimize absolute tip deflection
         load_n = spec["constraints"]["load_newtons"]
         stiffness = load_n / disp  # N/mm
         return stiffness / geo.mass_grams  # N/(mm·g)

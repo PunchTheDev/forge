@@ -1,0 +1,30 @@
+{
+  "id": "round_003",
+  "name": "Round 003 — Absolute Stiffness",
+  "description": "Minimize tip deflection under load — maximize raw structural stiffness regardless of mass. Heavy, efficiently loaded designs win. Material with high Young's modulus (Al, SS) is decisive.",
+  "metric": "deflection_mm",
+  "direction": "minimize",
+  "status": "upcoming",
+  "spec_ids": [
+    "r03_001_easy",
+    "r03_002_easy",
+    "r03_003_easy",
+    "r03_004_easy",
+    "r03_005_easy",
+    "r03_006_medium",
+    "r03_007_medium",
+    "r03_008_medium",
+    "r03_009_medium",
+    "r03_010_medium",
+    "r03_011_medium",
+    "r03_012_hard",
+    "r03_013_hard",
+    "r03_014_hard",
+    "r03_015_hard"
+  ],
+  "tiers": {
+    "easy": {"count": 5, "seeds_base": 700, "materials": ["pla", "petg"]},
+    "medium": {"count": 6, "seeds_base": 800, "materials": ["pla", "petg", "aluminum_6061"]},
+    "hard": {"count": 4, "seeds_base": 900, "materials": ["petg", "aluminum_6061", "stainless_316"]}
+  }
+}

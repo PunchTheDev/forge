@@ -1,0 +1,56 @@
+{
+  "id": "r03_004_easy",
+  "version": "1.0",
+  "name": "Cantilever Bracket \u2014 PLA \u2014 14 kg @ 75 mm [easy, deflection]",
+  "description": "A easy-difficulty cantilever bracket in PLA (FDM). Mounts flush to a vertical wall and cantilevers a 13.7 kg load 75 mm from the wall face. Minimize tip deflection under load \u2014 maximize absolute stiffness regardless of mass.",
+  "material": "pla",
+  "constraints": {
+    "load_newtons": 134.1,
+    "load_point_mm": [
+      74.9,
+      49.2,
+      54.4
+    ],
+    "safety_factor": 1.5,
+    "bolt_pattern_mm": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        63.3,
+        0.0
+      ],
+      [
+        126.6,
+        0.0
+      ],
+      [
+        0.0,
+        63.3
+      ],
+      [
+        63.3,
+        63.3
+      ],
+      [
+        126.6,
+        63.3
+      ]
+    ],
+    "bolt_diameter_clearance_mm": 7.0,
+    "mount_face_x_mm": 0.0,
+    "build_volume_mm": [
+      182.7,
+      98.4,
+      108.7
+    ],
+    "max_overhang_deg": 50.0,
+    "min_wall_thickness_mm": 1.0
+  },
+  "scoring": {
+    "metric": "deflection_mm",
+    "direction": "minimize",
+    "baseline_deflection_mm": 0.00051
+  }
+}
