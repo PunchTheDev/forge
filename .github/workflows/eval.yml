@@ -160,6 +160,38 @@ jobs:
           fi
           echo "score=$SOTA" >> "$GITHUB_OUTPUT"
 
+      - name: Check SOTA eligibility
+        id: eligibility
+        if: steps.agent.outputs.found == 'true' && steps.dedup.outputs.cached != 'true'
+        env:
+          FORGE_API_URL: ${{ secrets.FORGE_API_URL }}
+          EVAL_RESULT: ${{ steps.eval.outputs.result }}
+          SOTA_SCORE: ${{ steps.sota.outputs.score }}
+          SPEC_ID: ${{ steps.agent.outputs.spec_id }}
+        run: |
+          SCORE=$(echo "$EVAL_RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('score',9999))")
+          DIRECTION=$(echo "$EVAL_RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('score_direction','minimize'))")
+          SOTA="$SOTA_SCORE"
+
+          # Prefer the eligibility endpoint (enforces marginal-gain margin).
+          ELIGIBLE=""
+          if [ -n "$FORGE_API_URL" ]; then
+            ELIGIBLE=$(curl -sf --max-time 10 \
+              "${FORGE_API_URL}/sota/${SPEC_ID}/eligibility?score=${SCORE}" \
+              | python3 -c "import sys,json; print(str(json.load(sys.stdin).get('eligible',False)).lower())" 2>/dev/null || echo "")
+          fi
+
+          # Fallback: raw comparison when API is unreachable.
+          if [ -z "$ELIGIBLE" ]; then
+            if [ "$DIRECTION" = "maximize" ]; then
+              ELIGIBLE=$(python3 -c "print('true' if float('$SCORE') > float('$SOTA') else 'false')")
+            else
+              ELIGIBLE=$(python3 -c "print('true' if float('$SCORE') < float('$SOTA') else 'false')")
+            fi
+          fi
+
+          echo "eligible=$ELIGIBLE" >> "$GITHUB_OUTPUT"
+
       - name: Post score comment
         id: post_comment
         if: steps.agent.outputs.found == 'true' && steps.dedup.outputs.cached != 'true'
@@ -167,6 +199,7 @@ jobs:
           EVAL_RESULT: ${{ steps.eval.outputs.result }}
           SOTA_SCORE: ${{ steps.sota.outputs.score }}
           AGENT_PATH: ${{ steps.agent.outputs.path }}
+          ELIGIBLE: ${{ steps.eligibility.outputs.eligible }}
         uses: actions/github-script@v7
         with:
           script: |
@@ -175,6 +208,8 @@ jobs:
             const agent = process.env.AGENT_PATH;
             const metric = result.score_metric || 'mass_grams';
             const direction = result.score_direction || 'minimize';
+            // eligible = beats SOTA AND meets the marginal-gain margin requirement.
+            const eligible = process.env.ELIGIBLE === 'true';
 
             let body;
             if (!result.passed) {
@@ -198,7 +233,7 @@ jobs:
                 stiffness_to_weight: 'N/(mm·g)',
               }[metric] || '';
 
-              // "beats" depends on direction: minimize → lower is better; maximize → higher
+              // Raw "beats" for display; "eligible" gates the label and SOTA promotion.
               const beats = direction === 'maximize'
                 ? scoreVal > sota
                 : scoreVal < sota;
@@ -212,7 +247,16 @@ jobs:
                 ? `| FEA displacement | ${result.fea_displacement_mm.toFixed(4)} mm |\n`
                 : '';
 
-              body = `## Forge Eval — ${beats ? 'NEW LEADER 🏆' : 'PASSED ✅'}\n\n` +
+              const heading = eligible  ? 'NEW LEADER 🏆'
+                            : beats     ? 'BEATS SOTA ⏳'
+                            :             'PASSED ✅';
+              const footer = eligible
+                ? `**Beats SOTA with sufficient margin.** A maintainer will review and merge.`
+                : beats
+                ? `Beats the current SOTA but the margin requirement isn't met yet. Push further to earn the reward.`
+                : `Passes all constraints but does not beat the current SOTA. Keep optimizing.`;
+
+              body = `## Forge Eval — ${heading}\n\n` +
                 `| Metric | Value |\n|---|---|\n` +
                 `| ${metricLabel} | **${scoreStr} ${metricUnit}** |\n` +
                 `| Current SOTA | ${sota} ${metricUnit} |\n` +
@@ -221,9 +265,7 @@ jobs:
                 dispStr +
                 simStr +
                 `| Agent time | ${result.elapsed_seconds.toFixed(1)}s |\n\n` +
-                (beats
-                  ? `**Beats the current SOTA.** A maintainer will review and merge.`
-                  : `Passes all constraints but does not beat the current SOTA. Keep optimizing.`);
+                footer;
             }
 
             await github.rest.issues.createComment({
@@ -233,11 +275,8 @@ jobs:
               body
             });
 
-            // Export beats result for the label step.
-            const beatsVal = result.passed && (direction === 'maximize'
-              ? result.score > sota
-              : result.score < sota);
-            core.setOutput('beats_sota', beatsVal ? 'true' : 'false');
+            // `beats_sota` gates the `optimization` label — only set when margin is met.
+            core.setOutput('beats_sota', eligible ? 'true' : 'false');
             core.setOutput('passed', result.passed ? 'true' : 'false');
 
       - name: Apply Gittensor scoring label
