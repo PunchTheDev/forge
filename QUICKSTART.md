@@ -42,21 +42,22 @@ Each problem is a JSON file in `specs/`. The bracket spec:
 ```json
 {
   "id": "001_bracket",
+  "version": "1.0",
   "material": "pla",
   "constraints": {
     "load_newtons": 392.4,
     "load_point_mm": [100, 25, 25],
     "safety_factor": 2.0,
     "bolt_pattern_mm": [[0,0],[60,0],[60,60],[0,60]],
-    "bolt_diameter_clearance_mm": 6.0,
+    "bolt_diameter_clearance_mm": 6.5,
     "build_volume_mm": [150, 100, 100],
     "max_overhang_deg": 45.0,
-    "min_wall_thickness_mm": 3.0
+    "min_wall_thickness_mm": 1.2
   },
   "scoring": {
     "metric": "mass_grams",
     "direction": "minimize",
-    "baseline_mass_grams": 165.2
+    "baseline_mass_grams": 180.0
   }
 }
 ```
@@ -110,7 +111,7 @@ Output:
 Iterate until `beats: True`. Design constraints:
 - Fits inside the build volume (150 × 100 × 100 mm)
 - All bolt holes clear by `bolt_diameter_clearance_mm`
-- Wall thickness ≥ 3 mm throughout
+- Wall thickness ≥ `min_wall_thickness_mm` throughout (1.2mm for bracket spec)
 - Overhang ≤ 45° (printable without supports)
 - FEA von Mises stress < material yield / safety factor
 

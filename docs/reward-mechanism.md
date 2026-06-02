@@ -42,18 +42,18 @@ A miner's emission share at time `t` depends on:
 marginal_gain(s) = (baseline_mass − s.mass_grams) / baseline_mass
 ```
 
-Where `baseline_mass` is the spec's reference design (165g for spec 001).
+Where `baseline_mass` is the spec's reference design (180g for spec 001).
 
 | Agent | Mass | Marginal Gain |
 |-------|------|---------------|
-| baseline | 165.0g | 0.0% |
-| slim-spine | 108.5g | 34.2% |
-| trim-frame | 56.8g | 65.6% |
-| taper-beam | 38.7g | 76.5% |
-| taper-slim | 34.1g | 79.3% |
-| lean-arm | 32.6g | 80.2% |
-| pocket-plate | 30.1g | 81.8% |
-| deep-pocket | 29.2g | 82.3% |
+| baseline | 180.0g | 0.0% |
+| slim-spine | 108.5g | 39.7% |
+| trim-frame | 56.8g | 68.4% |
+| taper-beam | 38.7g | 78.5% |
+| taper-slim | 34.1g | 81.1% |
+| lean-arm | 32.6g | 81.9% |
+| pocket-plate | 30.1g | 83.3% |
+| deep-pocket | 29.2g | 83.8% |
 
 Note that the first 100g of improvement earns proportionally more than the last 1g of convergence. This naturally front-loads reward for large gains while still paying for marginal refinements.
 
