@@ -20,7 +20,8 @@ Structural analysis at x = 0 (critical section, bending about Y):
 
 Geometry notes:
   - Plate origin offset -4.25 mm in y and z so all four bolt holes are fully inside.
-  - Components are NON-OVERLAPPING touching solids; web/flanges start at x=plate_t.
+  - Web/flanges start at x=0 (overlapping with plate) so I-beam section is continuous
+    from wall to tip; this eliminates plate-bending stress concentration at arm junction.
   - AP214IS schema for STEP export (AP203 triggers SIGSEGV on this geometry).
 """
 
@@ -77,7 +78,11 @@ def generate(spec: dict) -> bytes:
     flange_y1 = y_center + flange_w / 2   # 29.0
 
     # Build four NON-OVERLAPPING solids that TOUCH at their boundaries.
-    # This avoids degenerate thin-wall Boolean intersections that crash OCC.
+    # Web and flanges start at x=0 (overlapping with plate in x=[0, plate_t]).
+    # This makes the I-beam section continuous from x=0 to x=arm_x, eliminating
+    # the plate-bending stress concentration that caused FEA failure when the
+    # arm started only at x=plate_t and the thin plate had to transfer the
+    # cantilever moment alone to the bolt nodes.
 
     # --- Mounting plate: x=[0, plate_t], y=[plate_y0, plate_y1], z=[plate_z0, plate_z1] ---
     plate = BRepPrimAPI_MakeBox(
@@ -85,22 +90,21 @@ def generate(spec: dict) -> bytes:
         gp_Pnt(plate_t, plate_y1, plate_z1),
     ).Shape()
 
-    # --- Web: starts at x=plate_t (touches plate, no overlap)
-    #          z spans only the space between flanges ---
+    # --- Web: starts at x=0, z spans only the space between flanges ---
     web = BRepPrimAPI_MakeBox(
-        gp_Pnt(plate_t, web_y0, flange_t),
+        gp_Pnt(0.0, web_y0, flange_t),
         gp_Pnt(arm_x, web_y1, total_h - flange_t),
     ).Shape()
 
-    # --- Bottom flange: z=[0, flange_t], starts at x=plate_t ---
+    # --- Bottom flange: z=[0, flange_t], starts at x=0 ---
     bot_flange = BRepPrimAPI_MakeBox(
-        gp_Pnt(plate_t, flange_y0, 0.0),
+        gp_Pnt(0.0, flange_y0, 0.0),
         gp_Pnt(arm_x, flange_y1, flange_t),
     ).Shape()
 
-    # --- Top flange: z=[total_h-flange_t, total_h], starts at x=plate_t ---
+    # --- Top flange: z=[total_h-flange_t, total_h], starts at x=0 ---
     top_flange = BRepPrimAPI_MakeBox(
-        gp_Pnt(plate_t, flange_y0, total_h - flange_t),
+        gp_Pnt(0.0, flange_y0, total_h - flange_t),
         gp_Pnt(arm_x, flange_y1, total_h),
     ).Shape()
 
