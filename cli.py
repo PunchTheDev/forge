@@ -674,6 +674,24 @@ HELP_TEXT = f"""{BOLD}{CYAN}  forge — Parametric CAD Benchmark CLI{RESET}
 """
 
 
+def cmd_ingest(args: argparse.Namespace) -> int:
+    """forge ingest — pull Thingiverse things and generate Forge specs."""
+    try:
+        from catalog.ingest import ingest
+    except ImportError as exc:
+        _fail(f"catalog module not importable: {exc}")
+        return 1
+
+    api_key = os.environ.get("THINGIVERSE_KEY")
+    if not api_key:
+        _fail("THINGIVERSE_KEY not set. Get a key at https://www.thingiverse.com/developers")
+        return 1
+
+    _header(f"Thingiverse ingest — {args.n} specs → {args.out_dir}")
+    ingest(n=args.n, out_dir=args.out_dir, seed=args.seed, dry_run=args.dry_run)
+    return 0
+
+
 def main() -> None:
     if len(sys.argv) == 1:
         print(HELP_TEXT)
@@ -714,6 +732,13 @@ def main() -> None:
 
     p_deps = sub.add_parser("check-deps", help="Verify local dependencies are installed")
     p_deps.set_defaults(func=cmd_check_deps)
+
+    p_ingest = sub.add_parser("ingest", help="Ingest problem specs from Thingiverse")
+    p_ingest.add_argument("--n", type=int, default=50, help="Number of specs to generate")
+    p_ingest.add_argument("--out-dir", type=Path, default=Path("specs/catalog/"), metavar="DIR")
+    p_ingest.add_argument("--seed", type=int, default=0)
+    p_ingest.add_argument("--dry-run", action="store_true", help="Preview without writing")
+    p_ingest.set_defaults(func=cmd_ingest)
 
     args = parser.parse_args()
     if not args.command:
