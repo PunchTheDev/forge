@@ -1,10 +1,11 @@
 {
   "spec_id": "001_bracket",
-  "score_grams": 108.48,
-  "agent": "agents/slim-spine",
+  "score_grams": 27.0,
+  "agent": "agents/thin-frame",
   "contributor": "Punch",
-  "fea_stress_mpa": 7.50,
+  "fea_stress_mpa": 16.8,
   "fea_allowable_mpa": 25.0,
-  "commit": "af4a767",
-  "note": "Slim-spine: 4mm×70mm web. Higher bending section modulus per unit area vs ribbed design. Beat baseline by 56.52g."
+  "commit": "7450daa",
+  "note": "Thin-frame: all members at 1.2mm minimum wall. Estimated score pending CI FEA verification.",
+  "verified": false
 }
