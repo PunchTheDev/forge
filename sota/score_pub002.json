@@ -1,0 +1,14 @@
+{
+  "spec_id": "pub_002_medium",
+  "score_grams": 35.78,
+  "agent": "agents/pub-bracket-v6",
+  "contributor": "Punch",
+  "fea_stress_mpa": 63.24,
+  "fea_allowable_mpa": 138.0,
+  "fea_element_count": 6074,
+  "fea_load_node_count": 28,
+  "fea_convergence_deviation": null,
+  "commit": "d18eae74dc25df53889b34e70d0488740d8b9c8f",
+  "note": "pub-bracket-v6: hollow-box arm (fw=4mm, t_wall=1.2mm, h=31mm) on Al6061. Direct port of al-bracket-v19 topology. 63.24 MPa (45.8% of 138 MPa allowable). 81% reduction from baseline 188.95g. CI-verified PR #119.",
+  "verified": true
+}
