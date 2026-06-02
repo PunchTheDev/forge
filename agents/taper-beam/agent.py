@@ -7,31 +7,29 @@ half of the arm where the moment is low. A linearly tapered beam from full heigh
 at the wall to a reduced height at the tip carries the same load with less mass.
 
 I-beam taper:
-  Root (x=0):  h = 90 mm  →  σ_max = 16.8 MPa (same as thin-frame, < 17.5 MPa trigger)
+  Root (x=0):  h = 90 mm  →  σ_max = 10.7 MPa (see below)
   Tip  (x=L):  h = 30 mm  →  M ≈ 0, any section works
 
 Structural analysis (critical section at x=0):
   M     = F × arm_reach = 392.4 × 100 = 39 240 N·mm
-  I-section (h=90, web=1.2, flanges=8×1.2):
-    I_web     = 1.2 × 87.6³ / 12        =  67 237 mm⁴
-    I_flanges = 2×(8×1.2×44.4²)         =  37 853 mm⁴
-    I_total                              = 105 090 mm⁴
+  I-section (h=90, web=2mm, flanges=10×1.5mm):
+    I_web     = 2.0 × 87³ / 12               = 109 747 mm⁴
+    I_flanges = 2×(10×1.5×43.25²)            =  56 090 mm⁴
+    I_total                                   = 165 837 mm⁴
   c = 45 mm
-  σ = 39 240 × 45 / 105 090 = 16.8 MPa < 17.5 MPa ✓  (no convergence check triggered)
+  σ = 39 240 × 45 / 165 837 = 10.7 MPa < 25 MPa ✓   (SF = 4.7)
+      10.7 MPa < 17.5 MPa → mesh convergence not triggered.
 
-Intermediate sections all meet σ < 17.5 MPa (verified analytically for x=50,70,80,90).
+Volume estimate (3mm plate, tapered arm):
+  Mount plate  70×70×3  − bolt holes ×4    ≈ 14 303 mm³  ( 17.7 g)
+  Web (trapezoid, h: 87→27, 108 mm, 2mm)  ≈ 12 312 mm³  ( 15.3 g)
+  Top flange   (10×1.5×108, slanted)       ≈  1 620 mm³  (  2.0 g)
+  Bot flange   (10×1.5×108, constant)      ≈  1 620 mm³  (  2.0 g)
+  Net                                       ≈ 29 855 mm³
+  Mass = 29 855 × 1.24 × 10⁻³              ≈ 37.0 g
 
-Volume estimate:
-  Mount plate  70×70×1.2 − bolt holes   ≈  5 880 mm³   (  7.3 g)
-  Web (trapezoid, h: 87.6→27.6, 108 mm) ≈  7 465 mm³   (  9.3 g)
-  Top flange   (8×1.2×108, slanted)     ≈  1 037 mm³   (  1.3 g)
-  Bot flange   (8×1.2×108, constant)    ≈  1 037 mm³   (  1.3 g)
-  Net                                    ≈ 15 419 mm³
-  Mass = 15 419 × 1.24 × 10⁻³           ≈ 19.1 g
-
-  vs trim-frame (~24.2 g): −21 %
-  vs thin-frame (~27.0 g): −29 %
-  vs slim-spine (108.5 g SOTA): −82 %
+  vs trim-frame (~46.6 g): −21%
+  vs slim-spine (108.5 g SOTA): −66%
 """
 
 from __future__ import annotations
@@ -43,11 +41,6 @@ import tempfile
 def generate(spec: dict) -> bytes:
     """Return STEP bytes for a taper-beam wall bracket."""
     from OCP.BRepAlgoAPI import BRepAlgoAPI_Cut, BRepAlgoAPI_Fuse
-    from OCP.BRepBuilderAPI import (
-        BRepBuilderAPI_MakeEdge,
-        BRepBuilderAPI_MakeWire,
-    )
-    from OCP.BRepOffsetAPI import BRepOffsetAPI_ThruSections
     from OCP.BRepPrimAPI import BRepPrimAPI_MakeBox, BRepPrimAPI_MakeCylinder
     from OCP.Interface import Interface_Static
     from OCP.STEPControl import STEPControl_AsIs, STEPControl_Writer
@@ -57,76 +50,80 @@ def generate(spec: dict) -> bytes:
     bolt_pattern = c["bolt_pattern_mm"]
     bolt_d = c["bolt_diameter_clearance_mm"]
     lp = c["load_point_mm"]          # [100, 25, 25]
-    min_wall = c.get("min_wall_thickness_mm", 1.2)
 
     by_coords = [p[0] for p in bolt_pattern]
     bz_coords = [p[1] for p in bolt_pattern]
-    plate_y = max(by_coords) + 10.0   # 70 mm (trimmed vs 80 mm baseline)
-    plate_z = max(bz_coords) + 10.0   # 70 mm
-    plate_t = min_wall                 # 1.2 mm
 
-    arm_len = lp[0] + 8.0             # 108 mm (8 mm tip extension for load nodes)
+    plate_t = 3.0                      # 3mm — survives bolt-hole FEA stress
+    bolt_r = bolt_d / 2.0
+
+    # Tight margins: bolt_r+1mm clearance past inner bolts, 10mm past outer bolts.
+    plate_y0 = min(by_coords) - bolt_r - 1.0   # ~-4.25 mm
+    plate_y1 = max(by_coords) + 10.0            # 70 mm
+    plate_z0 = min(bz_coords) - bolt_r - 1.0   # ~-4.25 mm
+    plate_z1 = max(bz_coords) + 10.0            # 70 mm
+
+    arm_len = lp[0] + 8.0             # 108 mm
 
     # I-beam parameters
-    web_w    = min_wall               # 1.2 mm web width in Y
-    flange_w = 8.0                    # flange width in Y
-    flange_t = min_wall               # 1.2 mm flange thickness
+    web_w    = 2.0                     # web width in Y
+    flange_w = 10.0                    # flange width in Y
+    flange_t = 1.5                     # flange thickness
 
-    h_root = 90.0                     # full I-beam height at wall (x=0)
-    h_tip  = 30.0                     # tapered height at arm tip (x=arm_len)
+    h_root = 90.0                     # I-beam height at wall (x=0)
+    h_tip  = 30.0                     # I-beam height at tip  (x=arm_len)
 
     y_center = lp[1]                  # 25 mm
 
-    # Bottom flange: constant rectangle along full arm length
+    # Bottom flange: constant z=[0, flange_t] along full arm
     bot_flange = BRepPrimAPI_MakeBox(
         gp_Pnt(0.0, y_center - flange_w / 2, 0.0),
         gp_Pnt(arm_len, y_center + flange_w / 2, flange_t),
     ).Shape()
 
-    # Tapered web: loft from root rectangle (full height) to tip rectangle (reduced height)
+    # Tapered web via ThruSections loft between two rectangular wire profiles
     web = _loft_rect(
         x0=0.0, x1=arm_len,
         y0=y_center - web_w / 2, y1=y_center + web_w / 2,
-        z0_near=flange_t, z1_near=h_root - flange_t,   # near: z 1.2 → 88.8
-        z0_far=flange_t,  z1_far=h_tip - flange_t,      # far:  z 1.2 → 28.8
+        z0_near=flange_t, z1_near=h_root - flange_t,
+        z0_far=flange_t,  z1_far=h_tip - flange_t,
     )
 
-    # Tapered top flange: sits on top of web, tapers with beam height
+    # Tapered top flange: follows the slanted top of the web
     top_flange = _loft_rect(
         x0=0.0, x1=arm_len,
         y0=y_center - flange_w / 2, y1=y_center + flange_w / 2,
-        z0_near=h_root - flange_t, z1_near=h_root,     # near: z 88.8 → 90.0
-        z0_far=h_tip - flange_t,   z1_far=h_tip,        # far:  z 28.8 → 30.0
+        z0_near=h_root - flange_t, z1_near=h_root,
+        z0_far=h_tip - flange_t,   z1_far=h_tip,
     )
 
-    # Fuse arm components
-    arm = BRepAlgoAPI_Fuse(bot_flange, web)
-    arm.Build()
-    arm = BRepAlgoAPI_Fuse(arm.Shape(), top_flange)
-    arm.Build()
+    fuse1 = BRepAlgoAPI_Fuse(bot_flange, web)
+    fuse1.Build()
+    fuse2 = BRepAlgoAPI_Fuse(fuse1.Shape(), top_flange)
+    fuse2.Build()
 
-    # Mounting plate
+    # Mounting plate (arm overlaps in x=[0, plate_t] for continuous junction)
     plate = BRepPrimAPI_MakeBox(
-        gp_Pnt(0.0, 0.0, 0.0),
-        gp_Pnt(plate_t, plate_y, plate_z),
+        gp_Pnt(0.0, plate_y0, plate_z0),
+        gp_Pnt(plate_t, plate_y1, plate_z1),
     ).Shape()
 
-    # Fuse plate + arm
-    body = BRepAlgoAPI_Fuse(plate, arm.Shape())
-    body.Build()
-    shape = body.Shape()
+    fuse3 = BRepAlgoAPI_Fuse(fuse2.Shape(), plate)
+    fuse3.Build()
+    shape = fuse3.Shape()
 
     # Drill bolt holes through the mount plate
+    cut_ops = []
     for bby, bbz in bolt_pattern:
         axis = gp_Ax2(gp_Pnt(-1.0, bby, bbz), gp_Dir(1.0, 0.0, 0.0))
-        hole = BRepPrimAPI_MakeCylinder(axis, bolt_d / 2.0, plate_t + 2.0).Shape()
-        cut = BRepAlgoAPI_Cut(shape, hole)
-        cut.Build()
-        shape = cut.Shape()
+        hole = BRepPrimAPI_MakeCylinder(axis, bolt_r, plate_t + 2.0).Shape()
+        cut_op = BRepAlgoAPI_Cut(shape, hole)
+        cut_op.Build()
+        cut_ops.append(cut_op)
+        shape = cut_op.Shape()
 
-    # Write STEP
     writer = STEPControl_Writer()
-    Interface_Static.SetCVal_s("write.step.schema", "AP203")
+    Interface_Static.SetCVal_s("write.step.schema", "AP214IS")
     writer.Transfer(shape, STEPControl_AsIs)
 
     with tempfile.NamedTemporaryFile(suffix=".step", delete=False) as f:
@@ -145,16 +142,9 @@ def _loft_rect(
     z0_near: float, z1_near: float,
     z0_far: float, z1_far: float,
 ):
-    """
-    Loft a solid between two axis-aligned rectangles at x=x0 and x=x1.
-
-    Near end (x=x0): z from z0_near to z1_near, y from y0 to y1.
-    Far end  (x=x1): z from z0_far  to z1_far,  y from y0 to y1.
-
-    Returns a TopoDS_Shape (solid).
-    """
-    from OCP.BRepOffsetAPI import BRepOffsetAPI_ThruSections
+    """Loft a solid between two axis-aligned rectangles at x=x0 and x=x1."""
     from OCP.BRepBuilderAPI import BRepBuilderAPI_MakeEdge, BRepBuilderAPI_MakeWire
+    from OCP.BRepOffsetAPI import BRepOffsetAPI_ThruSections
     from OCP.gp import gp_Pnt
 
     def make_rect_wire(x, ya, yb, za, zb):
@@ -170,7 +160,7 @@ def _loft_rect(
         w.Add(e1); w.Add(e2); w.Add(e3); w.Add(e4)
         return w.Wire()
 
-    loft = BRepOffsetAPI_ThruSections(True)   # True = solid
+    loft = BRepOffsetAPI_ThruSections(True)
     loft.AddWire(make_rect_wire(x0, y0, y1, z0_near, z1_near))
     loft.AddWire(make_rect_wire(x1, y0, y1, z0_far, z1_far))
     loft.Build()
