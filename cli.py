@@ -472,8 +472,15 @@ def _run_evaluate(agent_path: str, spec_path: str, verbose: bool) -> dict:
         "--spec", spec_path,
         "--json",
     ]
+    # Inherit environment; supply defaults so LLM agents work without extra setup.
+    env = os.environ.copy()
+    env.setdefault("FORGE_MODEL", "anthropic/claude-haiku-4-5")
+    env.setdefault(
+        "FORGE_MODEL_WHITELIST",
+        "anthropic/claude-haiku-4-5,anthropic/claude-3-5-haiku,openai/gpt-4o-mini",
+    )
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, cwd=str(ROOT))
+        proc = subprocess.run(cmd, capture_output=True, text=True, cwd=str(ROOT), env=env)
     except FileNotFoundError:
         return {"passed": False, "stage": "error", "reason": "benchmark module not found — run from repo root"}
 
