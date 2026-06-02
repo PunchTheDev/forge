@@ -1,12 +1,12 @@
 """
-FEA pipeline: gmsh meshing → CalculiX solve → max von Mises stress extraction.
+FEA pipeline: gmsh meshing → CalculiX solve → stress and displacement extraction.
 
 Workflow:
   1. Write STEP bytes to a temp file.
   2. gmsh imports STEP, generates C3D4 (4-node linear tet) mesh.
   3. Write CalculiX .inp file with BCs and load.
   4. Run `ccx` solver.
-  5. Parse .frd output for max von Mises stress.
+  5. Parse .frd output for max von Mises stress and max Z-displacement.
   6. Compare against allowable = yield_stress / safety_factor.
   7. (Optional) Convergence check: repeat at finer mesh; reject if stress deviates >10%.
 """
@@ -32,6 +32,8 @@ class FEAResult:
     load_node_count: int = 0
     # Populated when a convergence check is performed.
     convergence_deviation: float | None = None
+    # Max absolute Z-displacement at any node (mm). Populated on successful solve.
+    max_displacement_mm: float | None = None
 
 
 MESH_SIZE_MM = 4.0        # coarse element length — fast; used for first pass
@@ -175,7 +177,7 @@ def _run_at_mesh_size(
                 load_node_count=len(load_nodes),
             )
 
-        max_stress = _parse_frd(frd_path)
+        max_stress = _parse_frd_stress(frd_path)
         if max_stress is None:
             return FEAResult(
                 passed=False,
@@ -183,6 +185,8 @@ def _run_at_mesh_size(
                 element_count=len(elements),
                 load_node_count=len(load_nodes),
             )
+
+        max_disp = _parse_frd_displacement(frd_path)
 
         passed = max_stress <= allowable
         return FEAResult(
@@ -192,6 +196,7 @@ def _run_at_mesh_size(
             reason="" if passed else f"Max stress {max_stress:.1f} MPa > allowable {allowable:.1f} MPa",
             element_count=len(elements),
             load_node_count=len(load_nodes),
+            max_displacement_mm=max_disp,
         )
 
 
@@ -371,10 +376,10 @@ def _run_ccx(workdir: str, jobname: str) -> None:
         raise RuntimeError(brief)
 
 
-def _parse_frd(frd_path: str) -> float | None:
+def _parse_frd_stress(frd_path: str) -> float | None:
     """
-    Parse CalculiX .frd binary/ASCII output to extract max von Mises stress.
-    The .frd format stores stress components; we compute von Mises from S11/S22/S33/S12/S13/S23.
+    Parse CalculiX .frd output to extract max von Mises stress.
+    Stress components per node: S11, S22, S33, S12, S13, S23.
     """
     try:
         with open(frd_path) as f:
@@ -382,8 +387,6 @@ def _parse_frd(frd_path: str) -> float | None:
     except UnicodeDecodeError:
         return None
 
-    # ASCII .frd: stress block starts with '  -4  STRESS'
-    # Components per node: S11, S22, S33, S12, S13, S23
     in_stress = False
     max_vm = 0.0
 
@@ -395,7 +398,6 @@ def _parse_frd(frd_path: str) -> float | None:
             if line.startswith(" -3"):
                 break
             if line.startswith(" -1"):
-                # Node stress line: -1  node_id  S11  S22  S33  S12  S13  S23
                 parts = line.split()
                 if len(parts) >= 7:
                     try:
@@ -410,3 +412,47 @@ def _parse_frd(frd_path: str) -> float | None:
                         pass
 
     return max_vm if max_vm > 0 else None
+
+
+def _parse_frd_displacement(frd_path: str) -> float | None:
+    """
+    Parse CalculiX .frd output to extract max absolute Z-displacement (U3) in mm.
+
+    CalculiX .frd uses fixed-width Fortran format: node ID is 10 chars at offset 3,
+    then 12-char float fields (E12.5). Values may run together without whitespace
+    when both are negative, so we parse by column offsets rather than splitting.
+
+    The displacement block starts with a line containing '-4' and 'DISP'.
+    """
+    try:
+        with open(frd_path) as f:
+            lines = f.readlines()
+    except UnicodeDecodeError:
+        return None
+
+    in_disp = False
+    max_uz = 0.0
+
+    for line in lines:
+        if "DISP" in line and "-4" in line:
+            in_disp = True
+            continue
+        if in_disp:
+            if line.startswith(" -3"):
+                break
+            if line.startswith(" -1"):
+                # Fixed-width layout: " -1" (3) + node_id (10) + U1 (12) + U2 (12) + U3 (12)
+                # U3 occupies columns 37–48 (0-indexed)
+                try:
+                    uz = abs(float(line[37:49]))
+                    max_uz = max(max_uz, uz)
+                except (ValueError, IndexError):
+                    # Fall back to whitespace split for non-standard formatting
+                    parts = line.split()
+                    if len(parts) >= 5:
+                        try:
+                            max_uz = max(max_uz, abs(float(parts[4])))
+                        except (ValueError, IndexError):
+                            pass
+
+    return max_uz if max_uz > 0 else None

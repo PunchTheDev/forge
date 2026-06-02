@@ -148,7 +148,7 @@ jobs:
           SOTA=9999
           if [ -n "$FORGE_API_URL" ]; then
             API_SOTA=$(curl -sf --max-time 10 "${FORGE_API_URL}/sota/${SPEC_ID}" \
-              | python3 -c "import sys,json; print(json.load(sys.stdin).get('score_grams', 9999))" 2>/dev/null || echo "")
+              | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('score') or d.get('score_grams', 9999))" 2>/dev/null || echo "")
             if [ -n "$API_SOTA" ] && [ "$API_SOTA" != "9999" ]; then
               SOTA="$API_SOTA"
             fi
@@ -157,20 +157,22 @@ jobs:
           if [ "$SOTA" = "9999" ] && [ "$SPEC_ID" = "001_bracket" ]; then
             SOTA=$(python3 -c "import json; print(json.load(open('sota/score.json')).get('score_grams', 9999))")
           fi
-          echo "mass=$SOTA" >> "$GITHUB_OUTPUT"
+          echo "score=$SOTA" >> "$GITHUB_OUTPUT"
 
       - name: Post score comment
         if: steps.agent.outputs.found == 'true' && steps.dedup.outputs.cached != 'true'
         env:
           EVAL_RESULT: ${{ steps.eval.outputs.result }}
-          SOTA_MASS: ${{ steps.sota.outputs.mass }}
+          SOTA_SCORE: ${{ steps.sota.outputs.score }}
           AGENT_PATH: ${{ steps.agent.outputs.path }}
         uses: actions/github-script@v7
         with:
           script: |
             const result = JSON.parse(process.env.EVAL_RESULT);
-            const sota = parseFloat(process.env.SOTA_MASS);
+            const sota = parseFloat(process.env.SOTA_SCORE);
             const agent = process.env.AGENT_PATH;
+            const metric = result.score_metric || 'mass_grams';
+            const direction = result.score_direction || 'minimize';
 
             let body;
             if (!result.passed) {
@@ -179,25 +181,47 @@ jobs:
                 `**Reason:** ${result.reason}\n\n` +
                 `Fix the issue and push again. See [docs/scoring.md](docs/scoring.md).`;
             } else {
-              const score = result.score.toFixed(2);
-              const beats = result.score < sota;
-              const delta = (sota - result.score).toFixed(2);
+              const scoreVal = result.score;
+              const scoreStr = metric === 'mass_grams' || metric === 'volume_mm3'
+                ? scoreVal.toFixed(2)
+                : scoreVal.toFixed(4);
+              const metricLabel = {
+                mass_grams: 'Mass',
+                volume_mm3: 'Volume',
+                stiffness_to_weight: 'Stiffness/Weight',
+              }[metric] || metric;
+              const metricUnit = {
+                mass_grams: 'g',
+                volume_mm3: 'mm³',
+                stiffness_to_weight: 'N/(mm·g)',
+              }[metric] || '';
+
+              // "beats" depends on direction: minimize → lower is better; maximize → higher
+              const beats = direction === 'maximize'
+                ? scoreVal > sota
+                : scoreVal < sota;
+              const delta = Math.abs(sota - scoreVal);
+              const deltaStr = delta.toFixed(metric === 'stiffness_to_weight' ? 4 : 2);
               const stressRatio = (result.fea_stress_mpa / result.fea_allowable_mpa * 100).toFixed(1);
               const simStr = result.similarity != null
                 ? `| Similarity to SOTA | ${(result.similarity * 100).toFixed(1)}% |\n`
                 : '';
+              const dispStr = result.fea_displacement_mm != null
+                ? `| FEA displacement | ${result.fea_displacement_mm.toFixed(4)} mm |\n`
+                : '';
 
               body = `## Forge Eval — ${beats ? 'NEW LEADER 🏆' : 'PASSED ✅'}\n\n` +
                 `| Metric | Value |\n|---|---|\n` +
-                `| Mass | **${score} g** |\n` +
-                `| Current SOTA | ${sota} g |\n` +
-                `| Delta | ${beats ? '-' : '+'}${Math.abs(delta)} g |\n` +
+                `| ${metricLabel} | **${scoreStr} ${metricUnit}** |\n` +
+                `| Current SOTA | ${sota} ${metricUnit} |\n` +
+                `| Delta | ${beats ? (direction === 'maximize' ? '+' : '-') : (direction === 'maximize' ? '-' : '+')}${deltaStr} ${metricUnit} |\n` +
                 `| FEA stress | ${result.fea_stress_mpa.toFixed(1)} / ${result.fea_allowable_mpa.toFixed(1)} MPa (${stressRatio}%) |\n` +
+                dispStr +
                 simStr +
                 `| Agent time | ${result.elapsed_seconds.toFixed(1)}s |\n\n` +
                 (beats
-                  ? `**Beats the current SOTA by ${delta} g.** A maintainer will review and merge.`
-                  : `Passes all constraints but does not beat the current SOTA (${sota} g). Keep optimizing.`);
+                  ? `**Beats the current SOTA.** A maintainer will review and merge.`
+                  : `Passes all constraints but does not beat the current SOTA. Keep optimizing.`);
             }
 
             await github.rest.issues.createComment({
