@@ -84,7 +84,7 @@ ok &= run_check("thin-fuse", (
     "import sys; sys.stderr.write('thin-fuse OK\\n')"
 ))
 
-# Step 6: run the actual trim-frame agent step by step to isolate the crash
+# Step 6: run the actual trim-frame agent geometry step by step
 _step6_code = r"""
 import sys
 w = sys.stderr.write
@@ -92,16 +92,20 @@ from OCP.BRepAlgoAPI import BRepAlgoAPI_Cut, BRepAlgoAPI_Fuse
 from OCP.BRepPrimAPI import BRepPrimAPI_MakeBox, BRepPrimAPI_MakeCylinder
 from OCP.Interface import Interface_Static
 from OCP.STEPControl import STEPControl_AsIs, STEPControl_Writer
+from OCP.ShapeFix import ShapeFix_Shape
 from OCP.gp import gp_Ax2, gp_Dir, gp_Pnt
 w('step1: imports OK\n')
 
-plate_t=1.2; plate_y=70.0; plate_z=70.0
-arm_x=108.0; web_w=1.2; flange_w=8.0; flange_t=1.2; total_h=90.0
+plate_t=1.2; arm_x=108.0; web_w=1.2; flange_w=8.0; flange_t=1.2; total_h=90.0
+bolt_d=6.5; bolt_r=bolt_d/2.0
+# Negative margin ensures all bolt holes fully inside plate
+plate_y0=0-bolt_r-1.0; plate_z0=0-bolt_r-1.0
+plate_y1=60+10.0; plate_z1=60+10.0
 y_center=25.0
 web_y0=y_center-web_w/2; web_y1=y_center+web_w/2
 flange_y0=y_center-flange_w/2; flange_y1=y_center+flange_w/2
 
-plate=BRepPrimAPI_MakeBox(gp_Pnt(0,0,0),gp_Pnt(plate_t,plate_y,plate_z)).Shape()
+plate=BRepPrimAPI_MakeBox(gp_Pnt(0,plate_y0,plate_z0),gp_Pnt(plate_t,plate_y1,plate_z1)).Shape()
 web=BRepPrimAPI_MakeBox(gp_Pnt(plate_t,web_y0,flange_t),gp_Pnt(arm_x,web_y1,total_h-flange_t)).Shape()
 bot=BRepPrimAPI_MakeBox(gp_Pnt(plate_t,flange_y0,0),gp_Pnt(arm_x,flange_y1,flange_t)).Shape()
 top=BRepPrimAPI_MakeBox(gp_Pnt(plate_t,flange_y0,total_h-flange_t),gp_Pnt(arm_x,flange_y1,total_h)).Shape()
@@ -114,20 +118,21 @@ w('step4: fuse2 OK\n')
 f3=BRepAlgoAPI_Fuse(s2,top); f3.Build(); shape=f3.Shape()
 w('step5: fuse3 OK\n')
 
-bolt_pattern=[[0,0],[60,0],[60,60],[0,60]]; bolt_d=6.5
+bolt_pattern=[[0,0],[60,0],[60,60],[0,60]]
+cut_ops=[]
 for i,(by,bz) in enumerate(bolt_pattern):
     axis=gp_Ax2(gp_Pnt(-1.0,by,bz),gp_Dir(1.0,0.0,0.0))
-    hole=BRepPrimAPI_MakeCylinder(axis,bolt_d/2.0,plate_t+2.0).Shape()
-    cop=BRepAlgoAPI_Cut(shape,hole); cop.Build(); shape=cop.Shape()
+    hole=BRepPrimAPI_MakeCylinder(axis,bolt_r,plate_t+2.0).Shape()
+    cop=BRepAlgoAPI_Cut(shape,hole); cop.Build(); cut_ops.append(cop); shape=cop.Shape()
     w(f'step6.{i}: cut OK\n')
 
-w('step7a: before STEPControl_Writer()\n')
+fixer=ShapeFix_Shape(shape); fixer.Perform(); shape=fixer.Shape()
+w('step6f: ShapeFix OK\n')
+
 writer=STEPControl_Writer()
-w('step7b: before SetCVal_s\n')
 Interface_Static.SetCVal_s('write.step.schema','AP203')
-w('step7c: before Transfer\n')
 writer.Transfer(shape,STEPControl_AsIs)
-w('step7d: Transfer OK\n')
+w('step7: Transfer OK\n')
 import tempfile,os
 with tempfile.NamedTemporaryFile(suffix='.step',delete=False) as f: path=f.name
 writer.Write(path)
