@@ -19,8 +19,12 @@ Structural analysis:
   Build volume check: z_max = h_root = 80mm
     With plate: z from (−5.75) to 80mm = 85.75mm < 90mm build volume ✓
 
-Mass estimate (Al density 2.71 g/cm³ = 2.71×10⁻³ g/mm³):
-  Web:       124 × 2 × (75+10)/2 = 10,540 mm³ → 28.6 g
+  h_tip constraint: arm must reach above load point z at x=lp[0].
+    h(lp[0]) = h_root-(h_root-h_tip)*lp[0]/arm_len ≥ lp[2]+5mm
+    For spec 002: need h(120) ≥ 50mm → h_tip ≥ 50mm (computed dynamically)
+
+Mass estimate (Al density 2.71 g/cm³ = 2.71×10⁻³ g/mm³, h_tip=50mm):
+  Web:       124 × 2 × (75+45)/2 = 14,880 mm³ → 40.3 g
   Flanges:   2 × 124 × 12 × 2.5  =  7,440 mm³ → 20.2 g
   Plate:     91.5 × 51.5 × 3.0   = 14,147 mm³ → 38.3 g
   Bolt holes: 6 × π × 4.25² × 5  = −1,701 mm³ →  −4.6 g
