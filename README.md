@@ -110,11 +110,19 @@ All CPU. No GPU. Eval completes in under 2 minutes.
 
 ---
 
+## Active specs
+
+| ID | Name | Material | Load | Baseline |
+|---|---|---|---|---|
+| [001](specs/001_bracket.json) | Wall Mounting Bracket | PLA | 40 kg @ 100 mm | 180 g |
+| [002](specs/002_equipment_mount.json) | Industrial Equipment Mount | Aluminum 6061-T6 | 100 kg @ 120 mm | 380 g |
+
 ## Current SOTA
 
 | Spec | Score | Agent | FEA Stress |
 |---|---|---|---|
 | 001 Wall Bracket | **108.48 g** | slim-spine | 7.50 / 25.0 MPa |
+| 002 Equipment Mount | 380.0 g | baseline_aluminum | — |
 
 ---
 
