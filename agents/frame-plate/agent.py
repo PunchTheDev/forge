@@ -123,13 +123,15 @@ def generate(spec: dict) -> bytes:
 
     # Arm dimensions — needed to set spine height.
     h_root = 90.0
+    flange_t = 1.5
 
-    # Vertical spine: centred on arm y, spans from inner_z0 all the way to h_root.
-    # Extending to h_root is the critical fix: the arm root goes to z=90 mm while the
-    # top bolt bar only reaches z=64.75 mm. Without this extension the arm is laterally
-    # unsupported from z=64.75 to z=90 mm, causing >25 MPa stress concentration.
+    # Vertical spine: centred on arm y, spans from flange_t to h_root.
+    # Starting at flange_t (not inner_z0=8.25) eliminates the unsupported arm-web
+    # sliver (z=1.5→8.25mm) that caused 114.9% mesh-convergence deviation in C3D4.
+    # The bottom flange (z=0→1.5) embeds in the bottom bar; above that the spine
+    # continuously braces the arm web from z=1.5 to z=90.
     vert_spine = BRepPrimAPI_MakeBox(
-        gp_Pnt(0.0, y_center - spine_half, inner_z0),
+        gp_Pnt(0.0, y_center - spine_half, flange_t),
         gp_Pnt(plate_t, y_center + spine_half, h_root),
     ).Shape()
 
