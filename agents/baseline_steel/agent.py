@@ -35,11 +35,13 @@ def generate(spec: dict) -> bytes:
     plate_z = max(bz_coords) + 15.0
     plate_t = 10.0
 
-    # Shelf reaches load point; thickness drives section modulus.
+    # Arm reaches load point; must include material at the load application zone.
     lp = constraints["load_point_mm"]
     shelf_length = lp[0] + 15.0
-    shelf_thickness = 15.0   # thicker than the PLA baseline — suits high-load steel use
-    shelf_z = plate_z
+    arm_thickness = 15.0   # thicker than the PLA baseline — suits high-load steel use
+    # Position arm so its centerline passes through the load point Z coordinate.
+    arm_z0 = max(0.0, lp[2] - arm_thickness / 2.0)
+    arm_z1 = arm_z0 + arm_thickness
 
     # Mounting plate
     plate = BRepPrimAPI_MakeBox(
@@ -47,10 +49,10 @@ def generate(spec: dict) -> bytes:
         gp_Pnt(plate_t, plate_y, plate_z),
     ).Shape()
 
-    # Horizontal shelf
+    # Cantilever arm spanning the full Y width, centered on the load Z height.
     shelf = BRepPrimAPI_MakeBox(
-        gp_Pnt(0.0, 0.0, 0.0),
-        gp_Pnt(shelf_length, shelf_z, shelf_thickness),
+        gp_Pnt(0.0, 0.0, arm_z0),
+        gp_Pnt(shelf_length, plate_y, arm_z1),
     ).Shape()
 
     fused = BRepAlgoAPI_Fuse(plate, shelf)
