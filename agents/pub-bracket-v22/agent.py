@@ -1,18 +1,18 @@
 """
-pub-bracket-v22: Hollow-box arm with reduced height for pub_004_medium.
+pub-bracket-v22: Hollow-box arm with tighter length for pub_004_medium.
 
-Improvement over v4: tighter arm dimensions.
-  - h = max(load_z + mw + 12, pz1 + 5) — arm top ≥5 mm above plate top
-    to avoid stress concentration at arm-plate junction discontinuity
-  - arm_len = load_x − 12 mm (12 mm margin within ±15 mm load tolerance)
+Improvement over v4: shorter arm length only; height unchanged.
+  - h = max(load_z + mw + 12, pz1 + 10) ≈ 69.55 mm (same regime as v4)
+    Arm-plate junction needs ≥10 mm above pz1 to avoid mesh divergence.
+  - arm_len = load_x − 12 mm = 71.3 mm (vs 75 mm in v4)
   - Same hollow cross-section as v4 (fw = 3×mw = 3.6 mm)
 
 Analytical check (PLA, 25 MPa allowable):
-  h ≈ 64.6 mm, al = 71.3 mm
-  I ≈ 55,300 mm⁴, c = 32 mm, M = 303.22 × 71.3 = 21,620 N·mm
-  σ ≈ 12.5 MPa → 50% utilisation ✓
+  h ≈ 69.6 mm, al = 71.3 mm
+  I ≈ 70,700 mm⁴, c = 34.8 mm, M = 303.22 × 71.3 = 21,620 N·mm
+  σ ≈ 10.6 MPa → 42% utilisation ✓
 
-Estimated mass ≈ 19.4 g (−10% vs v4 at 21.68 g).
+Estimated mass ≈ 21.0 g (−3% vs v4 at 21.68 g).
 """
 
 from __future__ import annotations
@@ -65,9 +65,9 @@ def generate(spec: dict) -> bytes:
     # Hollow arm
     aw = 3.0 * mw   # arm y-width (3.6 mm at mw=1.2)
 
-    # Arm height: ≥5 mm above plate top (pz1) to avoid arm-plate junction stress
-    # concentration; also satisfies ≥10 mm inner-ceiling clearance above load_z.
-    h = max(lz + mw + 12.0, pz1 + 5.0)
+    # Arm height: ≥10 mm above plate top (pz1). v4 works at gap=10.85 mm;
+    # gaps of 5 mm and 0.65 mm diverged. Keep same height profile as v4.
+    h = max(lz + mw + 12.0, pz1 + 10.0)
     h = min(h, bvz - 2.0)
 
     # Arm length: 12 mm short of load point (mesh headroom within ±15 mm tolerance)
