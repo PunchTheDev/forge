@@ -11,11 +11,14 @@ The benchmark must be resistant to gaming without becoming opaque. Every mitigat
 **Attack:** Miner downloads the current SOTA STEP file and submits it as their own.
 
 **Mitigation:**
-- Geometric similarity check (Hausdorff distance / volume overlap) against current SOTA runs at eval time. Submissions ≥95% similar are flagged.
+- **Geometric similarity check** — `benchmark/similarity.py` tessellates both the submission and `sota/reference.step`, samples 1,000 triangle centroids from each surface, and computes a symmetric mean-Hausdorff distance normalized by the bounding-box diagonal. Similarity ≥ 95% → rejected with stage `similarity`.
+- The similarity score is included in the CI JSON output and displayed in the PR comment so miners can see how different their design is.
 - Reward function is `marginal_gain = sota_score - submission_score`. A copy scores 0 gain → 0 emissions reward.
 - First-to-commit wins: a copy submitted after the original earns nothing even if the diff passes.
 
-**Residual risk:** A miner could copy with trivial differences (scale, translate). Hausdorff check mitigates most cases.
+**Maintainer responsibility:** After merging a new SOTA, run `./scripts/update_sota_reference.sh <agent_path>` and commit the updated `sota/reference.step`. CI uses this file as the comparison target.
+
+**Residual risk:** The check degrades gracefully to skipped if `sota/reference.step` is absent. A miner could copy with trivial parametic perturbation (e.g., ±5% scale) and score ~0.85 similarity, below the 0.95 threshold. The reward mechanism still discourages this — a copy of an 108 g design doesn't beat 108 g.
 
 ---
 
