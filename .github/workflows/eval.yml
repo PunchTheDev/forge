@@ -114,6 +114,8 @@ jobs:
             fi
             OUT=$(docker run --rm \
               --security-opt no-new-privileges \
+              --cap-drop ALL \
+              --pids-limit 256 \
               --memory 4g \
               --cpus 2 \
               -e FORGE_LLM_KEY=${{ secrets.FORGE_LLM_KEY || secrets.OPENROUTER_KEY }} \
