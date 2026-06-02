@@ -1,6 +1,6 @@
 # Quickstart — Submit to Forge in 15 Minutes
 
-Forge is a competitive parametric CAD benchmark on Gittensor SN74. Submit an `agent.py` that generates a lightweight 3D-printable structural part as a STEP file. The lightest design that survives finite element analysis holds the SOTA and earns contributor emissions.
+Forge is a competitive parametric CAD benchmark on Gittensor SN74. Submit an `agent.py` that generates a 3D-printable structural part as a STEP file. Your agent is evaluated across three categories — mass optimization, stiffness-to-weight, and absolute stiffness — sampled from a pool of 45 problems. The most well-rounded agent across all three categories earns contributor emissions.
 
 **Live leaderboard + API:** http://143.244.191.193:8080 | http://143.244.191.193:8000/docs
 
@@ -35,36 +35,44 @@ forge eval agents/baseline/agent.py
 
 ---
 
-## Step 1 — Understand the spec
+## Step 1 — Understand the competition
 
-Each problem is a JSON file in `specs/`. The bracket spec:
+Three active rounds, 15 specs each (easy / medium / hard):
+
+| Round | Metric | Direction |
+|---|---|---|
+| round_001 | `mass_grams` | minimize |
+| round_002 | `stiffness_to_weight` (N/(mm·g)) | maximize |
+| round_003 | `deflection_mm` | minimize |
+
+Each spec is a JSON file defining the problem. Example:
 
 ```json
 {
-  "id": "001_bracket",
-  "version": "1.0",
+  "id": "r01_001_easy",
   "material": "pla",
   "constraints": {
-    "load_newtons": 392.4,
-    "load_point_mm": [100, 25, 25],
-    "safety_factor": 2.0,
-    "bolt_pattern_mm": [[0,0],[60,0],[60,60],[0,60]],
+    "load_newtons": 221.6,
+    "load_point_mm": [95.3, 58.5, 43.7],
+    "safety_factor": 1.5,
+    "bolt_pattern_mm": [[0,0],[53.3,0],[106.6,0],[0,53.3],[53.3,53.3],[106.6,53.3]],
     "bolt_diameter_clearance_mm": 6.5,
-    "build_volume_mm": [150, 100, 100],
-    "max_overhang_deg": 45.0,
-    "min_wall_thickness_mm": 1.2
+    "build_volume_mm": [162.9, 117.1, 87.4],
+    "max_overhang_deg": 50.0,
+    "min_wall_thickness_mm": 1.0
   },
   "scoring": {
     "metric": "mass_grams",
     "direction": "minimize",
-    "baseline_mass_grams": 180.0
+    "baseline_mass_grams": 263.2
   }
 }
 ```
 
-Retrieve any spec from the API:
+Browse all specs and rounds:
 ```bash
-curl http://143.244.191.193:8000/specs/001_bracket
+curl http://143.244.191.193:8000/rounds/active
+curl http://143.244.191.193:8000/specs/r01_001_easy
 ```
 
 ---
@@ -180,17 +188,20 @@ A maintainer reviews and merges. You hold the SOTA position until someone beats 
 The Forge REST API exposes all specs and the live leaderboard. No auth required.
 
 ```bash
+# List active rounds
+curl http://143.244.191.193:8000/rounds/active
+
 # List all problem specs
 curl http://143.244.191.193:8000/specs
 
 # Get a specific spec
-curl http://143.244.191.193:8000/specs/001_bracket
+curl http://143.244.191.193:8000/specs/r01_001_easy
 
 # Current SOTA for a spec
-curl http://143.244.191.193:8000/sota/001_bracket
+curl http://143.244.191.193:8000/sota/r01_001_easy
 
 # Full leaderboard for a spec
-curl http://143.244.191.193:8000/leaderboard/001_bracket
+curl http://143.244.191.193:8000/leaderboard/r01_001_easy
 
 # All-time cross-spec rankings
 curl http://143.244.191.193:8000/leaderboard/overall
@@ -202,13 +213,13 @@ Interactive docs: http://143.244.191.193:8000/docs
 
 ## Tips for agents and LLMs
 
-- **Start from `agents/compact-arm/agent.py`** — current verified SOTA at 27.22g. Understand every dimension.
+- **Generalists win**: specialists who hardcode one metric fail two of three categories. CI evaluates your agent across all three rounds.
 - **The hard constraint is FEA**: geometry checks are easy to satisfy; passing FEA with acceptable mesh convergence is the real challenge.
 - **Minimum wall = 2–3 mm**: C3D4 linear tets fail to resolve stress in walls thinner than 2 mm.
-- **Determinism is required**: if your design uses randomness, fix `random.seed(42)`. CI runs 3× and all scores must match.
+- **Determinism is required**: if your design uses randomness, fix `random.seed(42)`. CI runs the first spec twice and both scores must match.
 - **AP214IS STEP schema**: always set `Interface_Static.SetCVal_s("write.step.schema", "AP214IS")` before writing STEP. AP203 causes SIGSEGV on complex geometry.
 - **Use build123d**: cleaner parametric API than raw OCP. See `agents/taper-beam/` for an OCP example.
-- **Progressive improvement beats one-shot guessing**: 108g → 56g → 38g → 32g was achieved by understanding where material is structurally necessary.
+- **Read the spec metric**: round_001 = mass, round_002 = stiffness/weight, round_003 = deflection. Your geometry strategy should differ for each.
 
 ---
 

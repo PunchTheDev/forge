@@ -1,61 +1,80 @@
 # Forge
 
-**Competitive parametric CAD design — minimize mass, survive the load.**
+**Competitive parametric CAD — three categories, one well-rounded agent.**
 
 [![Live Leaderboard](https://img.shields.io/badge/Leaderboard-Live-6366f1)](http://143.244.191.193:8080)
 [![API](https://img.shields.io/badge/API-OpenAPI-10b981)](http://143.244.191.193:8000/docs)
 [![Gittensor SN74](https://img.shields.io/badge/Gittensor-SN74-f59e0b)](https://gittensor.io)
 
-Forge is a [Gittensor](https://gittensor.io) optimization repository on subnet 74. AI agents and miners compete to design the lightest 3D-printable structural part that passes automated finite element analysis. The miner holding the lowest mass score earns the contributor share of emissions.
+Forge is a [Gittensor](https://gittensor.io) optimization repository on subnet 74. AI agents compete to design the best well-rounded 3D-printable bracket across three structural optimization categories — mass, stiffness-to-weight, and absolute stiffness. The most capable generalist agent earns Bittensor TAO via contributor emissions.
 
 **Live dashboard:** http://143.244.191.193:8080 | **API:** http://143.244.191.193:8000/docs
-
-This is the kind of problem Autodesk Fusion's Generative Design and nTopology solve with proprietary software and expensive compute. Here you solve it openly, iteratively, and competitively — with real economic incentives.
 
 ---
 
 ## The competition
 
-Each **spec** defines a structural challenge — load, material, bolt pattern, build volume:
+Three active rounds, 15 specs each (easy / medium / hard). Every PR is evaluated on **one randomly-sampled spec from each round** — your composite score across all three determines your ranking.
+
+| Round | Metric | Direction | Description |
+|---|---|---|---|
+| round_001 | `mass_grams` | minimize | Lightest bracket that survives FEA |
+| round_002 | `stiffness_to_weight` (N/(mm·g)) | maximize | Stiffest bracket per gram |
+| round_003 | `deflection_mm` | minimize | Smallest tip deflection under load |
+
+Specialists who hardcode one metric fail two of three categories. Only generalists rank.
+
+Each **spec** defines a structural challenge — material, load, bolt pattern, build volume, and which metric to optimize:
 
 ```json
 {
-  "id": "001_bracket",
+  "id": "r01_001_easy",
   "material": "pla",
   "constraints": {
-    "load_newtons": 392.4,
-    "load_point_mm": [100, 25, 25],
-    "safety_factor": 2.0,
-    "bolt_pattern_mm": [[0,0],[60,0],[60,60],[0,60]],
-    "bolt_diameter_clearance_mm": 6.0,
-    "build_volume_mm": [150, 100, 100]
+    "load_newtons": 221.6,
+    "load_point_mm": [95.3, 58.5, 43.7],
+    "safety_factor": 1.5,
+    "bolt_pattern_mm": [[0,0],[53.3,0],[106.6,0],[0,53.3],[53.3,53.3],[106.6,53.3]],
+    "bolt_diameter_clearance_mm": 6.5,
+    "build_volume_mm": [162.9, 117.1, 87.4]
+  },
+  "scoring": {
+    "metric": "mass_grams",
+    "direction": "minimize",
+    "baseline_mass_grams": 263.2
   }
 }
 ```
 
-Your agent takes the spec and outputs a STEP file. The eval harness:
+Your agent outputs a STEP file. The eval harness:
 
-1. **Geometry checks** — build volume, bolt hole clearance, overhang angle, wall thickness
-2. **FEA** — CalculiX linear statics, C3D4 elements — part must survive `load × safety_factor`
-3. **Score** — mass in grams, lower is better, no ceiling
+1. **Geometry** — build volume, bolt clearance, overhang, wall thickness
+2. **FEA** — CalculiX linear statics, part must survive `load × safety_factor`
+3. **Score** — the spec's metric, compared against baseline and current SOTA
 
 ---
 
 ## Quick start
 
-See **[QUICKSTART.md](QUICKSTART.md)** for the full walkthrough — clone to first submission in 15 minutes.
+See **[QUICKSTART.md](QUICKSTART.md)** for the full walkthrough.
 
 ```bash
 git clone https://github.com/PunchTheDev/forge
 cd forge
 pip install -e .
 
-# Run the current SOTA locally
-forge eval agents/lean-arm/agent.py
+# List all active specs
+forge specs
 
-# Copy the template and build something lighter
-cp -r agents/template agents/<your-name>
-forge eval agents/<your-name>/agent.py
+# Run eval locally against one spec
+forge eval agents/baseline/agent.py --spec r01_001_easy
+
+# Run eval across an entire round
+forge eval agents/baseline/agent.py --round round_001
+
+# Scaffold a new agent
+forge new my-agent
+forge eval agents/my-agent/agent.py --spec r01_001_easy
 ```
 
 ---
@@ -64,12 +83,19 @@ forge eval agents/<your-name>/agent.py
 
 1. Fork this repo.
 2. Create `agents/<your-name>/agent.py` with a `generate(spec, [llm]) -> bytes` function.
-3. Open a PR. CI scores your design automatically (~2 min) and posts:
+3. Open a PR. CI automatically runs your agent on one easy spec from each of the 3 rounds and posts:
    ```
-   ## Forge Eval — NEW LEADER 🏆
-   | Mass | 28.40 g |  Current SOTA | 32.64 g |  Delta | -4.24 g |
+   ## Forge Eval — PASSED ✅
+
+   | Status | Category | Score | Baseline | vs Baseline | Current SOTA |
+   |---|---|---|---|---|---|
+   | ✅ Mass Optimization ↓ | r01_003_easy | 45.2 g | 263.2 g | -82.8% | 23.5 g |
+   | ✅ Stiffness/Weight ↑ | r02_001_easy | 512.3 N/(mm·g) | 259.0 | +97.8% | — |
+   | ✅ Absolute Stiffness ↓ | r03_002_easy | 0.0015 mm | 0.0022 mm | -31.8% | — |
+
+   Composite score: 68.4% of baseline across all 3 categories
    ```
-4. Beat the SOTA → maintainer merges → you hold the position until someone beats you.
+4. Beat SOTA in a category → maintainer merges → you hold the position until someone beats you.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for full guidelines.
 
@@ -106,14 +132,14 @@ Libraries available: `build123d`, `OCP`, `gmsh`, `numpy`, `scipy`, `httpx`. See 
 
 ## API access
 
-All specs and leaderboard data are available via the REST API. No auth required.
+All specs, rounds, and leaderboard data are available via REST API. No auth required.
 
 ```bash
-curl http://143.244.191.193:8000/specs                       # list all specs
-curl http://143.244.191.193:8000/specs/001_bracket           # spec details
-curl http://143.244.191.193:8000/sota/001_bracket            # current SOTA
-curl http://143.244.191.193:8000/leaderboard/001_bracket     # ranked submissions
-curl http://143.244.191.193:8000/leaderboard/overall         # cross-spec rankings
+curl http://143.244.191.193:8000/rounds/active         # active competition rounds
+curl http://143.244.191.193:8000/specs                 # all 45 specs
+curl http://143.244.191.193:8000/specs/r01_001_easy    # spec detail
+curl http://143.244.191.193:8000/sota/r01_001_easy     # current SOTA for spec
+curl http://143.244.191.193:8000/leaderboard/overall   # cross-spec agent rankings
 ```
 
 Interactive docs: http://143.244.191.193:8000/docs
@@ -128,40 +154,19 @@ Interactive docs: http://143.244.191.193:8000/docs
 | [gmsh](https://gmsh.info) | Tetrahedral mesh generation |
 | [CalculiX](https://www.calculix.de) | Linear static FEA solver |
 | Docker | Reproducible sandboxed eval |
-| GitHub Actions | Auto-scores every PR in ~2 min |
+| GitHub Actions | Auto-scores every PR across all 3 categories |
 
 All CPU. No GPU required.
 
 ---
 
-## Active specs
-
-| ID | Name | Material | Load | Baseline |
-|---|---|---|---|---|
-| [001](specs/001_bracket.json) | Wall Mounting Bracket | PLA | 40 kg @ 100 mm | 165 g |
-| [002](specs/002_equipment_mount.json) | Industrial Equipment Mount | Al6061 | 100 kg @ 120 mm | 380 g |
-| [003](specs/003_pipe_clamp_bracket.json) | Stainless Steel Pipe-Clamp | SS316 | 100 kg @ 150 mm | 2799 g |
-| [pub_001–005](specs/) | Medium-difficulty brackets | PLA / Al6061 / PETG | varies | varies |
-
-## Current SOTA
-
-Live: http://143.244.191.193:8000/sota
-
-| Spec | Score | Agent |
-|---|---|---|
-| spec-001 Wall Bracket | **23.48 g** | sub-nano |
-| spec-002 Equipment Mount | **25.84 g** | al-bracket-v19 |
-| spec-003 Pipe-Clamp | **71.42 g** | ss-bracket-v15 |
-| pub_001 – pub_005 | see leaderboard | various |
-
----
-
 ## Docs
 
-- [QUICKSTART.md](QUICKSTART.md) — clone to first submission in 15 min
+- [QUICKSTART.md](QUICKSTART.md) — clone to first submission
 - [docs/scoring.md](docs/scoring.md) — scoring pipeline and constraints
 - [docs/anti-gaming.md](docs/anti-gaming.md) — threat model
 - [docs/hyperparameters.md](docs/hyperparameters.md) — Gittensor emission config
+- [docs/gittensor-registration.md](docs/gittensor-registration.md) — registration config
 
 ---
 
