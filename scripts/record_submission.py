@@ -21,12 +21,17 @@ if step_file.exists():
     step_b64 = base64.b64encode(step_file.read_bytes()).decode()
     step_file.unlink(missing_ok=True)
 
+score = result.get("score") or 0.0
+score_metric = result.get("score_metric", "mass_grams")
+
 payload = {
     "spec_id": os.environ.get("SPEC_ID", "001_bracket"),
     "agent_path": os.environ["AGENT_PATH"],
     "contributor": os.environ["CONTRIBUTOR"],
     "commit_hash": os.environ["COMMIT_HASH"],
-    "mass_grams": result.get("score") or 0.0,
+    "mass_grams": score if score_metric == "mass_grams" else 0.0,
+    "score": score,
+    "score_metric": score_metric,
     "fea_stress_mpa": result.get("fea_stress_mpa") or 0.0,
     "fea_allowable_mpa": result.get("fea_allowable_mpa") or 0.0,
     "passed": bool(result.get("passed", False)),

@@ -32,9 +32,10 @@ SIMILARITY_THRESHOLD = 0.95
 @dataclass
 class EvalResult:
     passed: bool
-    score: float | None  # mass in grams; None if failed
+    score: float | None  # objective metric value (minimize or maximize per spec); None if failed
     stage: str  # "agent" | "geometry" | "fea" | "similarity" | "ok"
     reason: str
+    score_metric: str = "mass_grams"  # which metric was scored; matches spec["scoring"]["metric"]
     fea_stress_mpa: float | None = None
     fea_allowable_mpa: float | None = None
     fea_element_count: int | None = None
@@ -45,9 +46,24 @@ class EvalResult:
     step_bytes: bytes | None = None  # raw STEP output; populated only on pass
 
 
+SUPPORTED_METRICS = {"mass_grams", "volume_mm3"}
+
+
+def _score_from_geo(geo: geometry.GeometryResult, metric: str) -> float:
+    """Extract the objective score from a passed geometry result."""
+    if metric == "volume_mm3":
+        return geo.volume_mm3
+    # Default: mass_grams (also the fallback for unknown metrics)
+    return geo.mass_grams
+
+
 def evaluate(agent_path: str, spec_path: str, reference_step_path: str | None = None) -> EvalResult:
     spec = json.loads(Path(spec_path).read_text())
     mat = materials.get(spec["material"])
+    scoring = spec.get("scoring", {})
+    metric = scoring.get("metric", "mass_grams")
+    if metric not in SUPPORTED_METRICS:
+        raise ValueError(f"Unsupported scoring metric '{metric}'. Supported: {sorted(SUPPORTED_METRICS)}")
 
     # Stage 1: Run agent in sandbox
     agent_result = run_agent(agent_path, spec)
@@ -123,9 +139,10 @@ def evaluate(agent_path: str, spec_path: str, reference_step_path: str | None = 
 
     return EvalResult(
         passed=True,
-        score=geo.mass_grams,
+        score=_score_from_geo(geo, metric),
         stage="ok",
         reason="",
+        score_metric=metric,
         fea_stress_mpa=fea_result.max_stress_mpa,
         fea_allowable_mpa=fea_result.allowable_mpa,
         fea_element_count=fea_result.element_count or None,
@@ -160,6 +177,7 @@ def main() -> None:
     payload = {
         "passed": result.passed,
         "score": result.score,
+        "score_metric": result.score_metric,
         "stage": result.stage,
         "reason": result.reason,
         "fea_stress_mpa": result.fea_stress_mpa,
@@ -178,7 +196,8 @@ def main() -> None:
     else:
         if result.passed:
             sim_str = f"  similarity={result.similarity:.2f}" if result.similarity is not None else ""
-            print(f"PASSED  score={result.score:.2f} g  stress={result.fea_stress_mpa:.1f}/{result.fea_allowable_mpa:.1f} MPa  t={result.elapsed_seconds:.1f}s{sim_str}")
+            unit = "mm³" if result.score_metric == "volume_mm3" else "g"
+            print(f"PASSED  {result.score_metric}={result.score:.2f} {unit}  stress={result.fea_stress_mpa:.1f}/{result.fea_allowable_mpa:.1f} MPa  t={result.elapsed_seconds:.1f}s{sim_str}")
         else:
             print(f"FAILED  stage={result.stage}  reason={result.reason}")
 
