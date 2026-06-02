@@ -1,14 +1,14 @@
 {
   "spec_id": "001_bracket",
-  "score_grams": 27.22,
-  "agent": "agents/compact-arm",
+  "score_grams": 26.57,
+  "agent": "agents/mid-arm",
   "contributor": "Punch",
-  "fea_stress_mpa": 13.8,
+  "fea_stress_mpa": 14.7,
   "fea_allowable_mpa": 25.0,
   "fea_element_count": null,
   "fea_load_node_count": null,
   "fea_convergence_deviation": null,
-  "commit": "72fd9a5",
-  "note": "Compact-arm: deep-pocket + h_root reduced 90\u219275mm (taper 5:1, h_tip=15mm). CI FEA-verified 3\u00d7 deterministic. 13.8 MPa (55.3% of allowable).",
+  "commit": "3c2282a",
+  "note": "Mid-arm: compact-arm with h_root reduced 75\u219270mm (taper 4.67:1, h_tip=15mm, 1.2mm pockets). CI FEA-verified 3\u00d7 deterministic. 14.7 MPa (58.6% of allowable).",
   "verified": true
 }
