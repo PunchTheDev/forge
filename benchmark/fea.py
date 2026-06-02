@@ -8,6 +8,7 @@ Workflow:
   4. Run `ccx` solver.
   5. Parse .frd output for max von Mises stress.
   6. Compare against allowable = yield_stress / safety_factor.
+  7. (Optional) Convergence check: repeat at finer mesh; reject if stress deviates >10%.
 """
 
 from __future__ import annotations
@@ -17,7 +18,7 @@ import os
 import re
 import subprocess
 import tempfile
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 
@@ -29,9 +30,22 @@ class FEAResult:
     reason: str = ""
     element_count: int = 0
     load_node_count: int = 0
+    # Populated when a convergence check is performed.
+    convergence_deviation: float | None = None
 
 
-MESH_SIZE_MM = 4.0  # element characteristic length — coarse but fast
+MESH_SIZE_MM = 4.0        # coarse element length — fast; used for first pass
+FINE_MESH_SIZE_MM = 2.5   # fine element length — used for convergence check only
+
+# Convergence check: run at FINE_MESH_SIZE_MM when coarse-pass stress exceeds
+# this fraction of allowable (designs near the limit are most likely to be
+# exploiting mesh coarseness).
+CONVERGENCE_TRIGGER_FRACTION = 0.70
+
+# Reject if fine-mesh stress deviates from coarse-mesh stress by more than
+# this relative fraction. Linear C3D4 tets underestimate stress at coarse
+# mesh; >10% gap implies the coarse result is not trustworthy.
+CONVERGENCE_THRESHOLD = 0.10
 
 # Anti-gaming thresholds
 MIN_ELEMENTS = 100       # reject trivially sparse meshes
@@ -40,16 +54,69 @@ MIN_LOAD_NODES = 3       # load must be distributed; a single nub at the exact l
 
 
 def run(step_bytes: bytes, spec: dict, mat: dict) -> FEAResult:
-    """Run FEA on the given STEP geometry. Returns FEAResult."""
+    """
+    Run FEA on *step_bytes* and return a FEAResult.
+
+    Two-pass strategy:
+      Pass 1 — coarse mesh (MESH_SIZE_MM).  All structural checks are applied here.
+      Pass 2 — fine mesh (FINE_MESH_SIZE_MM).  Only triggered when coarse stress
+               exceeds CONVERGENCE_TRIGGER_FRACTION of allowable.  If the two
+               passes disagree by >CONVERGENCE_THRESHOLD the submission is rejected
+               as mesh-dependent.
+    """
     allowable = mat["yield_stress_mpa"] / spec["constraints"]["safety_factor"]
 
+    # --- Pass 1: coarse mesh ---
+    result = _run_at_mesh_size(step_bytes, spec, mat, MESH_SIZE_MM, allowable)
+    if not result.passed:
+        return result
+
+    # --- Pass 2: convergence check (only for near-limit designs) ---
+    near_limit = result.max_stress_mpa > CONVERGENCE_TRIGGER_FRACTION * allowable
+    if near_limit:
+        fine = _run_at_mesh_size(step_bytes, spec, mat, FINE_MESH_SIZE_MM, allowable)
+        if fine.max_stress_mpa > 0 and result.max_stress_mpa > 0:
+            deviation = abs(fine.max_stress_mpa - result.max_stress_mpa) / result.max_stress_mpa
+            result.convergence_deviation = round(deviation, 4)
+            if deviation > CONVERGENCE_THRESHOLD:
+                return FEAResult(
+                    passed=False,
+                    max_stress_mpa=result.max_stress_mpa,
+                    allowable_mpa=allowable,
+                    reason=(
+                        f"Mesh-dependent result: coarse={result.max_stress_mpa:.1f} MPa "
+                        f"fine={fine.max_stress_mpa:.1f} MPa "
+                        f"deviation={deviation:.1%} (max {CONVERGENCE_THRESHOLD:.0%}). "
+                        "Part geometry produces unreliable FEA — increase material in high-stress zones."
+                    ),
+                    element_count=result.element_count,
+                    load_node_count=result.load_node_count,
+                    convergence_deviation=round(deviation, 4),
+                )
+            # Fine mesh also passes allowable — update stress to the more accurate value.
+            if fine.passed:
+                result.max_stress_mpa = fine.max_stress_mpa
+                result.element_count = fine.element_count
+                result.load_node_count = fine.load_node_count
+
+    return result
+
+
+def _run_at_mesh_size(
+    step_bytes: bytes,
+    spec: dict,
+    mat: dict,
+    mesh_size: float,
+    allowable: float,
+) -> FEAResult:
+    """Run a single FEA pass at *mesh_size*. Returns FEAResult."""
     with tempfile.TemporaryDirectory() as tmpdir:
         step_path = os.path.join(tmpdir, "part.step")
         inp_path = os.path.join(tmpdir, "job.inp")
         Path(step_path).write_bytes(step_bytes)
 
         try:
-            nodes, elements = _mesh(step_path, tmpdir)
+            nodes, elements = _mesh(step_path, tmpdir, mesh_size)
         except Exception as e:
             return FEAResult(passed=False, reason=f"Meshing failed: {e}")
 
@@ -70,7 +137,7 @@ def run(step_bytes: bytes, spec: dict, mat: dict) -> FEAResult:
         if not bolt_nodes:
             return FEAResult(
                 passed=False,
-                reason=f"No bolt nodes found near mount face (x=0 ± 8mm, bolt centers). Mesh size={MESH_SIZE_MM}mm",
+                reason=f"No bolt nodes found near mount face (x=0 ± 8mm, bolt centers). Mesh size={mesh_size}mm",
                 element_count=len(elements),
             )
 
@@ -128,16 +195,16 @@ def run(step_bytes: bytes, spec: dict, mat: dict) -> FEAResult:
         )
 
 
-def _mesh(step_path: str, tmpdir: str) -> tuple[dict, list]:
-    """Use gmsh to mesh the STEP file. Returns (nodes dict, elements list)."""
+def _mesh(step_path: str, tmpdir: str, mesh_size: float = MESH_SIZE_MM) -> tuple[dict, list]:
+    """Use gmsh to mesh the STEP file at *mesh_size* mm. Returns (nodes dict, elements list)."""
     import gmsh
 
     mesh_path = os.path.join(tmpdir, "part.msh")
 
     gmsh.initialize()
     gmsh.option.setNumber("General.Verbosity", 0)
-    gmsh.option.setNumber("Mesh.CharacteristicLengthMin", MESH_SIZE_MM)
-    gmsh.option.setNumber("Mesh.CharacteristicLengthMax", MESH_SIZE_MM)
+    gmsh.option.setNumber("Mesh.CharacteristicLengthMin", mesh_size)
+    gmsh.option.setNumber("Mesh.CharacteristicLengthMax", mesh_size)
     gmsh.option.setNumber("Mesh.Algorithm3D", 1)  # Delaunay — more robust than Frontal
     gmsh.option.setNumber("Mesh.ElementOrder", 1)  # Linear tets (C3D4) — avoids Jacobian issues near curved surfaces
 
