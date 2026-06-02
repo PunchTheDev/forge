@@ -1,0 +1,48 @@
+{
+  "id": "r01_001_easy",
+  "version": "1.0",
+  "name": "Cantilever Bracket \u2014 PETG \u2014 15 kg @ 78 mm [easy]",
+  "description": "A easy-difficulty cantilever bracket in PETG (FDM). Mounts flush to a vertical wall and cantilevers a 15.2 kg load 78 mm from the wall face. Minimize mass while surviving the load.",
+  "material": "petg",
+  "constraints": {
+    "load_newtons": 148.66,
+    "load_point_mm": [
+      77.5,
+      44.6,
+      47.2
+    ],
+    "safety_factor": 1.5,
+    "bolt_pattern_mm": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        56.4,
+        0.0
+      ],
+      [
+        0.0,
+        56.4
+      ],
+      [
+        56.4,
+        56.4
+      ]
+    ],
+    "bolt_diameter_clearance_mm": 7.0,
+    "mount_face_x_mm": 0.0,
+    "build_volume_mm": [
+      177.0,
+      89.3,
+      94.5
+    ],
+    "max_overhang_deg": 50.0,
+    "min_wall_thickness_mm": 1.0
+  },
+  "scoring": {
+    "metric": "mass_grams",
+    "direction": "minimize",
+    "baseline_mass_grams": 263.2
+  }
+}

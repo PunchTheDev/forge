@@ -15,6 +15,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent
 SPECS_DIR = ROOT / "specs"
+ROUNDS_DIR = ROOT / "rounds"
 SOTA_DIR = ROOT / "sota"
 AGENTS_DIR = ROOT / "agents"
 
@@ -302,10 +303,18 @@ def cmd_eval(args: argparse.Namespace) -> int:
         print(f"{RED}error:{RESET} agent not found: {agent_path}", file=sys.stderr)
         return 1
 
-    if args.all:
-        spec_files = sorted(SPECS_DIR.glob("*.json"))
+    if getattr(args, "round", None):
+        spec_files = _specs_for_round(args.round)
+        if not spec_files:
+            print(f"{RED}error:{RESET} no specs found for round '{args.round}'", file=sys.stderr)
+            return 1
+    elif args.all:
+        spec_files = _all_spec_files()
     elif args.spec:
         matches = list(SPECS_DIR.glob(f"*{args.spec}*.json"))
+        if not matches:
+            # Also search round subdirectories
+            matches = list(SPECS_DIR.glob(f"**/*{args.spec}*.json"))
         if not matches:
             print(f"{RED}error:{RESET} no spec matching '{args.spec}'", file=sys.stderr)
             return 1
@@ -409,6 +418,64 @@ def cmd_submit(args: argparse.Namespace) -> int:
     print(f"  Leaderboard:  {API_BASE}/leaderboard")
     print()
     return 0 if not issues else 1
+
+
+# ---------------------------------------------------------------------------
+# forge rounds
+# ---------------------------------------------------------------------------
+
+def cmd_rounds(args: argparse.Namespace) -> int:
+    round_files = sorted(ROUNDS_DIR.glob("*.json")) if ROUNDS_DIR.exists() else []
+    if not round_files:
+        print("No rounds found in rounds/.")
+        return 1
+
+    _header("Competition Rounds")
+    for rf in round_files:
+        try:
+            round_data = json.loads(rf.read_text())
+        except json.JSONDecodeError:
+            print(f"  {RED}error:{RESET} could not parse {rf.name}")
+            continue
+
+        rid = round_data.get("id", rf.stem)
+        name = round_data.get("name", "?")
+        status = round_data.get("status", "unknown")
+        starts = round_data.get("starts", "?")
+        ends = round_data.get("ends") or "ongoing"
+        metric = round_data.get("scoring_metric", "?")
+        specs = round_data.get("specs", [])
+
+        status_color = GREEN if status == "active" else YELLOW
+        print(f"\n  {BOLD}{rid}{RESET}  {status_color}[{status}]{RESET}")
+        print(f"  {name}")
+        print(f"  Period: {starts} → {ends}  |  Metric: {metric}  |  Specs: {len(specs)}")
+        print()
+
+        tiers: dict[str, list[str]] = {}
+        for s in specs:
+            tier = s.get("tier", "unknown")
+            tiers.setdefault(tier, []).append(s["id"])
+
+        for tier in ("easy", "medium", "hard", "unknown"):
+            ids = tiers.get(tier)
+            if not ids:
+                continue
+            label = f"{tier.capitalize():<8}"
+            print(f"    {CYAN}{label}{RESET}  {', '.join(ids)}")
+
+    print()
+
+    if args.list_specs and round_files:
+        active = [r for r in round_files
+                  if json.loads(r.read_text()).get("status") == "active"]
+        if active:
+            round_data = json.loads(active[0].read_text())
+            print(f"  Active round: {round_data['id']} — {len(round_data.get('specs', []))} specs")
+            print(f"  Run: python cli.py eval agents/<your-agent>/agent.py --round {round_data['id']}")
+            print()
+
+    return 0
 
 
 # ---------------------------------------------------------------------------
@@ -537,6 +604,42 @@ def _print_summary_table(results: list[dict]) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Round helpers
+# ---------------------------------------------------------------------------
+
+def _all_spec_files() -> list[Path]:
+    """Return all spec JSON files: top-level + all round subdirectories."""
+    files = sorted(SPECS_DIR.glob("*.json"))
+    files += sorted(SPECS_DIR.glob("**/*.json"))
+    # deduplicate while preserving order
+    seen: set[Path] = set()
+    result = []
+    for f in files:
+        if f not in seen:
+            seen.add(f)
+            result.append(f)
+    return result
+
+
+def _specs_for_round(round_id: str) -> list[Path]:
+    """Return spec files for a named round, resolving paths from round manifest."""
+    round_file = ROUNDS_DIR / f"{round_id}.json"
+    if not round_file.exists():
+        return []
+    try:
+        data = json.loads(round_file.read_text())
+    except json.JSONDecodeError:
+        return []
+
+    files = []
+    for entry in data.get("specs", []):
+        p = ROOT / entry["file"]
+        if p.exists():
+            files.append(p)
+    return files
+
+
+# ---------------------------------------------------------------------------
 # CLI entry point
 # ---------------------------------------------------------------------------
 
@@ -547,13 +650,15 @@ HELP_TEXT = f"""{BOLD}{CYAN}  forge — Parametric CAD Benchmark CLI{RESET}
     {GREEN}forge eval <agent>{RESET}             Run benchmark locally against all specs
     {GREEN}forge status <agent>{RESET}           Eval and compare against live SOTA
     {GREEN}forge specs{RESET}                    List all problem specs (live API + local)
+    {GREEN}forge rounds{RESET}                   List competition rounds and their spec sets
     {GREEN}forge leaderboard{RESET}              Show current SOTA scores per spec
     {GREEN}forge submit{RESET}                   Validate git and print submission guide
     {GREEN}forge check-deps{RESET}               Verify CalculiX, gmsh, OCP are installed
 
   {BOLD}Eval options:{RESET}
     --spec ID      Run against one spec (partial match: 001, bracket, ...)
-    --all          Run against all specs (default)
+    --round ID     Run against all specs in a competition round
+    --all          Run against all specs including round subdirectories
     --json         Output raw JSON
 
   {BOLD}Environment:{RESET}
@@ -562,6 +667,8 @@ HELP_TEXT = f"""{BOLD}{CYAN}  forge — Parametric CAD Benchmark CLI{RESET}
   {BOLD}Examples:{RESET}
     python cli.py new my-agent
     python cli.py eval agents/my-agent/agent.py --spec 001
+    python cli.py eval agents/my-agent/agent.py --round round_001
+    python cli.py rounds
     python cli.py status agents/my-agent/agent.py
     python cli.py leaderboard
 """
@@ -582,7 +689,8 @@ def main() -> None:
     p_eval = sub.add_parser("eval", help="Run benchmark against an agent locally")
     p_eval.add_argument("agent", help="Path to agent.py")
     p_eval.add_argument("--spec", metavar="ID", help="Spec ID or partial name")
-    p_eval.add_argument("--all", action="store_true", help="Run against all available specs")
+    p_eval.add_argument("--round", metavar="ID", help="Run all specs in a competition round")
+    p_eval.add_argument("--all", action="store_true", help="Run against all specs including round subdirs")
     p_eval.add_argument("--json", action="store_true", help="Output JSON")
     p_eval.set_defaults(func=cmd_eval)
 
@@ -593,6 +701,10 @@ def main() -> None:
 
     p_specs = sub.add_parser("specs", help="List available problem specs")
     p_specs.set_defaults(func=cmd_specs)
+
+    p_rounds = sub.add_parser("rounds", help="List competition rounds and spec sets")
+    p_rounds.add_argument("--list-specs", action="store_true", help="Show specs for active round")
+    p_rounds.set_defaults(func=cmd_rounds)
 
     p_lb = sub.add_parser("leaderboard", help="Show current SOTA scores")
     p_lb.set_defaults(func=cmd_leaderboard)

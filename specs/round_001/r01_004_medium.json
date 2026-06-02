@@ -1,0 +1,48 @@
+{
+  "id": "r01_004_medium",
+  "version": "1.0",
+  "name": "Cantilever Bracket \u2014 PLA \u2014 40 kg @ 100 mm [medium]",
+  "description": "A medium-difficulty cantilever bracket in PLA (FDM). Mounts flush to a vertical wall and cantilevers a 39.9 kg load 100 mm from the wall face. Minimize mass while surviving the load.",
+  "material": "pla",
+  "constraints": {
+    "load_newtons": 391.42,
+    "load_point_mm": [
+      100.1,
+      35.3,
+      41.4
+    ],
+    "safety_factor": 2.0,
+    "bolt_pattern_mm": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        50.6,
+        0.0
+      ],
+      [
+        0.0,
+        50.6
+      ],
+      [
+        50.6,
+        50.6
+      ]
+    ],
+    "bolt_diameter_clearance_mm": 6.5,
+    "mount_face_x_mm": 0.0,
+    "build_volume_mm": [
+      154.3,
+      70.6,
+      82.8
+    ],
+    "max_overhang_deg": 45.0,
+    "min_wall_thickness_mm": 1.2
+  },
+  "scoring": {
+    "metric": "mass_grams",
+    "direction": "minimize",
+    "baseline_mass_grams": 167.8
+  }
+}
