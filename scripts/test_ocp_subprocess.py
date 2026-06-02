@@ -84,53 +84,81 @@ ok &= run_check("thin-fuse", (
     "import sys; sys.stderr.write('thin-fuse OK\\n')"
 ))
 
-_geom_prefix = (
-    "from OCP.BRepAlgoAPI import BRepAlgoAPI_Cut,BRepAlgoAPI_Fuse;"
-    "from OCP.BRepPrimAPI import BRepPrimAPI_MakeBox,BRepPrimAPI_MakeCylinder;"
-    "from OCP.Interface import Interface_Static;"
-    "from OCP.STEPControl import STEPControl_AsIs,STEPControl_Writer;"
-    "from OCP.gp import gp_Ax2,gp_Dir,gp_Pnt;"
-    "import sys,tempfile,os;"
-    "plate_t=1.2;arm_x=108.0;web_w=1.2;flange_w=8.0;flange_t=1.2;total_h=90.0;"
-    "bolt_d=6.5;bolt_r=bolt_d/2.0;"
-    "plate_y0=-4.25;plate_z0=-4.25;plate_y1=70.0;plate_z1=70.0;"
-    "y_center=25.0;web_y0=y_center-web_w/2;web_y1=y_center+web_w/2;"
-    "flange_y0=y_center-flange_w/2;flange_y1=y_center+flange_w/2;"
-    "plate=BRepPrimAPI_MakeBox(gp_Pnt(0,plate_y0,plate_z0),gp_Pnt(plate_t,plate_y1,plate_z1)).Shape();"
-    "web=BRepPrimAPI_MakeBox(gp_Pnt(plate_t,web_y0,flange_t),gp_Pnt(arm_x,web_y1,total_h-flange_t)).Shape();"
-    "bot=BRepPrimAPI_MakeBox(gp_Pnt(plate_t,flange_y0,0),gp_Pnt(arm_x,flange_y1,flange_t)).Shape();"
-    "top=BRepPrimAPI_MakeBox(gp_Pnt(plate_t,flange_y0,total_h-flange_t),gp_Pnt(arm_x,flange_y1,total_h)).Shape();"
-    "f1=BRepAlgoAPI_Fuse(plate,web);f1.Build();s1=f1.Shape();"
-    "f2=BRepAlgoAPI_Fuse(s1,bot);f2.Build();s2=f2.Shape();"
-    "f3=BRepAlgoAPI_Fuse(s2,top);f3.Build();shape=f3.Shape();"
-)
+import tempfile as _tf
+import os as _os
 
-def _step_export(shape_expr: str) -> str:
-    return (
-        f"shape_to_exp=({shape_expr});"
-        "wr=STEPControl_Writer();"
-        "Interface_Static.SetCVal_s('write.step.schema','AP214IS');"
-        "wr.Transfer(shape_to_exp,STEPControl_AsIs);"
-        "with tempfile.NamedTemporaryFile(suffix='.step',delete=False) as f: p=f.name;"
-        "wr.Write(p);d=open(p,'rb').read();os.unlink(p);"
-        "assert len(d)>100;"
-        "sys.stderr.write(f'step OK {len(d)} bytes\\n');"
-    )
+def _run_script(label: str, code: str) -> bool:
+    """Write code to a temp .py file and run it as subprocess."""
+    fd, path = _tf.mkstemp(suffix=".py")
+    try:
+        _os.write(fd, code.encode())
+        _os.close(fd)
+        result = subprocess.run(
+            [sys.executable, path],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            cwd="/forge",
+            timeout=60,
+        )
+        stderr_out = result.stderr.decode("utf-8", errors="replace").strip()
+        print(f"[{label}] returncode={result.returncode} stderr={stderr_out!r}")
+        if result.returncode != 0:
+            print(f"FAIL: {label}")
+            return False
+        return True
+    finally:
+        _os.unlink(path)
 
-# Bisect: does Transfer crash at fuse1, fuse2, fuse3, or after cuts?
-ok &= run_check("step-after-fuse1",  _geom_prefix + _step_export("s1"))
-ok &= run_check("step-after-fuse2",  _geom_prefix + _step_export("s2"))
-ok &= run_check("step-after-fuse3",  _geom_prefix + _step_export("shape"))
+_GEOM = """
+from OCP.BRepAlgoAPI import BRepAlgoAPI_Cut, BRepAlgoAPI_Fuse
+from OCP.BRepPrimAPI import BRepPrimAPI_MakeBox, BRepPrimAPI_MakeCylinder
+from OCP.Interface import Interface_Static
+from OCP.STEPControl import STEPControl_AsIs, STEPControl_Writer
+from OCP.gp import gp_Ax2, gp_Dir, gp_Pnt
+import sys, tempfile, os
 
-_cuts = (
-    "cut_ops=[];"
-    "bolt_pattern=[[0,0],[60,0],[60,60],[0,60]];"
-    "for by,bz in bolt_pattern:"
-    " axis=gp_Ax2(gp_Pnt(-1.0,by,bz),gp_Dir(1.0,0.0,0.0));"
-    " hole=BRepPrimAPI_MakeCylinder(axis,bolt_r,plate_t+2.0).Shape();"
-    " cop=BRepAlgoAPI_Cut(shape,hole);cop.Build();cut_ops.append(cop);shape=cop.Shape();"
-)
-ok &= run_check("step-after-4cuts", _geom_prefix + _cuts + _step_export("shape"))
+plate_t=1.2; arm_x=108.0; web_w=1.2; flange_w=8.0; flange_t=1.2; total_h=90.0
+bolt_d=6.5; bolt_r=bolt_d/2.0
+plate_y0=-4.25; plate_z0=-4.25; plate_y1=70.0; plate_z1=70.0
+y_center=25.0
+web_y0=y_center-web_w/2; web_y1=y_center+web_w/2
+flange_y0=y_center-flange_w/2; flange_y1=y_center+flange_w/2
+
+plate = BRepPrimAPI_MakeBox(gp_Pnt(0,plate_y0,plate_z0), gp_Pnt(plate_t,plate_y1,plate_z1)).Shape()
+web   = BRepPrimAPI_MakeBox(gp_Pnt(plate_t,web_y0,flange_t), gp_Pnt(arm_x,web_y1,total_h-flange_t)).Shape()
+bot   = BRepPrimAPI_MakeBox(gp_Pnt(plate_t,flange_y0,0), gp_Pnt(arm_x,flange_y1,flange_t)).Shape()
+top   = BRepPrimAPI_MakeBox(gp_Pnt(plate_t,flange_y0,total_h-flange_t), gp_Pnt(arm_x,flange_y1,total_h)).Shape()
+
+f1=BRepAlgoAPI_Fuse(plate,web); f1.Build(); s1=f1.Shape()
+f2=BRepAlgoAPI_Fuse(s1,bot);   f2.Build(); s2=f2.Shape()
+f3=BRepAlgoAPI_Fuse(s2,top);   f3.Build(); shape=f3.Shape()
+"""
+
+_CUTS = """
+cut_ops = []
+for by, bz in [[0,0],[60,0],[60,60],[0,60]]:
+    axis = gp_Ax2(gp_Pnt(-1.0,by,bz), gp_Dir(1.0,0.0,0.0))
+    hole = BRepPrimAPI_MakeCylinder(axis, bolt_r, plate_t+2.0).Shape()
+    cop  = BRepAlgoAPI_Cut(shape, hole); cop.Build(); cut_ops.append(cop); shape=cop.Shape()
+"""
+
+_EXPORT = """
+wr = STEPControl_Writer()
+Interface_Static.SetCVal_s('write.step.schema', 'AP214IS')
+wr.Transfer(target_shape, STEPControl_AsIs)
+fd, p = tempfile.mkstemp(suffix='.step')
+os.close(fd)
+wr.Write(p)
+d = open(p,'rb').read(); os.unlink(p)
+assert len(d) > 100
+sys.stderr.write(f'step OK {len(d)} bytes\\n')
+"""
+
+# Bisect: find which operation introduces the shape that crashes Transfer
+ok &= _run_script("step-after-fuse1",  _GEOM + "target_shape=s1\n"    + _EXPORT)
+ok &= _run_script("step-after-fuse2",  _GEOM + "target_shape=s2\n"    + _EXPORT)
+ok &= _run_script("step-after-fuse3",  _GEOM + "target_shape=shape\n" + _EXPORT)
+ok &= _run_script("step-after-4cuts",  _GEOM + _CUTS + "target_shape=shape\n" + _EXPORT)
 
 if not ok:
     sys.exit(1)
