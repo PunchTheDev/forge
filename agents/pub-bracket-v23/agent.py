@@ -8,9 +8,9 @@ Design:
   - Arm: hollow box, aw = 3×mw = 3.6mm, inner cavity ends at al-mw (solid tip)
     - al = lx − 12mm = 71.3mm
     - h = min(bvz−5, max(bvz×0.75, lz+15+mw)) ≈ 70.4mm
-  - Frame plate: 1.2mm thick, single interior void at
-    y=[mg, 55.1-mg], z=[mg, 55.1-mg] (between the 4 bolt-corner zones)
-    Arm (yc=37.5, aw=3.6mm) spans through the void; Fuse restores arm material.
+  - Frame plate: 1.2mm thick, # grid with mw-wide cross-ribs at bolt-gap midpoints.
+    4 windows each ~22.5×22.5mm (single large void 46.2×46.2mm caused 92.7 MPa).
+    Arm (yc=37.5, aw=3.6mm) spans through right-column windows; Fuse restores arm spine.
 
 Analytical check (PLA, 25 MPa allowable):
   h ≈ 70.4 mm, al = 71.3 mm, arm cross-section 171.8 mm²
@@ -97,8 +97,10 @@ def generate(spec: dict) -> bytes:
         gp_Pnt(pt,  py1, pz1),
     ).Shape()
 
-    # Interior void between the 4 bolt-corner zones.
-    # Bolt columns at y=[0, 55.1], bolt rows at z=[0, 55.1] (for pub_004).
+    # Frame plate: cut interior voids using a # (hash) cross-rib pattern.
+    # For each bolt-gap rectangle, subdivide with mw-wide ribs at the midpoints
+    # to create 4 smaller windows. This prevents the stress concentration that
+    # a single large void (46.2×46.2mm) caused for the 2×2 bolt grid (92.7 MPa).
     by_cols = sorted(set(p[0] for p in bp))
     bz_rows = sorted(set(p[1] for p in bp))
 
@@ -108,12 +110,24 @@ def generate(spec: dict) -> bytes:
             vy1 = by_cols[i + 1] - mg
             vz0 = bz_rows[j]     + mg
             vz1 = bz_rows[j + 1] - mg
-            if vy0 < vy1 and vz0 < vz1:
-                void = BRepPrimAPI_MakeBox(
-                    gp_Pnt(0.0, vy0, vz0),
-                    gp_Pnt(pt,  vy1, vz1),
-                ).Shape()
-                plate = BRepAlgoAPI_Cut(plate, void).Shape()
+            if vy0 >= vy1 or vz0 >= vz1:
+                continue
+            # Midpoint ribs (mw wide) subdivide gap into 4 sub-windows.
+            vy_mid = (vy0 + vy1) / 2.0
+            vz_mid = (vz0 + vz1) / 2.0
+            sub_voids = [
+                (vy0,          vy_mid - mw / 2, vz0,          vz_mid - mw / 2),
+                (vy_mid + mw / 2, vy1,          vz0,          vz_mid - mw / 2),
+                (vy0,          vy_mid - mw / 2, vz_mid + mw / 2, vz1),
+                (vy_mid + mw / 2, vy1,          vz_mid + mw / 2, vz1),
+            ]
+            for sv_y0, sv_y1, sv_z0, sv_z1 in sub_voids:
+                if sv_y0 < sv_y1 and sv_z0 < sv_z1:
+                    void = BRepPrimAPI_MakeBox(
+                        gp_Pnt(0.0, sv_y0, sv_z0),
+                        gp_Pnt(pt,  sv_y1, sv_z1),
+                    ).Shape()
+                    plate = BRepAlgoAPI_Cut(plate, void).Shape()
 
     body = BRepAlgoAPI_Fuse(arm, plate).Shape()
 
