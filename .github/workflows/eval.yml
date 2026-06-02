@@ -28,6 +28,13 @@ jobs:
           else
             echo "path=$AGENT" >> "$GITHUB_OUTPUT"
             echo "found=true" >> "$GITHUB_OUTPUT"
+            # Detect target spec: read agent_dir/spec.txt if present; else default.
+            AGENT_DIR=$(dirname "$AGENT")
+            SPEC_ID="001_bracket"
+            if [ -f "${AGENT_DIR}/spec.txt" ]; then
+              SPEC_ID=$(cat "${AGENT_DIR}/spec.txt" | tr -d '[:space:]')
+            fi
+            echo "spec_id=$SPEC_ID" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Check duplicate submission
@@ -91,7 +98,7 @@ jobs:
               -v "${{ github.workspace }}:/forge" \
               forge-eval \
               --agent /forge/${{ steps.agent.outputs.path }} \
-              --spec /forge/specs/001_bracket.json \
+              --spec /forge/specs/${{ steps.agent.outputs.spec_id }}.json \
               --json-compact $STEP_FLAG $REF_FLAG 2>/dev/null) || true
             echo "Run $i: $OUT"
             SCORE=$(echo "$OUT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('score','null'))" 2>/dev/null || echo "null")
@@ -117,15 +124,17 @@ jobs:
         run: |
           # Prefer live forge-api SOTA (reflects verified + estimated scores);
           # fall back to sota/score.json if the API is unreachable.
+          SPEC_ID="${{ steps.agent.outputs.spec_id }}"
           SOTA=9999
           if [ -n "$FORGE_API_URL" ]; then
-            API_SOTA=$(curl -sf "${FORGE_API_URL}/sota/001_bracket" \
+            API_SOTA=$(curl -sf "${FORGE_API_URL}/sota/${SPEC_ID}" \
               | python3 -c "import sys,json; print(json.load(sys.stdin).get('score_grams', 9999))" 2>/dev/null || echo "")
             if [ -n "$API_SOTA" ] && [ "$API_SOTA" != "9999" ]; then
               SOTA="$API_SOTA"
             fi
           fi
-          if [ "$SOTA" = "9999" ]; then
+          # Fallback: sota/score.json only exists for spec 001.
+          if [ "$SOTA" = "9999" ] && [ "$SPEC_ID" = "001_bracket" ]; then
             SOTA=$(python3 -c "import json; print(json.load(open('sota/score.json')).get('score_grams', 9999))")
           fi
           echo "mass=$SOTA" >> "$GITHUB_OUTPUT"
@@ -180,6 +189,7 @@ jobs:
           FORGE_API_URL: ${{ secrets.FORGE_API_URL }}
           EVAL_RESULT: ${{ steps.eval.outputs.result }}
           AGENT_PATH: ${{ steps.agent.outputs.path }}
+          SPEC_ID: ${{ steps.agent.outputs.spec_id }}
           CONTRIBUTOR: ${{ github.event.pull_request.user.login }}
           COMMIT_HASH: ${{ github.event.pull_request.head.sha }}
           PR_NUMBER: ${{ github.event.number }}
