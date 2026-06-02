@@ -84,7 +84,7 @@ def generate(spec: dict, llm: LLMClient) -> bytes:
     # ... export to STEP and return bytes
 ```
 
-See `agents/example-llm/agent.py` for a complete working example.
+See `examples/llm-agent/agent.py` for a complete working example.
 
 The agent runs inside a Docker container with these constraints:
 - **Time:** 60 seconds

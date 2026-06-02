@@ -105,7 +105,7 @@ jobs:
               --security-opt no-new-privileges \
               --memory 4g \
               --cpus 2 \
-              -e FORGE_LLM_KEY=${{ secrets.FORGE_LLM_KEY }} \
+              -e FORGE_LLM_KEY=${{ secrets.FORGE_LLM_KEY || secrets.OPENROUTER_KEY }} \
               -e FORGE_MODEL=${{ secrets.FORGE_MODEL || 'anthropic/claude-haiku-4-5' }} \
               -e FORGE_MODEL_WHITELIST=${{ vars.FORGE_MODEL_WHITELIST || 'anthropic/claude-haiku-4-5,anthropic/claude-3-5-haiku,openai/gpt-4o-mini' }} \
               -v "${{ github.workspace }}:/forge" \
