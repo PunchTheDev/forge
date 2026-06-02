@@ -63,3 +63,44 @@ def test_all_tiers_generate():
         assert spec["material"] in TIERS[tier].materials
         assert "constraints" in spec
         assert spec["constraints"]["load_newtons"] > 0
+
+
+def test_generate_deflection_deterministic():
+    a = generate("test_defl", tier="medium", seed=42, scoring_metric="deflection_mm")
+    b = generate("test_defl", tier="medium", seed=42, scoring_metric="deflection_mm")
+    assert a == b
+
+
+def test_generate_deflection_fields():
+    spec = generate("x", tier="easy", seed=5, scoring_metric="deflection_mm")
+    assert spec["scoring"]["metric"] == "deflection_mm"
+    assert spec["scoring"]["direction"] == "minimize"
+    assert "baseline_deflection_mm" in spec["scoring"]
+    assert spec["scoring"]["baseline_deflection_mm"] > 0
+
+
+def test_generate_deflection_name_tag():
+    spec = generate("x", tier="medium", seed=3, scoring_metric="deflection_mm")
+    assert "[medium, deflection]" in spec["name"]
+
+
+def test_batch_generate_deflection():
+    specs = batch_generate(3, tier="easy", seed=700, id_prefix="r03", scoring_metric="deflection_mm")
+    for spec in specs:
+        assert spec["scoring"]["metric"] == "deflection_mm"
+        assert spec["scoring"]["baseline_deflection_mm"] > 0
+
+
+def test_round_003_specs_valid():
+    """All 15 round_003 spec files must be valid and use deflection_mm."""
+    from pathlib import Path
+    import json
+    spec_dir = Path("specs/round_003")
+    assert spec_dir.exists(), "specs/round_003/ not found"
+    files = sorted(spec_dir.glob("*.json"))
+    assert len(files) == 15
+    for f in files:
+        spec = json.loads(f.read_text())
+        assert spec["scoring"]["metric"] == "deflection_mm"
+        assert spec["scoring"]["direction"] == "minimize"
+        assert spec["scoring"]["baseline_deflection_mm"] > 0

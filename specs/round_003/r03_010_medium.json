@@ -1,0 +1,56 @@
+{
+  "id": "r03_010_medium",
+  "version": "1.0",
+  "name": "Cantilever Bracket \u2014 Al6061 \u2014 48 kg @ 88 mm [medium, deflection]",
+  "description": "A medium-difficulty cantilever bracket in Aluminum 6061-T6. Mounts flush to a vertical wall and cantilevers a 47.6 kg load 88 mm from the wall face. Minimize tip deflection under load \u2014 maximize absolute stiffness regardless of mass.",
+  "material": "aluminum_6061",
+  "constraints": {
+    "load_newtons": 467.15,
+    "load_point_mm": [
+      88.5,
+      51.1,
+      55.0
+    ],
+    "safety_factor": 2.0,
+    "bolt_pattern_mm": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        43.0,
+        0.0
+      ],
+      [
+        86.0,
+        0.0
+      ],
+      [
+        0.0,
+        43.0
+      ],
+      [
+        43.0,
+        43.0
+      ],
+      [
+        86.0,
+        43.0
+      ]
+    ],
+    "bolt_diameter_clearance_mm": 6.5,
+    "mount_face_x_mm": 0.0,
+    "build_volume_mm": [
+      120.8,
+      102.3,
+      110.0
+    ],
+    "max_overhang_deg": 45.0,
+    "min_wall_thickness_mm": 1.2
+  },
+  "scoring": {
+    "metric": "deflection_mm",
+    "direction": "minimize",
+    "baseline_deflection_mm": 0.000138
+  }
+}
