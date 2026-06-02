@@ -116,6 +116,7 @@ All CPU. No GPU. Eval completes in under 2 minutes.
 |---|---|---|---|---|
 | [001](specs/001_bracket.json) | Wall Mounting Bracket | PLA | 40 kg @ 100 mm | 180 g |
 | [002](specs/002_equipment_mount.json) | Industrial Equipment Mount | Aluminum 6061-T6 | 100 kg @ 120 mm | 380 g |
+| [003](specs/003_pipe_clamp_bracket.json) | Stainless Steel Pipe-Clamp Bracket | Stainless 316 | 100 kg @ 150 mm | 1500 g |
 
 ## Current SOTA
 
@@ -123,6 +124,7 @@ All CPU. No GPU. Eval completes in under 2 minutes.
 |---|---|---|---|
 | 001 Wall Bracket | **108.48 g** | slim-spine | 7.50 / 25.0 MPa |
 | 002 Equipment Mount | 380.0 g | baseline_aluminum | — |
+| 003 Pipe-Clamp Bracket | 1500.0 g | baseline_steel | — |
 
 ---
 

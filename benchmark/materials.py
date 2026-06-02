@@ -23,6 +23,13 @@ MATERIALS: dict[str, dict] = {
         "density_kg_m3": 2700.0,
         "label": "Aluminum 6061-T6",
     },
+    "stainless_316": {
+        "youngs_modulus_mpa": 193000.0,
+        "poisson_ratio": 0.28,
+        "yield_stress_mpa": 205.0,
+        "density_kg_m3": 7990.0,
+        "label": "Stainless Steel 316 (annealed)",
+    },
 }
 
 
