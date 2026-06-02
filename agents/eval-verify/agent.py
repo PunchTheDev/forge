@@ -30,20 +30,32 @@ def generate(spec: dict) -> bytes:
 
     bvx, bvy, bvz = bv[0], bv[1], bv[2]
 
-    # Bolt extents — clamp plate dimensions to build volume
+    # Bolt extents
     bolt_ys = [b[0] for b in bolts]
     bolt_zs = [b[1] for b in bolts]
     by_max = max(bolt_ys)
     bz_max = max(bolt_zs)
 
+    # Plate dimensions — clamped to build volume
     plate_t = min(12.0, bvx * 0.08)
-    plate_y = min(bvy - 2.0, by_max + 12.0)   # clamped to build volume Y
-    plate_z = min(bvz - 2.0, bz_max + 12.0)   # clamped to build volume Z
+    plate_y = min(bvy - 2.0, by_max + 12.0)
+    plate_z = min(bvz - 2.0, bz_max + 12.0)
 
-    # Shelf: extends from plate to past load point, stays within build volume
-    shelf_len = min(bvx - plate_t - 2.0, load_pt[0] + 10.0)
-    shelf_h = min(plate_z, bvz * 0.8)
-    shelf_t = min(15.0, bvz * 0.15, plate_z * 0.2)
+    # Arm: extends from plate to past load point in X, centered on load point Y/Z
+    arm_len = min(bvx - plate_t - 2.0, load_pt[0] + 10.0)
+    arm_w = min(plate_y * 0.8, bvy * 0.7)       # arm width in Y
+    arm_h = min(plate_z * 0.5, bvz * 0.4)       # arm height in Z
+
+    # Center the arm vertically around the load point Z
+    arm_z_lo = max(0.0, load_pt[2] - arm_h / 2)
+    arm_z_hi = arm_z_lo + arm_h
+    if arm_z_hi > bvz - 2.0:
+        arm_z_hi = bvz - 2.0
+        arm_z_lo = max(0.0, arm_z_hi - arm_h)
+
+    # Center arm in Y around load point Y (clamped to plate width)
+    arm_y_lo = max(0.0, min(load_pt[1] - arm_w / 2, plate_y - arm_w))
+    arm_y_hi = arm_y_lo + arm_w
 
     # Mounting plate
     plate = BRepPrimAPI_MakeBox(
@@ -51,13 +63,13 @@ def generate(spec: dict) -> bytes:
         gp_Pnt(plate_t, plate_y, plate_z),
     ).Shape()
 
-    # Horizontal shelf
-    shelf = BRepPrimAPI_MakeBox(
-        gp_Pnt(0.0, 0.0, 0.0),
-        gp_Pnt(plate_t + shelf_len, plate_y, shelf_t),
+    # Arm
+    arm = BRepPrimAPI_MakeBox(
+        gp_Pnt(plate_t, arm_y_lo, arm_z_lo),
+        gp_Pnt(plate_t + arm_len, arm_y_hi, arm_z_hi),
     ).Shape()
 
-    fused = BRepAlgoAPI_Fuse(plate, shelf)
+    fused = BRepAlgoAPI_Fuse(plate, arm)
     fused.Build()
     body = fused.Shape()
 
