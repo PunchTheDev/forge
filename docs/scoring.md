@@ -17,7 +17,7 @@ Mesh convergence check (only when stress > 70% of allowable)
      ↓  >10% deviation → FAILED, no score
 Geometric similarity vs current SOTA reference
      ↓  ≥95% similar → FAILED (near-copy rejection)
-Score = mass in grams  ← lower is better
+Score = spec["scoring"]["metric"]  ← direction per spec
 ```
 
 All stages run inside a Docker container with fixed resource limits:
@@ -65,11 +65,28 @@ For new designs: stay above 1.8mm wall thickness, keep h_tip ≥ 15mm, and verif
 
 ## Score metric
 
-```
-score = mass_grams (lower is better)
+Each spec declares its own scoring axis in `spec["scoring"]`:
+
+```json
+{
+  "scoring": {
+    "metric": "mass_grams",
+    "direction": "minimize"
+  }
+}
 ```
 
-Mass is computed from part volume × material density. The current SOTA and leaderboard are in [`sota/score.json`](../sota/score.json).
+Supported metrics:
+
+| Metric | Direction | Description |
+|---|---|---|
+| `mass_grams` | minimize | Part mass: volume × material density |
+| `volume_mm3` | minimize | Raw geometric volume (filament/material use) |
+| `stiffness_to_weight` | maximize | `load_n / max_displacement_mm / mass_g` — structural efficiency |
+
+The SOTA query sorts by direction for each metric. A submission only displaces the SOTA if it beats the current leader by a meaningful margin (1% required when SOTA age < 7 days, decaying to 0% after 90 days).
+
+Live SOTA and leaderboard: `GET /sota/{spec_id}`, `GET /leaderboard/{spec_id}`.
 
 ## Determinism check
 
