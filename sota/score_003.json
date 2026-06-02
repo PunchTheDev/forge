@@ -1,0 +1,14 @@
+{
+  "spec_id": "003_pipe_clamp_bracket",
+  "score_grams": 71.42,
+  "agent": "agents/ss-bracket-v15",
+  "contributor": "Punch",
+  "fea_stress_mpa": 56.34,
+  "fea_allowable_mpa": 82.0,
+  "fea_element_count": 9440,
+  "fea_load_node_count": 26,
+  "fea_convergence_deviation": null,
+  "commit": "1fa9b9017332de738af951c4d38bcb60aebef053",
+  "note": "ss-bracket-v15: frame plate (cross-frame, 4 strips), hollow arm (fw=2mm, h=53mm, t_wall=0.5mm), arm_len=136mm. 56.34 MPa (68.7% of allowable). Saves 16.77g vs v10 by removing solid plate interior. CI-verified PR #117.",
+  "verified": true
+}
