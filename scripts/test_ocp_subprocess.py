@@ -84,6 +84,19 @@ ok &= run_check("thin-fuse", (
     "import sys; sys.stderr.write('thin-fuse OK\\n')"
 ))
 
+# Step 6: run the actual trim-frame agent via importlib (same as worker.py)
+ok &= run_check("full-agent", (
+    "import sys, json; "
+    "sys.path.insert(0, '/forge/agents/trim-frame'); "
+    "import importlib.util; "
+    "sl = importlib.util.spec_from_file_location('agent', '/forge/agents/trim-frame/agent.py'); "
+    "mod = importlib.util.module_from_spec(sl); sl.loader.exec_module(mod); "
+    "spec = json.load(open('/forge/specs/001_bracket.json')); "
+    "result = mod.generate(spec); "
+    "assert isinstance(result, bytes) and len(result) > 100, f'got {type(result)} len={len(result) if result else 0}'; "
+    "sys.stderr.write(f'generate() returned {len(result)} bytes OK\\n')"
+))
+
 if not ok:
     sys.exit(1)
 print("PASS: all OCP subprocess checks OK")
