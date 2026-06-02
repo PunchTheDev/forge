@@ -21,7 +21,7 @@ jobs:
         id: agent
         run: |
           AGENT=$(git diff --name-only origin/${{ github.base_ref }}...HEAD \
-            | grep '^agents/.*/agent\.py$' | head -1)
+            | grep '^agents/.*/agent\.py$' | grep -v '^agents/template/' | head -1)
           if [ -z "$AGENT" ]; then
             echo "No agent.py changed — skipping eval."
             echo "found=false" >> "$GITHUB_OUTPUT"
