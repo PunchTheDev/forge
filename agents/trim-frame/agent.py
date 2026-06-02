@@ -17,15 +17,22 @@ Structural analysis at x = 0 (critical section, bending about Y):
   σ_max = 39 240 × 45 / 105 006 = 16.8 MPa < 25 MPa ✓  (SF = 2.97)
           16.8 MPa < 17.5 MPa → two-pass mesh convergence not triggered.
 
-Volume estimate:
-  Plate  70 × 70 × 1.2  − bolt holes ×4  ≈  5 750 mm³   (  7.1 g)   was 9.1 g
-  Web    108 × 1.2 × 90                  ≈ 11 664 mm³   ( 14.5 g)   was 12 420 mm³ / 15.4 g
-  Flanges 108 × 8 × 1.2 × 2             ≈  2 074 mm³   (  2.6 g)   was  2 211 mm³ /  2.7 g
-  Net                                    ≈ 19 488 mm³
-  Mass = 19 488 × 1.24 × 10⁻³          ≈  24.2 g
+Volume estimate (non-overlapping geometry):
+  Plate  70 × 70 × 1.2  − bolt holes ×4  ≈  5 720 mm³   (  7.1 g)
+  Web    106.8 × 1.2 × 87.6              ≈ 11 224 mm³   ( 13.9 g)
+  Flanges 106.8 × 8 × 1.2 × 2           ≈  2 051 mm³   (  2.5 g)
+  Net                                    ≈ 18 995 mm³
+  Mass = 18 995 × 1.24 × 10⁻³          ≈  23.6 g
 
-  vs thin-frame (27.0 g):  −10 %
+  vs thin-frame (27.0 g):  −13 %
   vs slim-spine (108.48 g SOTA): −78 %
+
+Geometry note: components are arranged as NON-OVERLAPPING touching solids to avoid
+OCC BOPAlgo crashes on degenerate thin-wall intersections:
+  - Plate:       x=[0, plate_t],     y=[0, plate_y],       z=[0, plate_z]
+  - Web:         x=[plate_t, arm_x], y=[web_y0, web_y1],   z=[flange_t, h-flange_t]
+  - Bot flange:  x=[plate_t, arm_x], y=[flange_y0,y1],     z=[0, flange_t]
+  - Top flange:  x=[plate_t, arm_x], y=[flange_y0,y1],     z=[h-flange_t, h]
 """
 
 from __future__ import annotations
@@ -51,16 +58,15 @@ def generate(spec: dict) -> bytes:
     by_coords = [p[0] for p in bolt_pattern]
     bz_coords = [p[1] for p in bolt_pattern]
     # Tighter margin: 10 mm past the farthest bolt (was 20 mm).
-    # Farthest bolt at (60, 60); hole radius = 3.25 mm → 6.75 mm wall remains. ✓
     plate_margin = 10.0
     plate_y = max(by_coords) + plate_margin   # 70 mm
     plate_z = max(bz_coords) + plate_margin   # 70 mm
     plate_t = min_wall                         # 1.2 mm
 
     # Shorter arm: 8 mm past the load point (was 15 mm).
-    shelf_len = lp[0] + 8.0    # 108 mm
+    arm_x = lp[0] + 8.0    # 108 mm (total bracket depth)
 
-    # I-beam geometry — identical cross-section to thin-frame.
+    # I-beam geometry.
     web_w     = min_wall               # 1.2 mm
     flange_w  = 8.0
     flange_t  = min_wall               # 1.2 mm
@@ -72,45 +78,55 @@ def generate(spec: dict) -> bytes:
     flange_y0 = y_center - flange_w / 2   # 21.0
     flange_y1 = y_center + flange_w / 2   # 29.0
 
-    # --- Mounting plate ---
+    # Build four NON-OVERLAPPING solids that TOUCH at their boundaries.
+    # This avoids degenerate thin-wall Boolean intersections that crash OCC.
+
+    # --- Mounting plate: x=[0, plate_t] ---
     plate = BRepPrimAPI_MakeBox(
         gp_Pnt(0.0, 0.0, 0.0),
         gp_Pnt(plate_t, plate_y, plate_z),
     ).Shape()
 
-    # --- Web ---
+    # --- Web: starts at x=plate_t (touches plate, no overlap)
+    #          z spans only the space between flanges ---
     web = BRepPrimAPI_MakeBox(
-        gp_Pnt(0.0, web_y0, 0.0),
-        gp_Pnt(shelf_len, web_y1, total_h),
+        gp_Pnt(plate_t, web_y0, flange_t),
+        gp_Pnt(arm_x, web_y1, total_h - flange_t),
     ).Shape()
 
-    # --- Bottom flange at z = 0 ---
+    # --- Bottom flange: z=[0, flange_t], starts at x=plate_t ---
     bot_flange = BRepPrimAPI_MakeBox(
-        gp_Pnt(0.0, flange_y0, 0.0),
-        gp_Pnt(shelf_len, flange_y1, flange_t),
+        gp_Pnt(plate_t, flange_y0, 0.0),
+        gp_Pnt(arm_x, flange_y1, flange_t),
     ).Shape()
 
-    # --- Top flange at z = total_h - flange_t ---
+    # --- Top flange: z=[total_h-flange_t, total_h], starts at x=plate_t ---
     top_flange = BRepPrimAPI_MakeBox(
-        gp_Pnt(0.0, flange_y0, total_h - flange_t),
-        gp_Pnt(shelf_len, flange_y1, total_h),
+        gp_Pnt(plate_t, flange_y0, total_h - flange_t),
+        gp_Pnt(arm_x, flange_y1, total_h),
     ).Shape()
 
-    body = BRepAlgoAPI_Fuse(plate, web)
-    body.Build()
-    body = BRepAlgoAPI_Fuse(body.Shape(), bot_flange)
-    body.Build()
-    body = BRepAlgoAPI_Fuse(body.Shape(), top_flange)
-    body.Build()
-    shape = body.Shape()
+    # Fuse all four touching components.
+    # Use explicit intermediate variables to avoid any pybind11 lifetime issues.
+    fuse1 = BRepAlgoAPI_Fuse(plate, web)
+    fuse1.Build()
+    s1 = fuse1.Shape()
+
+    fuse2 = BRepAlgoAPI_Fuse(s1, bot_flange)
+    fuse2.Build()
+    s2 = fuse2.Shape()
+
+    fuse3 = BRepAlgoAPI_Fuse(s2, top_flange)
+    fuse3.Build()
+    shape = fuse3.Shape()
 
     # Cut bolt holes through the mounting plate.
     for by, bz in bolt_pattern:
         axis = gp_Ax2(gp_Pnt(-1.0, by, bz), gp_Dir(1.0, 0.0, 0.0))
         hole = BRepPrimAPI_MakeCylinder(axis, bolt_d / 2.0, plate_t + 2.0).Shape()
-        cut = BRepAlgoAPI_Cut(shape, hole)
-        cut.Build()
-        shape = cut.Shape()
+        cut_op = BRepAlgoAPI_Cut(shape, hole)
+        cut_op.Build()
+        shape = cut_op.Shape()
 
     # Write STEP.
     writer = STEPControl_Writer()

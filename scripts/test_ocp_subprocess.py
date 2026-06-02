@@ -68,6 +68,22 @@ ok &= run_check("cut", (
     "import sys; sys.stderr.write('Cut OK\\n')"
 ))
 
+# Step 5: thin-wall geometry like the trim-frame agent (plate 1.2×70×70 + web 1.2mm wide)
+# This is the specific geometry that was crashing in eval.
+ok &= run_check("thin-fuse", (
+    "from OCP.BRepPrimAPI import BRepPrimAPI_MakeBox; "
+    "from OCP.BRepAlgoAPI import BRepAlgoAPI_Fuse; "
+    "from OCP.gp import gp_Pnt; "
+    "plate = BRepPrimAPI_MakeBox(gp_Pnt(0,0,0), gp_Pnt(1.2,70,70)).Shape(); "
+    "web = BRepPrimAPI_MakeBox(gp_Pnt(0,24.4,0), gp_Pnt(108,25.6,90)).Shape(); "
+    "f1 = BRepAlgoAPI_Fuse(plate, web); f1.Build(); "
+    "s1 = f1.Shape(); "
+    "bot = BRepPrimAPI_MakeBox(gp_Pnt(0,21,0), gp_Pnt(108,29,1.2)).Shape(); "
+    "f2 = BRepAlgoAPI_Fuse(s1, bot); f2.Build(); "
+    "s2 = f2.Shape(); "
+    "import sys; sys.stderr.write('thin-fuse OK\\n')"
+))
+
 if not ok:
     sys.exit(1)
 print("PASS: all OCP subprocess checks OK")
