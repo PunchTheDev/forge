@@ -98,9 +98,12 @@ jobs:
         run: |
           RESULTS=""
           FINAL=""
-          # Pass the SOTA reference STEP for similarity check if it exists.
+          # Pass per-spec SOTA reference STEP for similarity check if it exists.
           REF_FLAG=""
-          if [ -f "sota/reference.step" ]; then
+          SPEC_ID="${{ steps.agent.outputs.spec_id }}"
+          if [ -f "sota/${SPEC_ID}/reference.step" ]; then
+            REF_FLAG="--reference-step /forge/sota/${SPEC_ID}/reference.step"
+          elif [ -f "sota/reference.step" ]; then
             REF_FLAG="--reference-step /forge/sota/reference.step"
           fi
 
