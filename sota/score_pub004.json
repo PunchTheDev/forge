@@ -1,0 +1,14 @@
+{
+  "spec_id": "pub_004_medium",
+  "score_grams": 21.019298593054085,
+  "agent": "agents/pub-bracket-v22",
+  "contributor": "Punch",
+  "fea_stress_mpa": 13.227005414098839,
+  "fea_allowable_mpa": 25.0,
+  "fea_element_count": 7626,
+  "fea_load_node_count": 38,
+  "fea_convergence_deviation": null,
+  "commit": "136335c",
+  "note": "pub-bracket-v22: hollow-box arm al=lx-12mm, inner cavity ends at al-mw for solid tip cap. 13.23 MPa (52.9% of 25 MPa PLA allowable). CI-verified PR #145.",
+  "verified": true
+}
