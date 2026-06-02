@@ -1,11 +1,13 @@
 {
   "spec_id": "001_bracket",
-  "score_grams": 27.0,
-  "agent": "agents/thin-frame",
+  "score_grams": 38.73,
+  "agent": "agents/taper-beam",
   "contributor": "Punch",
-  "fea_stress_mpa": 16.8,
+  "fea_stress_mpa": 23.268,
   "fea_allowable_mpa": 25.0,
-  "commit": "7450daa",
-  "note": "Thin-frame: all members at 1.2mm minimum wall. Estimated score pending CI FEA verification.",
-  "verified": false
+  "fea_element_count": 8246,
+  "fea_convergence_deviation": 0.0889,
+  "commit": "0f0aba0",
+  "note": "Taper-beam: linearly tapered I-beam arm, ThruSections loft. CI FEA-verified 3\u00d7 deterministic.",
+  "verified": true
 }
