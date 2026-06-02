@@ -1,0 +1,14 @@
+{
+  "spec_id": "pub_005_medium",
+  "score_grams": 52.36996888330028,
+  "agent": "agents/pub-bracket-v16",
+  "contributor": "Punch",
+  "fea_stress_mpa": 13.064170005519864,
+  "fea_allowable_mpa": 25.0,
+  "fea_element_count": 14450,
+  "fea_load_node_count": 146,
+  "fea_convergence_deviation": null,
+  "commit": "e62957bb7d4650181d1a46f5ae893b45a5890712",
+  "note": "pub-bracket-v16: wide hollow-box arm h=54mm (10.2mm clearance above load_z=42.3mm). Mesh-stable, 13.06 MPa (52.2% of 25 MPa PLA allowable). CI-verified PR #134.",
+  "verified": true
+}
