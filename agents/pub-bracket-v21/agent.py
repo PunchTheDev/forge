@@ -1,5 +1,5 @@
 """
-pub-bracket-v21: Grid frame plate + tighter arm for pub_001_medium.
+pub-bracket-v21: Grid frame plate + tighter arm for pub_001_medium. (v2)
 
 v20 achieved 24.81g using grid frame plate, but arm height = bvz-5 = 72.3mm
 is over-engineered. At 60.4% stress utilisation, substantial headroom exists.
