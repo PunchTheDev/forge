@@ -15,11 +15,15 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import inspect
 import json
 import os
 import resource
 import sys
 from pathlib import Path
+
+# Make forge.sdk importable regardless of install state.
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 CPU_SECONDS = 150
 
@@ -53,7 +57,14 @@ def main() -> None:
 
     try:
         loader_spec.loader.exec_module(mod)
-        step_bytes = mod.generate(spec)
+
+        sig = inspect.signature(mod.generate)
+        if len(sig.parameters) >= 2:
+            from forge.sdk.llm import LLMClient
+            llm = LLMClient()
+            step_bytes = mod.generate(spec, llm)
+        else:
+            step_bytes = mod.generate(spec)
     except Exception as exc:
         print(f"{type(exc).__name__}: {exc}", file=sys.stderr)
         sys.exit(1)

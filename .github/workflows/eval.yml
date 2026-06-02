@@ -21,7 +21,7 @@ jobs:
         id: agent
         run: |
           AGENT=$(git diff --name-only origin/${{ github.base_ref }}...HEAD \
-            | grep '^agents/.*/agent\.py$' | head -1)
+            | grep '^agents/.*/agent\.py$' | grep -v '^agents/template/' | head -1)
           if [ -z "$AGENT" ]; then
             echo "No agent.py changed — skipping eval."
             echo "found=false" >> "$GITHUB_OUTPUT"
@@ -102,10 +102,12 @@ jobs:
               STEP_FLAG="--step-out /forge/.forge_step_output.step"
             fi
             OUT=$(docker run --rm \
-              --network none \
               --security-opt no-new-privileges \
               --memory 4g \
               --cpus 2 \
+              -e FORGE_LLM_KEY=${{ secrets.FORGE_LLM_KEY || secrets.OPENROUTER_KEY }} \
+              -e FORGE_MODEL=${{ secrets.FORGE_MODEL || 'anthropic/claude-haiku-4-5' }} \
+              -e FORGE_MODEL_WHITELIST=${{ vars.FORGE_MODEL_WHITELIST || 'anthropic/claude-haiku-4-5,anthropic/claude-3-5-haiku,openai/gpt-4o-mini' }} \
               -v "${{ github.workspace }}:/forge" \
               forge-eval \
               --agent /forge/${{ steps.agent.outputs.path }} \
