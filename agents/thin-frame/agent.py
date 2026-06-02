@@ -1,7 +1,7 @@
 """
 Thin-frame bracket: minimum-wall plate + minimum-wall I-beam.
 
-Key improvements over razor-I-beam (PR #15):
+Key improvements over razor-I-beam:
   1. Mount plate: 3 mm → 1.2 mm (minimum printable wall) — saves ~14 g
   2. Web: 1.5 mm → 1.2 mm (minimum printable wall) — saves ~3.8 g
   3. Flanges: 10 mm → 8 mm wide — saves ~0.7 g
