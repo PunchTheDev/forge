@@ -1,5 +1,5 @@
 """
-pub-bracket-v5: Parametric hollow-box cantilever bracket for pub_004_medium.
+pub-bracket-v5: Parametric hollow-box cantilever bracket for pub_004_medium. (v2)
 
 Improvement over v4: tighter arm dimensions.
   - Arm height: minimum viable for CalculiX mesh stability (load_z + 11.2 mm)
