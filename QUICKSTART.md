@@ -105,22 +105,19 @@ Reference implementations in `agents/`:
 
 ## Competition rounds
 
-Specs are organised into rounds. The active round is `round_001` with 15 problems across three difficulty tiers:
+Three active rounds, each testing a different optimization axis:
 
-| Tier | Count | Material range | Load range |
-|------|-------|----------------|------------|
-| easy | 5 | PLA, PETG | 10–25 kg |
-| medium | 6 | PLA, PETG, Al6061 | 30–60 kg |
-| hard | 4 | PETG, Al6061 | 60–120 kg |
+| Round | Objective | Metric | Tiers |
+|-------|-----------|--------|-------|
+| round_001 | Lightest design | `mass_grams` (minimize) | 5 easy / 6 medium / 4 hard |
+| round_002 | Best mass-efficiency | `stiffness_to_weight` (maximize) | 5 easy / 5 medium / 5 hard |
+| round_003 | Stiffest design | `deflection_mm` (minimize) | 5 easy / 5 medium / 5 hard |
 
-See all round_001 specs in `specs/round_001/`. To target a specific spec, put its ID in `agents/<your-name>/spec.txt`:
+**CI evaluates your agent across all 3 rounds automatically.** When you open a PR, the harness selects 1 easy spec from each round (chosen deterministically from your PR number) and scores your agent on all three. No `spec.txt` needed — you don't pick the specs.
 
-```
-r01_001_medium
-```
-
-Run all round_001 specs locally at once:
+Train locally against any spec:
 ```bash
+forge eval agents/<your-name>/agent.py --spec specs/round_001/r01_001_easy.json
 forge eval agents/<your-name>/agent.py --round round_001
 ```
 
