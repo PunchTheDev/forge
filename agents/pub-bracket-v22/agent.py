@@ -1,18 +1,20 @@
 """
-pub-bracket-v22: Hollow-box arm with tighter length for pub_004_medium.
+pub-bracket-v22: Hollow-box arm with tighter length + end cap for pub_004_medium.
 
-Improvement over v4: shorter arm length only; height unchanged.
+Improvement over v4: shorter arm length + closed hollow tip.
   - h = max(load_z + mw + 12, pz1 + 10) ≈ 69.55 mm (same regime as v4)
     Arm-plate junction needs ≥10 mm above pz1 to avoid mesh divergence.
   - arm_len = load_x − 12 mm = 71.3 mm (vs 75 mm in v4)
   - Same hollow cross-section as v4 (fw = 3×mw = 3.6 mm)
+  - End cap (mw=1.2mm) closes hollow tip: eliminates open-edge stress concentration
+    that caused 25.8 MPa (3.3% over limit) without cap.
 
 Analytical check (PLA, 25 MPa allowable):
   h ≈ 69.6 mm, al = 71.3 mm
   I ≈ 70,700 mm⁴, c = 34.8 mm, M = 303.22 × 71.3 = 21,620 N·mm
   σ ≈ 10.6 MPa → 42% utilisation ✓
 
-Estimated mass ≈ 21.0 g (−3% vs v4 at 21.68 g).
+Estimated mass ≈ 21.4 g (−1% vs v4 at 21.68 g; end cap adds ~0.38 g vs no-cap build).
 """
 
 from __future__ import annotations
@@ -88,6 +90,13 @@ def generate(spec: dict) -> bytes:
     ).Shape()
 
     arm = BRepAlgoAPI_Cut(outer, inner).Shape()
+
+    # End cap: close hollow arm tip to eliminate open-edge stress concentration
+    end_cap = BRepPrimAPI_MakeBox(
+        gp_Pnt(al - mw, yc - aw / 2, 0.0),
+        gp_Pnt(al,      yc + aw / 2, h),
+    ).Shape()
+    arm = BRepAlgoAPI_Fuse(arm, end_cap).Shape()
 
     plate = BRepPrimAPI_MakeBox(
         gp_Pnt(0.0, py0, pz0),
