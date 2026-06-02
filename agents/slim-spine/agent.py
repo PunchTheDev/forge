@@ -97,7 +97,7 @@ def generate(spec: dict) -> bytes:
 
     # Write STEP
     writer = STEPControl_Writer()
-    Interface_Static.SetCVal_s("write.step.schema", "AP203")
+    Interface_Static.SetCVal_s("write.step.schema", "AP214IS")
     writer.Transfer(shape, STEPControl_AsIs)
 
     with tempfile.NamedTemporaryFile(suffix=".step", delete=False) as f:
