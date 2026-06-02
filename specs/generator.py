@@ -64,7 +64,7 @@ TIERS: dict[str, Tier] = {
         safety_factor=2.5,
         min_wall_mm=1.5,
         max_overhang_deg=40.0,
-        materials=["petg", "aluminum_6061"],
+        materials=["petg", "aluminum_6061", "stainless_316"],
     ),
 }
 
@@ -73,6 +73,15 @@ _DENSITY: dict[str, float] = {
     "pla": 1240.0,
     "petg": 1270.0,
     "aluminum_6061": 2700.0,
+    "stainless_316": 7990.0,
+}
+
+# Approximate Young's modulus (MPa) for baseline stiffness estimation.
+_YOUNGS_MPa: dict[str, float] = {
+    "pla": 3500.0,
+    "petg": 2100.0,
+    "aluminum_6061": 68900.0,
+    "stainless_316": 193000.0,
 }
 
 G = 9.81  # m/s²
@@ -103,11 +112,42 @@ def _baseline_mass(
     return round(solid_mass_g * fill_fraction, 1)
 
 
+def _baseline_stiffness_to_weight(
+    load_n: float,
+    arm_mm: float,
+    build_volume: list[float],
+    material: str,
+) -> float:
+    """Very rough stiffness-to-weight baseline for a cantilevered beam.
+
+    Uses Euler-Bernoulli tip deflection: δ = FL³/(3EI) for a rectangular
+    cross-section of the build-volume face. This is a conservative solid-beam
+    upper bound; real topology-optimised brackets do better.
+    Returns N/(mm·g).
+    """
+    E = _YOUNGS_MPa[material]  # MPa = N/mm²
+    L = arm_mm
+    # Cross-section: use Y×Z face of build volume
+    b = build_volume[1]  # width (mm)
+    h = build_volume[2]  # height (mm)
+    I = (b * h**3) / 12.0  # mm⁴
+    # Tip deflection of solid-beam upper bound
+    delta_mm = (load_n * L**3) / (3.0 * E * I)
+    if delta_mm <= 0:
+        return 0.0
+    stiffness = load_n / delta_mm  # N/mm
+    mass_g = _baseline_mass(arm_mm, build_volume, material, safety_factor=1.0)
+    if mass_g <= 0:
+        return 0.0
+    return round(stiffness / mass_g, 6)  # N/(mm·g)
+
+
 def generate(
     spec_id: str,
     tier: str = "medium",
     seed: int | None = None,
     version: str = "1.0",
+    scoring_metric: str = "mass_grams",
 ) -> dict:
     """Generate one spec dict for the given tier."""
     if tier not in TIERS:
@@ -140,13 +180,28 @@ def generate(
     bolt_pattern = _bolt_pattern(rng, rows, cols, pitch)
     clearance_mm = rng.choice([5.5, 6.5, 7.0])
 
-    baseline = _baseline_mass(arm_mm, bv, material, t.safety_factor)
+    if scoring_metric == "stiffness_to_weight":
+        baseline_stw = _baseline_stiffness_to_weight(load_n, arm_mm, bv, material)
+        scoring_block = {
+            "metric": "stiffness_to_weight",
+            "direction": "maximize",
+            "baseline_stiffness_to_weight": baseline_stw,
+        }
+        obj_phrase = "Maximize stiffness-to-weight ratio while surviving the load."
+    else:
+        baseline_mass = _baseline_mass(arm_mm, bv, material, t.safety_factor)
+        scoring_block = {
+            "metric": "mass_grams",
+            "direction": "minimize",
+            "baseline_mass_grams": baseline_mass,
+        }
+        obj_phrase = "Minimize mass while surviving the load."
 
     spec = {
         "id": spec_id,
         "version": version,
-        "name": _name(tier, material, load_kg, arm_mm),
-        "description": _description(load_kg, arm_mm, material, tier),
+        "name": _name(tier, material, load_kg, arm_mm, scoring_metric),
+        "description": _description(load_kg, arm_mm, material, tier, obj_phrase),
         "material": material,
         "constraints": {
             "load_newtons": load_n,
@@ -159,26 +214,38 @@ def generate(
             "max_overhang_deg": t.max_overhang_deg,
             "min_wall_thickness_mm": t.min_wall_mm,
         },
-        "scoring": {
-            "metric": "mass_grams",
-            "direction": "minimize",
-            "baseline_mass_grams": baseline,
-        },
+        "scoring": scoring_block,
     }
     return spec
 
 
-def _name(tier: str, material: str, load_kg: float, arm_mm: float) -> str:
-    mat_label = {"pla": "PLA", "petg": "PETG", "aluminum_6061": "Al6061"}[material]
-    return f"Cantilever Bracket — {mat_label} — {load_kg:.0f} kg @ {arm_mm:.0f} mm [{tier}]"
+_MAT_LABEL: dict[str, str] = {
+    "pla": "PLA",
+    "petg": "PETG",
+    "aluminum_6061": "Al6061",
+    "stainless_316": "SS316",
+}
+
+_MAT_LABEL_LONG: dict[str, str] = {
+    "pla": "PLA (FDM)",
+    "petg": "PETG (FDM)",
+    "aluminum_6061": "Aluminum 6061-T6",
+    "stainless_316": "Stainless Steel 316",
+}
 
 
-def _description(load_kg: float, arm_mm: float, material: str, tier: str) -> str:
-    mat_label = {"pla": "PLA (FDM)", "petg": "PETG (FDM)", "aluminum_6061": "Aluminum 6061-T6"}[material]
+def _name(tier: str, material: str, load_kg: float, arm_mm: float, metric: str = "mass_grams") -> str:
+    mat_label = _MAT_LABEL.get(material, material)
+    metric_tag = "stiffness" if metric == "stiffness_to_weight" else "mass"
+    return f"Cantilever Bracket — {mat_label} — {load_kg:.0f} kg @ {arm_mm:.0f} mm [{tier}, {metric_tag}]"
+
+
+def _description(load_kg: float, arm_mm: float, material: str, tier: str, obj_phrase: str) -> str:
+    mat_label = _MAT_LABEL_LONG.get(material, material)
     return (
         f"A {tier}-difficulty cantilever bracket in {mat_label}. "
         f"Mounts flush to a vertical wall and cantilevers a {load_kg:.1f} kg load "
-        f"{arm_mm:.0f} mm from the wall face. Minimize mass while surviving the load."
+        f"{arm_mm:.0f} mm from the wall face. {obj_phrase}"
     )
 
 
@@ -188,6 +255,7 @@ def batch_generate(
     seed: int = 0,
     id_prefix: str = "gen",
     version: str = "1.0",
+    scoring_metric: str = "mass_grams",
 ) -> list[dict]:
     """Generate n specs, each with a deterministic per-spec seed derived from the master seed."""
     rng = random.Random(seed)
@@ -195,7 +263,7 @@ def batch_generate(
     for i in range(n):
         spec_seed = rng.randint(0, 2**31)
         spec_id = f"{id_prefix}_{i + 1:03d}_{tier}"
-        specs.append(generate(spec_id, tier=tier, seed=spec_seed, version=version))
+        specs.append(generate(spec_id, tier=tier, seed=spec_seed, version=version, scoring_metric=scoring_metric))
     return specs
 
 
@@ -209,16 +277,17 @@ def main() -> None:
     parser.add_argument("--tier", choices=list(TIERS), default="medium")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--id-prefix", default="gen")
+    parser.add_argument("--metric", choices=["mass_grams", "stiffness_to_weight"], default="mass_grams")
     parser.add_argument("--out-dir", type=Path, default=None, help="Write specs to this directory")
     parser.add_argument("--preview", action="store_true", help="Pretty-print one spec and exit")
     args = parser.parse_args()
 
     if args.preview:
-        spec = generate(f"{args.id_prefix}_preview", tier=args.tier, seed=args.seed)
+        spec = generate(f"{args.id_prefix}_preview", tier=args.tier, seed=args.seed, scoring_metric=args.metric)
         print(json.dumps(spec, indent=2))
         return
 
-    specs = batch_generate(args.n, tier=args.tier, seed=args.seed, id_prefix=args.id_prefix)
+    specs = batch_generate(args.n, tier=args.tier, seed=args.seed, id_prefix=args.id_prefix, scoring_metric=args.metric)
 
     if args.out_dir:
         args.out_dir.mkdir(parents=True, exist_ok=True)
