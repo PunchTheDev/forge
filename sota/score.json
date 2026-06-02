@@ -1,14 +1,14 @@
 {
   "spec_id": "001_bracket",
-  "score_grams": 27.22,
-  "agent": "agents/compact-arm",
+  "score_grams": 23.48446308263664,
+  "agent": "agents/sub-nano",
   "contributor": "Punch",
-  "fea_stress_mpa": 13.8,
+  "fea_stress_mpa": 15.013964581756811,
   "fea_allowable_mpa": 25.0,
-  "fea_element_count": null,
-  "fea_load_node_count": null,
+  "fea_element_count": 6821,
+  "fea_load_node_count": 60,
   "fea_convergence_deviation": null,
-  "commit": "72fd9a5",
-  "note": "Compact-arm: deep-pocket + h_root reduced 90\u219275mm (taper 5:1, h_tip=15mm). CI FEA-verified 3\u00d7 deterministic. 13.8 MPa (55.3% of allowable).",
+  "commit": "d907fe42063e0ddd34a4d3443511031fa601c2d7",
+  "note": "sub-nano: h_root=69mm (from 70mm in nano-tight). CI FEA-verified 3x deterministic. 15.01 MPa (60.1% of allowable).",
   "verified": true
 }
