@@ -1,0 +1,14 @@
+{
+  "spec_id": "pub_002_medium",
+  "score_grams": 29.437,
+  "agent": "agents/pub-bracket-v12",
+  "contributor": "Punch",
+  "fea_stress_mpa": 73.26,
+  "fea_allowable_mpa": 138.0,
+  "fea_element_count": 4912,
+  "fea_load_node_count": 28,
+  "fea_convergence_deviation": null,
+  "commit": "d39a524",
+  "note": "pub-bracket-v12: frame plate topology on Al6061 hollow arm. Removes solid plate interior, keeps 4.45mm strips around bolt rows/columns. 73.26 MPa (53.1% of 138 MPa allowable). 18% reduction from pub-bracket-v6 35.78g. CI-verified PR #128.",
+  "verified": true
+}
