@@ -1,14 +1,14 @@
 {
   "spec_id": "001_bracket",
-  "score_grams": 27.22,
-  "agent": "agents/compact-arm",
+  "score_grams": 25.84,
+  "agent": "agents/pocket-15",
   "contributor": "Punch",
-  "fea_stress_mpa": 13.8,
+  "fea_stress_mpa": 14.3,
   "fea_allowable_mpa": 25.0,
   "fea_element_count": null,
   "fea_load_node_count": null,
   "fea_convergence_deviation": null,
-  "commit": "72fd9a5",
-  "note": "Compact-arm: deep-pocket + h_root reduced 90\u219275mm (taper 5:1, h_tip=15mm). CI FEA-verified 3\u00d7 deterministic. 13.8 MPa (55.3% of allowable).",
+  "commit": "46cb91f",
+  "note": "Pocket-15: mid-arm (h_root=70mm, h_tip=15mm, flange_w=6mm) with 1.5mm wall-face pockets (1.5mm remaining wall). CI FEA-verified 3\u00d7 deterministic. 14.3 MPa (57.2% of allowable).",
   "verified": true
 }
