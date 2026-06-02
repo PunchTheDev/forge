@@ -1,0 +1,14 @@
+{
+  "spec_id": "002_equipment_mount",
+  "score_grams": 35.845804892700244,
+  "agent": "agents/al-bracket-v10",
+  "contributor": "Punch",
+  "fea_stress_mpa": 50.365006638767426,
+  "fea_allowable_mpa": 110.4,
+  "fea_element_count": 6042,
+  "fea_load_node_count": 12,
+  "fea_convergence_deviation": null,
+  "commit": "2404cf62bd627d918d1f49b074ed9bd5f2a21f39",
+  "note": "al-bracket-v10: plate_t=1.5mm (from 2.0mm in v7). CI FEA-verified 3x deterministic. 50.37 MPa (45.6% of allowable).",
+  "verified": true
+}
