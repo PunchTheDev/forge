@@ -48,7 +48,7 @@ for idx, spec in enumerate(specs):
             "docker", "run", "--rm",
             "--security-opt", "no-new-privileges",
             "--cap-drop", "ALL",
-            "--pids-limit", "256",
+            "--pids-limit", "512",
             "--memory", "4g",
             "--cpus", "2",
             "-e", f"FORGE_LLM_KEY={llm_key}",
@@ -63,14 +63,24 @@ for idx, spec in enumerate(specs):
 
         proc = subprocess.run(cmd, capture_output=True, text=True)
         out = proc.stdout.strip()
+        err = proc.stderr.strip()
         print(f"[{spec_id}] run {run_i + 1}/{runs}: {out}", flush=True)
+        if not out and err:
+            print(f"[{spec_id}] stderr (exit {proc.returncode}): {err[:500]}", flush=True)
+        elif proc.returncode != 0 and not out:
+            print(f"[{spec_id}] docker exited {proc.returncode} with no output", flush=True)
 
         try:
             result_data = json.loads(out)
         except (json.JSONDecodeError, ValueError):
+            reason = f"Invalid JSON output: {out[:120]}"
+            if not out and err:
+                reason = f"Docker error (exit {proc.returncode}): {err[:300]}"
+            elif not out:
+                reason = f"No output from docker (exit {proc.returncode})"
             result_data = {
                 "passed": False,
-                "reason": f"Invalid JSON output: {out[:120]}",
+                "reason": reason,
             }
 
         # Check determinism on first spec
