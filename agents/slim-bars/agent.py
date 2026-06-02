@@ -1,17 +1,17 @@
 """
-Slim-bars bracket: frame-plate topology with narrowed non-bolt bars.
+Slim-bars bracket: H-frame topology with narrowed non-bolt bars.
 
-The frame-plate design has 5 bars: two bolt bars (top/bottom) + two side bars (left/right)
-+ a central spine. Only the bolt bars contain bolt holes — the side bars and spine are
-bolt-free and can be narrower than the 12 mm bolt-clearance minimum.
+Bolt bars (top/bottom) stay 12 mm wide — minimum for bolt-hole clearance.
+All other bars (side bars, spine, mid-bar) are 8 mm — no bolt holes, no constraint.
 
-Frame topology (YZ view):
+Frame topology (YZ view, X is the arm direction):
 
   z1 ┌──────────────────────────────────────┐  top bolt bar   bar_w_bolt=12 mm
      │   [bolt]                   [bolt]   │
-     ├─┤                  ┊           ├────┤  side bars (8 mm) + gap + spine (8 mm)
+     ├─┤                  ┊           ├────┤  side bars (8 mm)
      │ │                  ┊           │    │
-     │ │     spine at y_c ┊           │    │
+     │ ├──────────────────┼───────────┤    │  mid-bar at z=lp[2] (8 mm)
+     │ │   spine at y_c   ┊           │    │
      │ │                  ┊           │    │
      ├─┤                  ┊           ├────┤
      │   [bolt]           ┊   [bolt]       │
@@ -22,32 +22,30 @@ Bolt clearance (bolt bars):
   margin = bolt_r + 1.5 = 3.25 + 1.5 = 4.75 mm from plate edge to bolt centre
   bar_w_bolt = 12 mm → net past hole edge = 12 − 4.75 − 3.25 = 4.0 mm ✓
 
-Side bars (no bolt holes):
+Side bars / spine / mid-bar (no bolt holes):
   bar_w_side = 8 mm — carries lateral stiffness; no bolt stress constraint.
-
-Spine (no bolt holes):
   spine_w = 8 mm ≥ arm flange_w + 2 mm margin = 6 + 2 = 8 mm ✓
-  Arm flanges (±3 mm from y_center) are fully enclosed within spine (±4 mm). ✓
+  Arm flanges (±3 mm from y_center) fully enclosed within spine (±4 mm). ✓
 
-Load path: arm root fuses into bolt bars (arm web spans full z height and
-passes through both top and bottom bolt bar regions) + spine transfers some
-arm root moment to bolt bars. Side bars provide lateral stiffness.
-
-Arm: unchanged from lean-arm (h_root=90 mm, h_tip=15 mm, web_w=2 mm,
-     flange_w=6 mm, flange_t=1.5 mm). σ_max=14.84 MPa < 17.5 MPa ✓
+Mid-bar necessity: the arm (h_root=90 mm) extends 25 mm above the top bolt bar
+(plate_z1=64.75 mm) with no plate support. Without the mid-bar that overhang acts as
+an unsupported cantilever and concentrates stress at the top-bar / arm junction
+(same failure mode as frame-plate PR #32: 32.2 MPa > 25 MPa limit). The mid-bar at
+z=lp[2]=25 mm directly braces the arm at the load-application height.
 
 Mass estimate (PLA, 1.24 g/cm³):
   Bot bolt bar  (69.5 × 12 × 3 − 2 bolt holes) ≈  2 303 mm³  ( 2.9 g)
   Top bolt bar  (69.5 × 12 × 3 − 2 bolt holes) ≈  2 303 mm³  ( 2.9 g)
   Left bar      ( 8   × 45.5 × 3)               ≈  1 092 mm³  ( 1.4 g)
   Right bar     ( 8   × 45.5 × 3)               ≈  1 092 mm³  ( 1.4 g)
+  Mid-bar       (69.5 ×  8 × 3 − overlaps)      ≈  1 092 mm³  ( 1.4 g)
   Spine         ( 8   × 45.5 × 3)               ≈  1 092 mm³  ( 1.4 g)
-  Frame net                                      ≈  7 882 mm³  ( 9.8 g)
+  Frame net                                      ≈  8 974 mm³  (11.1 g)
   Arm (lean-arm, web + flanges)                  ≈ 12 636 mm³  (15.7 g)
-  Total                                          ≈ 20 518 mm³  (25.4 g)
+  Total                                          ≈ 21 610 mm³  (26.8 g)
 
-  vs frame-plate (~27.5 g est.): −7.6 %
-  vs lean-arm  (32.64 g SOTA):  −22.2 %
+  vs H-frame-plate (~30.6 g est.): −12.4 %
+  vs lean-arm  (32.64 g SOTA):  −17.9 %
 """
 
 from __future__ import annotations
@@ -126,10 +124,20 @@ def generate(spec: dict) -> bytes:
         (plate_t, y_center + spine_half, inner_z1),
     )
 
+    # Horizontal mid-bar: full y-width, 8 mm tall, centred on load point z.
+    # Braces the arm at load-application height — eliminates the unsupported
+    # cantilever above the top bolt bar (same fix as H-frame-plate PR #32).
+    load_z = lp[2]                        # 25 mm
+    mid_bar = box(
+        (0.0, plate_y0, load_z - bar_w_side / 2),
+        (plate_t, plate_y1, load_z + bar_w_side / 2),
+    )
+
     frame = fuse(bot_bar, top_bar)
     frame = fuse(frame, left_bar)
     frame = fuse(frame, right_bar)
     frame = fuse(frame, vert_spine)
+    frame = fuse(frame, mid_bar)
 
     # --- I-beam arm (lean-arm dimensions, analytically verified) ---
     web_w    = 2.0
