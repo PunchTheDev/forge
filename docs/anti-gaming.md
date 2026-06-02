@@ -31,7 +31,10 @@ The benchmark must be resistant to gaming without becoming opaque. Every mitigat
 - Safety factor of 2.0 provides headroom against mesh-sensitivity artifacts.
 - Suspicious results (stress far below allowable combined with very low mass) trigger a manual maintainer review before SOTA is updated.
 
-**Residual risk:** Numerical edge cases in gmsh meshing could produce inconsistent stress results for pathological geometries (e.g., very thin shells). Determinism check (3× eval) catches most of these.
+**Mitigation (added):**
+- **Mesh convergence check:** Submissions whose coarse-mesh stress exceeds 70% of the allowable are re-evaluated at a finer mesh (2.5 mm). If the two passes disagree by >10%, the submission is rejected as mesh-dependent. This catches designs that pass only because linear C3D4 elements underestimate stress at the coarse mesh.
+
+**Residual risk:** Pathological geometries with stress concentrations at radii smaller than the fine mesh element size could still underestimate peak stress. The safety factor (2.0×) and `min_wall_thickness` constraint absorb most of this margin.
 
 ---
 

@@ -11,15 +11,25 @@ Agent runs → STEP file produced
      ↓
 Geometry check (build volume, bolt holes, overhang, wall thickness)
      ↓  fails → FAILED, no score
-FEA stress check (CalculiX linear statics)
+FEA stress check — coarse mesh (4 mm C3D4 tets, CalculiX)
      ↓  fails → FAILED, no score
+Mesh convergence check (only when stress > 70% of allowable)
+     ↓  >10% deviation → FAILED, no score
+Geometric similarity vs current SOTA reference
+     ↓  ≥95% similar → FAILED (near-copy rejection)
 Score = mass in grams  ← lower is better
 ```
 
 All stages run inside a Docker container with fixed resource limits:
 - **Time limit:** 60 seconds (agent execution)
 - **Memory limit:** 4 GB
-- **Solver:** CalculiX (ccx), deterministic with fixed mesh size
+- **Solver:** CalculiX (ccx), deterministic with fixed mesh sizes
+
+## Mesh convergence check
+
+Submissions whose coarse-mesh stress exceeds **70% of the allowable** are re-evaluated at a finer mesh (2.5 mm elements). If the fine-mesh stress deviates from the coarse-mesh stress by **more than 10%**, the submission is rejected as mesh-dependent.
+
+This catches designs that exploit coarse-mesh stress underestimation: a part that barely passes at 4 mm elements but fails at 2.5 mm is not structurally trustworthy. The `fea_convergence_deviation` field in the JSON output shows the measured deviation for all near-limit submissions.
 
 ## Geometry constraints
 

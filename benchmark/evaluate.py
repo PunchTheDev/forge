@@ -39,6 +39,7 @@ class EvalResult:
     fea_allowable_mpa: float | None = None
     fea_element_count: int | None = None
     fea_load_node_count: int | None = None
+    fea_convergence_deviation: float | None = None  # relative stress deviation between mesh passes
     similarity: float | None = None  # [0,1] vs current SOTA; None if check skipped
     elapsed_seconds: float = 0.0
     step_bytes: bytes | None = None  # raw STEP output; populated only on pass
@@ -72,7 +73,8 @@ def evaluate(agent_path: str, spec_path: str, reference_step_path: str | None = 
             elapsed_seconds=agent_result.elapsed_seconds,
         )
 
-    # Stage 3: FEA stress check (correctness gate)
+    # Stage 3: FEA stress check (correctness gate).
+    # For near-limit designs, a second pass at finer mesh checks convergence.
     fea_result = fea.run(step_bytes, spec, mat)
     if not fea_result.passed:
         return EvalResult(
@@ -84,6 +86,7 @@ def evaluate(agent_path: str, spec_path: str, reference_step_path: str | None = 
             fea_allowable_mpa=fea_result.allowable_mpa,
             fea_element_count=fea_result.element_count or None,
             fea_load_node_count=fea_result.load_node_count or None,
+            fea_convergence_deviation=fea_result.convergence_deviation,
             elapsed_seconds=agent_result.elapsed_seconds,
         )
 
@@ -127,6 +130,7 @@ def evaluate(agent_path: str, spec_path: str, reference_step_path: str | None = 
         fea_allowable_mpa=fea_result.allowable_mpa,
         fea_element_count=fea_result.element_count or None,
         fea_load_node_count=fea_result.load_node_count or None,
+        fea_convergence_deviation=fea_result.convergence_deviation,
         similarity=similarity_score,
         elapsed_seconds=agent_result.elapsed_seconds,
         step_bytes=step_bytes,
@@ -162,6 +166,7 @@ def main() -> None:
         "fea_allowable_mpa": result.fea_allowable_mpa,
         "fea_element_count": result.fea_element_count,
         "fea_load_node_count": result.fea_load_node_count,
+        "fea_convergence_deviation": result.fea_convergence_deviation,
         "similarity": result.similarity,
         "elapsed_seconds": result.elapsed_seconds,
     }

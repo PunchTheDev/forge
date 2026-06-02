@@ -215,6 +215,105 @@ class TestFEAHardening:
 
 
 # ---------------------------------------------------------------------------
+# Mesh convergence check
+# ---------------------------------------------------------------------------
+
+class TestMeshConvergence:
+    """Verify the two-pass convergence check in fea.run() without running CalculiX."""
+
+    def _mat(self):
+        from benchmark.materials import get
+        return get("pla")
+
+    def _passing_result(self, stress_mpa: float, elem_count: int = 500) -> "FEAResult":
+        from benchmark.fea import FEAResult
+        allowable = self._mat()["yield_stress_mpa"] / SPEC["constraints"]["safety_factor"]
+        return FEAResult(
+            passed=True,
+            max_stress_mpa=stress_mpa,
+            allowable_mpa=allowable,
+            element_count=elem_count,
+            load_node_count=20,
+        )
+
+    def test_convergence_not_triggered_when_stress_low(self):
+        """Stress well below 70% of allowable: fine-mesh pass not run."""
+        from benchmark import fea
+
+        mat = self._mat()
+        allowable = mat["yield_stress_mpa"] / SPEC["constraints"]["safety_factor"]
+        # 50% of allowable — below CONVERGENCE_TRIGGER_FRACTION (0.70)
+        low_stress = allowable * 0.50
+        coarse_result = self._passing_result(low_stress)
+
+        with patch("benchmark.fea._run_at_mesh_size", return_value=coarse_result) as mock_run:
+            result = fea.run(b"fake", SPEC, mat)
+
+        # Only one call: the coarse pass
+        assert mock_run.call_count == 1
+        assert result.passed
+        assert result.convergence_deviation is None
+
+    def test_convergence_triggered_when_stress_near_limit(self):
+        """Stress above 70% of allowable: fine-mesh pass runs."""
+        from benchmark import fea
+
+        mat = self._mat()
+        allowable = mat["yield_stress_mpa"] / SPEC["constraints"]["safety_factor"]
+        high_stress = allowable * 0.85  # above CONVERGENCE_TRIGGER_FRACTION
+
+        # Both passes return similar stress (< 10% deviation) → should pass
+        coarse = self._passing_result(high_stress)
+        fine = self._passing_result(high_stress * 1.05)  # 5% deviation — under threshold
+
+        with patch("benchmark.fea._run_at_mesh_size", side_effect=[coarse, fine]) as mock_run:
+            result = fea.run(b"fake", SPEC, mat)
+
+        assert mock_run.call_count == 2
+        assert result.passed
+        assert result.convergence_deviation is not None
+        assert result.convergence_deviation < 0.10
+
+    def test_convergence_failure_rejects_submission(self):
+        """Fine-mesh stress deviates >10% from coarse → rejection."""
+        from benchmark import fea
+
+        mat = self._mat()
+        allowable = mat["yield_stress_mpa"] / SPEC["constraints"]["safety_factor"]
+        high_stress = allowable * 0.85
+
+        coarse = self._passing_result(high_stress)
+        # Fine mesh returns 20% higher stress — should trigger rejection
+        fine = self._passing_result(high_stress * 1.20)
+
+        with patch("benchmark.fea._run_at_mesh_size", side_effect=[coarse, fine]):
+            result = fea.run(b"fake", SPEC, mat)
+
+        assert not result.passed
+        assert "mesh-dependent" in result.reason.lower()
+        assert result.convergence_deviation is not None
+        assert result.convergence_deviation > 0.10
+
+    def test_convergence_deviation_in_result_on_pass(self):
+        """Passing submission with high stress reports convergence_deviation."""
+        from benchmark import fea
+
+        mat = self._mat()
+        allowable = mat["yield_stress_mpa"] / SPEC["constraints"]["safety_factor"]
+        high_stress = allowable * 0.80
+
+        coarse = self._passing_result(high_stress)
+        fine = self._passing_result(high_stress * 1.03)  # 3% — passes
+
+        with patch("benchmark.fea._run_at_mesh_size", side_effect=[coarse, fine]):
+            result = fea.run(b"fake", SPEC, mat)
+
+        assert result.passed
+        assert result.convergence_deviation is not None
+        assert abs(result.convergence_deviation - 0.03) < 0.005
+
+
+# ---------------------------------------------------------------------------
 # Geometric similarity
 # ---------------------------------------------------------------------------
 
