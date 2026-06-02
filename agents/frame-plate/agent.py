@@ -1,34 +1,36 @@
 """
-H-frame-plate bracket: perimeter frame + vertical spine + horizontal mid-bar.
+Frame-plate bracket: perimeter frame + tall vertical spine.
 
 Once the I-beam arm is near its analytical minimum, the 3 mm solid mounting plate
 (~17.5 g) is the dominant mass target. This design hollows the plate interior while
-keeping only what carries load: four bolt-zone bars, a central vertical spine, and a
-horizontal mid-bar at the load-point height.
+keeping only what carries load: two bolt-zone bars (top/bottom), two side bars, and
+a central vertical spine that extends to the full arm height.
 
 Frame topology (YZ view, X is the arm direction):
 
-  z1 ┌───────────────────────────────────┐  top bar   (z = z1-bar_w … z1)
+  h_root ─ ┊                  ┊           ─  spine cap (z = z1 … h_root)
+  z1     ┌──────────────────────────────────┐  top bar (z = z1-bar_w … z1)
      │    [bolt]             [bolt]     │
-     ├──┤                       ├───────┤  left/right bars
-     │  │                       │       │
-     │  ├───────────────────────┤       │  mid-bar at z = load_z (H cross-bar)
-     │  │    vert spine at y_c  │       │
+     ├──┤           ┊           ├───────┤  left/right bars (inner span)
+     │  │           ┊           │       │
+     │  │   vert spine at y_c   │       │
      │  │           ┊           │       │
      ├──┤           ┊           ├───────┤
      │    [bolt]    ┊    [bolt]         │
-  z0 └───────────────────────────────────┘  bot bar   (z = z0 … z0+bar_w)
-     y0                                 y1
+  z0 └──────────────────────────────────┘  bot bar (z = z0 … z0+bar_w)
+     y0                                y1
                    y_center
 
-The original frame-plate (no mid-bar) failed FEA at 32.2 MPa because the arm
-(h_root=90 mm) extends 25 mm above the top bolt bar (z=64.75 mm) with no plate
-support. The arm above the top bar acts as an unsupported cantilever, concentrating
-stress at the top-bar / arm junction.
+Root cause of previous FEA failure (32.2–32.6 MPa):
+  The spine stopped at inner_z1=52.75 mm. The arm root extends to h_root=90 mm.
+  The 37.25 mm gap between spine top (52.75) and arm top (90) left the arm upper
+  portion with only the 12 mm bolt bar at z=52.75–64.75 for lateral support. Above
+  z=64.75 the arm is completely unsupported by the plate — the C3D4 FEA concentrates
+  stress at the arm/top-bar junction, exceeding 25 MPa even after a mid-bar at z=25 mm.
 
-Fix: add a horizontal mid-bar spanning the full plate width at z = lp[2] = 25 mm
-(the load application height). This creates an H-frame with direct load transfer
-from arm root to the mid-bar, eliminating the stress concentration.
+Fix: extend spine from inner_z0 to h_root=90 mm. The spine now runs continuously from
+  z=7.25 to z=90 mm, fully enclosing the arm root from bottom to top. No unsupported
+  arm region above the top bolt bar.
 
 bar_w = 12 mm: plate edge to bolt hole outer edge = 4.75 mm (from margin formula),
                 hole outer edge to bar inner edge = 12 − (bolt_r + 4.75) = 4.0 mm ✓
@@ -37,24 +39,19 @@ plate_t = 3 mm (proven minimum for bolt-hole FEA stress in taper-beam and lean-a
 Arm: unchanged from lean-arm (h_root=90 mm, h_tip=15 mm, web_w=2 mm,
      flange_w=6 mm, flange_t=1.5 mm). σ_max=14.84 MPa < 25 MPa ✓
 
-Net section at bolt holes (12 mm bar, 3.25 mm bolt radius):
-  net_width = 12 − 3.25 = 8.75 mm → A_net = 8.75 × 3 = 26.25 mm²
-  Worst-case bolt shear ≈ F/4 = 98 N → σ ≈ 3.7 MPa ≪ 25 MPa ✓
-
 Mass estimate (PLA, 1.24 g/cm³):
   Bot bar    (69.5 × 12 × 3)             ≈  2 502 mm³  ( 3.1 g)
   Top bar    (69.5 × 12 × 3)             ≈  2 502 mm³  ( 3.1 g)
-  Mid bar    (69.5 × 12 × 3)             ≈  2 502 mm³  ( 3.1 g)
   Left bar   (12 × 45.5 × 3)             ≈  1 638 mm³  ( 2.0 g)
   Right bar  (12 × 45.5 × 3)             ≈  1 638 mm³  ( 2.0 g)
-  Vert spine (12 × 45.5 × 3)             ≈  1 638 mm³  ( 2.0 g)
+  Spine      (12 × 82.75 × 3)            ≈  2 979 mm³  ( 3.7 g)
   Minus 4 bolt holes                      ≈   −398 mm³  (−0.5 g)
-  Frame net                               ≈ 12 022 mm³  (14.9 g)
+  Frame net                               ≈ 10 861 mm³  (13.5 g)
   Arm (web + flanges, lean-arm dims)      ≈ 12 636 mm³  (15.7 g)
-  Total                                   ≈ 24 658 mm³  (30.6 g)
+  Total (overlaps reduce actual ~5 %)     ≈ 23 497 mm³  (28.6 g)
 
-  vs lean-arm (32.64 g verified SOTA):  −6 %
-  vs taper-slim (34.10 g):              −10 %
+  vs lean-arm (32.64 g verified SOTA):  −12.4 %
+  vs taper-slim (34.10 g):              −16.2 %
 """
 
 from __future__ import annotations
@@ -124,19 +121,16 @@ def generate(spec: dict) -> bytes:
         gp_Pnt(plate_t, plate_y1, inner_z1),
     ).Shape()
 
-    # Vertical spine: centred on arm y, spans z=inner span.
+    # Arm dimensions — needed to set spine height.
+    h_root = 90.0
+
+    # Vertical spine: centred on arm y, spans from inner_z0 all the way to h_root.
+    # Extending to h_root is the critical fix: the arm root goes to z=90 mm while the
+    # top bolt bar only reaches z=64.75 mm. Without this extension the arm is laterally
+    # unsupported from z=64.75 to z=90 mm, causing >25 MPa stress concentration.
     vert_spine = BRepPrimAPI_MakeBox(
         gp_Pnt(0.0, y_center - spine_half, inner_z0),
-        gp_Pnt(plate_t, y_center + spine_half, inner_z1),
-    ).Shape()
-
-    # Horizontal mid-bar: full plate width in Y, centred on load point z.
-    # Eliminates the unsupported arm cantilever above the top bolt bar by
-    # providing a direct lateral brace at the load-application height.
-    load_z = lp[2]                        # 25 mm
-    mid_bar = BRepPrimAPI_MakeBox(
-        gp_Pnt(0.0, plate_y0, load_z - bar_w / 2),
-        gp_Pnt(plate_t, plate_y1, load_z + bar_w / 2),
+        gp_Pnt(plate_t, y_center + spine_half, h_root),
     ).Shape()
 
     # Fuse all frame elements.
@@ -149,14 +143,13 @@ def generate(spec: dict) -> bytes:
     frame = fuse(frame, left_bar)
     frame = fuse(frame, right_bar)
     frame = fuse(frame, vert_spine)
-    frame = fuse(frame, mid_bar)
 
     # --- I-beam arm (lean-arm dimensions) ---
     web_w    = 2.0
     flange_w = 6.0
     flange_t = 1.5
-    h_root   = 90.0
     h_tip    = 15.0
+    # h_root already defined above (= 90.0) for spine height.
 
     bot_flange = BRepPrimAPI_MakeBox(
         gp_Pnt(0.0, y_center - flange_w / 2, 0.0),
