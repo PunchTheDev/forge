@@ -1,0 +1,14 @@
+{
+  "spec_id": "pub_003_medium",
+  "score_grams": 57.68,
+  "agent": "agents/pub-bracket-v7",
+  "contributor": "Punch",
+  "fea_stress_mpa": 11.33,
+  "fea_allowable_mpa": 20.0,
+  "fea_element_count": 14601,
+  "fea_load_node_count": 80,
+  "fea_convergence_deviation": null,
+  "commit": "ed6206ce055388489caf6015b0fd4116c64555f1",
+  "note": "pub-bracket-v7: wide hollow-box arm spanning full bolt_y_span (y=0..62.4mm). Arm sides land directly on bolt columns eliminating plate bending mode. 11.33 MPa (56.6% of 20 MPa PETG allowable). First passing pub_003 submission. CI-verified PR #120.",
+  "verified": true
+}
