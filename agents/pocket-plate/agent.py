@@ -1,43 +1,30 @@
 """
-Pocket-plate bracket: lean-arm SOTA with mass-relieving pockets on the wall face.
+Pocket-plate bracket v2: shallow pockets on wall face — lean-arm with ~2.5g lighter plate.
 
-Key insight: the mounting plate (17.5 g of the 32.64 g lean-arm) has large zones
-between the four bolt holes that carry minimal load. Boring rectangular pockets from
-the wall-facing side (x=0) into those zones removes ~3.8 g while leaving the bolt-hole
-rings fully intact and the arm-facing surface solid.
+Lesson from v1 (PR #34): 1.5 mm pockets failed FEA at 36.2 MPa.
+Root cause: plate bending stress in transfer zone ≈ 9 MPa (unpocketed).
+With 1.5 mm remaining thickness: σ × (3/1.5)² = 9 × 4.0 = 36 MPa — matches FEA.
 
-Pocket placement:
-  - x: [0, plate_t/2 = 1.5 mm]  — bored from wall side, 1.5 mm solid remains on arm side
-  - y: two zones straddling the I-beam arm (centered at y=25):
-      Left  [bolt_r+2 = 5.25, arm_y_min - 1 = 21 mm]
-      Right [arm_y_max + 1 = 29, bolt_y_max - bolt_r - 2 = 54.75 mm]
-  - z: [bolt_r+2 = 5.25, bolt_z_max - bolt_r - 2 = 54.75 mm]
-  All four bolt-hole rings (margin 4.75 mm) remain un-pocketed.
+v2 fix: reduce pocket depth to 0.8 mm (leaves 2.2 mm solid on arm side).
+  σ_pocketed = 9 × (3/2.2)² = 9 × 1.86 = 16.7 MPa < 25 MPa allowable ✓
+  With Kt ≈ 1.3 for pocket edge: 1.3 × 16.7 = 21.7 MPa < 25 MPa ✓
+Also widens arm-buffer from 1 mm to 2 mm (pocket edges 2 mm from arm flanges).
 
-Structural analysis — unchanged from lean-arm (pockets remote from critical paths):
-
-  Bolt-hole bearing stress (top bolts, per lean-arm analysis):
-    F_bolt ≈ 341 N (bending + shear resultant)
-    Bearing area = 2 × bolt_r × plate_t = 2 × 3.25 × 3 = 19.5 mm²
-    σ_bearing ≈ 341 / 19.5 = 17.5 MPa < 25.0 MPa allowable ✓
-    (pockets do not touch the bolt-hole rings → bearing stress unchanged)
-
-  Arm-root bending stress (unchanged from lean-arm):
-    σ_root = M × c / I = 39,240 × 45 / 144,993 = 12.18 MPa ✓
+Pocket placement (from wall face x=0, depth 0.8 mm):
+  Left  pocket: y [5.25, 20.0], z [5.25, 54.75]  (between left bolt column and arm left edge − 2 mm)
+  Right pocket: y [30.0, 54.75], z [5.25, 54.75]  (between arm right edge + 2 mm and right bolt column)
+  All bolt-hole rings (margin 4.75 mm from centre) remain solid.
 
 Mass estimate (PLA, 1.24 g/cm³):
 
   From lean-arm: 32.64 g (FEA-verified)
 
-  Pocket removal:
-    Left pocket:  (21 - 5.25) × (54.75 - 5.25) × 1.5 = 15.75 × 49.5 × 1.5 = 1 170 mm³ → 1.45 g
-    Right pocket: (54.75 - 29) × (54.75 - 5.25) × 1.5 = 25.75 × 49.5 × 1.5 = 1 912 mm³ → 2.37 g
-    Total pocket:                                                                = 3 082 mm³ → 3.82 g
+  Left pocket:  (20.0 − 5.25) × (54.75 − 5.25) × 0.8 = 14.75 × 49.5 × 0.8 = 584 mm³ → 0.72 g
+  Right pocket: (54.75 − 30.0) × (54.75 − 5.25) × 0.8 = 24.75 × 49.5 × 0.8 = 980 mm³ → 1.21 g
+  Arm 104 mm (vs 108 mm, still 4 mm past load point):
+    (4/108) × (10 296 + 1 944) = (4/108) × 12 240 = 453 mm³ → 0.56 g
 
-  Shorter arm (104 mm vs 108 mm, 4 mm past load point):
-    Web + flange reduction ≈ (4/108) × (10 692 + 1 944) = 468 mm³ → 0.58 g
-
-  Estimated mass: 32.64 - 3.82 - 0.58 ≈ 28.24 g
+  Estimated mass: 32.64 − 0.72 − 1.21 − 0.56 ≈ 30.15 g
 """
 
 from __future__ import annotations
@@ -64,27 +51,22 @@ def generate(spec: dict) -> bytes:
     bolt_r = bolt_d / 2.0
     margin = bolt_r + 1.5             # 4.75 mm — minimum structural ring around each bolt hole
 
-    # Mounting plate: 3 mm thick (proven minimum for bolt-hole FEA stress).
     plate_t  = 3.0
     plate_y0 = min(by_coords) - margin
     plate_y1 = max(by_coords) + margin
     plate_z0 = min(bz_coords) - margin
     plate_z1 = max(bz_coords) + margin
 
-    # Arm: 4 mm past load point (vs 8 mm in lean-arm). Still well inside build volume.
-    arm_len = lp[0] + 4.0             # 104 mm
+    arm_len = lp[0] + 4.0             # 104 mm (4 mm past load point)
 
-    # I-beam geometry — identical to lean-arm (proven mesh-convergent).
     web_w    = 2.0
     flange_w = 6.0
     flange_t = 1.5
-
-    h_root = 90.0                     # section height at wall (x=0)
-    h_tip  = 15.0                     # section height at tip  (x=arm_len)
-
+    h_root   = 90.0
+    h_tip    = 15.0
     y_center = lp[1]                  # 25 mm
 
-    # ── Arm (I-beam) ──────────────────────────────────────────────────────────
+    # ── Arm ───────────────────────────────────────────────────────────────────
     bot_flange = BRepPrimAPI_MakeBox(
         gp_Pnt(0.0, y_center - flange_w / 2, 0.0),
         gp_Pnt(arm_len, y_center + flange_w / 2, flange_t),
@@ -127,23 +109,25 @@ def generate(spec: dict) -> bytes:
         cut_op.Build()
         shape = cut_op.Shape()
 
-    # ── Wall-face pockets ─────────────────────────────────────────────────────
-    # Pocket clearances:
-    #   From bolt holes:  bolt_r + 2.0 mm  (2 mm past hole wall)
-    #   From arm flanges: 1.0 mm gap
-    pocket_depth = plate_t / 2.0      # 1.5 mm — leaves 1.5 mm solid on arm side
-    pclear_bolt  = bolt_r + 2.0       # 5.25 mm from bolt center
-    pclear_arm   = 1.0                # gap from arm flange edge
+    # ── Wall-face pockets (v2: shallower, wider arm buffer) ───────────────────
+    # Depth: 0.8 mm → leaves 2.2 mm solid on arm side.
+    # Plate bending stress in pocket zone ≈ 9 × (3/2.2)² = 16.7 MPa < 25 MPa ✓
+    # Edge Kt ≈ 1.3 → 21.7 MPa < 25 MPa ✓
+    pocket_depth = 0.8
+
+    # Clearances
+    bolt_clear = bolt_r + 2.0        # 5.25 mm from bolt center (2 mm past hole wall)
+    arm_buf    = 2.0                 # buffer past arm flange edge
 
     arm_y_min = y_center - flange_w / 2  # 22.0 mm
     arm_y_max = y_center + flange_w / 2  # 28.0 mm
 
-    pkt_z0 = min(bz_coords) + pclear_bolt  # 5.25 mm
-    pkt_z1 = max(bz_coords) - pclear_bolt  # 54.75 mm
+    pkt_z0 = min(bz_coords) + bolt_clear   # 5.25 mm
+    pkt_z1 = max(bz_coords) - bolt_clear   # 54.75 mm
 
-    # Left pocket: between left bolt column and arm left edge
-    lpkt_y0 = min(by_coords) + pclear_bolt   # 5.25 mm
-    lpkt_y1 = arm_y_min - pclear_arm         # 21.0 mm
+    # Left pocket
+    lpkt_y0 = min(by_coords) + bolt_clear      # 5.25 mm
+    lpkt_y1 = arm_y_min - arm_buf              # 20.0 mm
     if lpkt_y1 > lpkt_y0 + 2.0 and pkt_z1 > pkt_z0 + 2.0:
         left_pocket = BRepPrimAPI_MakeBox(
             gp_Pnt(0.0, lpkt_y0, pkt_z0),
@@ -153,9 +137,9 @@ def generate(spec: dict) -> bytes:
         cut_op.Build()
         shape = cut_op.Shape()
 
-    # Right pocket: between arm right edge and right bolt column
-    rpkt_y0 = arm_y_max + pclear_arm         # 29.0 mm
-    rpkt_y1 = max(by_coords) - pclear_bolt   # 54.75 mm
+    # Right pocket
+    rpkt_y0 = arm_y_max + arm_buf              # 30.0 mm
+    rpkt_y1 = max(by_coords) - bolt_clear      # 54.75 mm
     if rpkt_y1 > rpkt_y0 + 2.0 and pkt_z1 > pkt_z0 + 2.0:
         right_pocket = BRepPrimAPI_MakeBox(
             gp_Pnt(0.0, rpkt_y0, pkt_z0),
