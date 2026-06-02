@@ -1,14 +1,14 @@
 {
   "spec_id": "pub_001_medium",
-  "score_grams": 27.95629888262254,
-  "agent": "agents/pub-bracket-v19",
+  "score_grams": 22.443936220222536,
+  "agent": "agents/pub-bracket-v21b",
   "contributor": "Punch",
-  "fea_stress_mpa": 15.621622378808004,
+  "fea_stress_mpa": 15.545165472087584,
   "fea_allowable_mpa": 25.0,
-  "fea_element_count": 10158,
-  "fea_load_node_count": 94,
+  "fea_element_count": 8555,
+  "fea_load_node_count": 41,
   "fea_convergence_deviation": null,
-  "commit": "d96ddea",
-  "note": "pub-bracket-v19: t_wall=1.2mm (from 1.5mm), hollow 8mm arm. 15.62 MPa (62.5% of 25 MPa PLA allowable). -15.2% from v10 (32.98g). CI-verified PR #139.",
+  "commit": "822cdc7",
+  "note": "pub-bracket-v21b: grid frame plate + tighter arm (h=67mm, arm_len=87.3mm). 15.55 MPa (62.2% of 25 MPa). -9.6% from v20 (24.81g). CI-verified PR #146.",
   "verified": true
 }
