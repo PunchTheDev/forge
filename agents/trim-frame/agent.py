@@ -21,7 +21,7 @@ Structural analysis at x = 0 (critical section, bending about Y):
 Geometry notes:
   - Plate origin offset -4.25 mm in y and z so all four bolt holes are fully inside.
   - Components are NON-OVERLAPPING touching solids; web/flanges start at x=plate_t.
-  - ShapeFix run before STEP Transfer to heal any tolerance issues from Boolean ops.
+  - AP214IS schema for STEP export (AP203 triggers SIGSEGV on this geometry).
 """
 
 from __future__ import annotations
@@ -36,7 +36,6 @@ def generate(spec: dict) -> bytes:
     from OCP.BRepPrimAPI import BRepPrimAPI_MakeBox, BRepPrimAPI_MakeCylinder
     from OCP.Interface import Interface_Static
     from OCP.STEPControl import STEPControl_AsIs, STEPControl_Writer
-    from OCP.ShapeFix import ShapeFix_Shape
     from OCP.gp import gp_Ax2, gp_Dir, gp_Pnt
 
     c = spec["constraints"]
@@ -129,15 +128,9 @@ def generate(spec: dict) -> bytes:
         cut_ops.append(cut_op)
         shape = cut_op.Shape()
 
-    # Heal shape before STEP Transfer: Boolean ops on complex/thin geometry can
-    # leave small tolerance violations that crash the STEP writer with SIGSEGV.
-    fixer = ShapeFix_Shape(shape)
-    fixer.Perform()
-    shape = fixer.Shape()
-
-    # Write STEP.
+    # Write STEP. AP214IS avoids the SIGSEGV that AP203 triggers on this geometry.
     writer = STEPControl_Writer()
-    Interface_Static.SetCVal_s("write.step.schema", "AP203")
+    Interface_Static.SetCVal_s("write.step.schema", "AP214IS")
     writer.Transfer(shape, STEPControl_AsIs)
 
     with tempfile.NamedTemporaryFile(suffix=".step", delete=False) as f:
