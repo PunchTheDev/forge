@@ -2,8 +2,8 @@
 pub-bracket-v22: Tighter hollow-box arm for pub_004_medium.
 
 Improvement over v4: minimum viable arm dimensions.
-  - Arm height: load_z + 11.2 mm (CalculiX mesh stability floor)
-  - Arm length: load_x - 15 mm (minimum within ±15 mm load tolerance)
+  - Arm height: load_z + mw + 12 mm (≥10 mm inner-ceiling clearance rule)
+  - Arm length: load_x - 12 mm (12 mm margin within ±15 mm load tolerance)
   - Plate unchanged — same bolt grid, t_wall margins
   - Arm utilisation target: ≤75% allowable
 """
@@ -58,11 +58,11 @@ def generate(spec: dict) -> bytes:
     # Hollow arm — minimum viable dimensions
     aw = 3.0 * mw          # arm y-width (3.6 mm at mw=1.2)
 
-    # Height: load_z + inner wall + 11 mm clearance (mesh stability floor)
-    h = lz + mw + 11.0
+    # Height: load_z + inner wall + 12 mm clearance (≥10 mm mesh stability rule)
+    h = lz + mw + 12.0
 
-    # Length: minimum within load-point tolerance (load_x − 15 mm)
-    al = lx - 15.0
+    # Length: 12 mm short of load point (±15 mm tolerance; 12 mm leaves mesh headroom)
+    al = lx - 12.0
     al = min(al, bvx - 2.0)
 
     yc = ly
