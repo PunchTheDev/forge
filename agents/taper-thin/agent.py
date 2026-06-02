@@ -1,22 +1,23 @@
 """
-Taper-thin bracket: linearly tapered I-beam with minimum 1.2 mm walls.
+Taper-thin bracket: tapered I-beam arm with all arm walls at minimum 1.2 mm.
 
 Combines two proven improvements:
-  1. Taper-beam's linear taper (I ∝ h³ drops fast away from root, saving web volume)
-  2. Thin-frame's minimum-wall 1.2 mm throughout (all walls at printability limit)
+  1. Thin arm walls — web and flanges at 1.2 mm (vs 2 mm + 1.5 mm in taper-beam)
+  2. Linear arm taper — web height drops from 90 mm at root to 20 mm at tip,
+     matching the bending moment diagram M(x) = F*(L-x)
 
-The bending moment M(x) = F*(L-x) is maximum at the wall (x=0) and zero at the
-tip (x=L). A uniform beam wastes material where the moment is low. Tapering the
-web height proportionally reduces volume while maintaining stress margin everywhere.
+Plate stays at 3 mm (proven minimum from taper-beam) because C3D4 mesh
+around M8 bolt holes at 1.2 mm plate thickness concentrates above allowable.
+The arm accounts for most of the mass reduction vs taper-beam.
 
 I-beam geometry:
-  web_w   = 1.2 mm  (minimum printable wall)
-  flange_w = 8 mm   (minimum for stress below 70% allowable at root)
-  flange_t = 1.2 mm (minimum printable wall)
-  h_root  = 90 mm   (full build-volume height at wall)
-  h_tip   = 20 mm   (minimum viable section at low-moment tip)
+  web_w    = 1.2 mm  (minimum printable wall)
+  flange_w = 8 mm    (minimum for σ < 70% allowable at root)
+  flange_t = 1.2 mm  (minimum printable wall)
+  h_root   = 90 mm   (full available build-volume height at x=0)
+  h_tip    = 20 mm   (minimum viable section at low-moment tip)
 
-Structural analysis — critical section at x=0 (root):
+Structural analysis — critical section at root (x=0):
   M = F × arm_reach = 392.4 × 100 = 39 240 N·mm
   Web height between flanges = 90 − 2 × 1.2 = 87.6 mm
   I_web     = 1.2 × 87.6³ / 12               =  67 060 mm⁴
@@ -24,25 +25,22 @@ Structural analysis — critical section at x=0 (root):
   I_total                                     = 104 914 mm⁴
   c = 45 mm
   σ_root = 39 240 × 45 / 104 914 = 16.8 MPa < 25 MPa ✓  (SF = 2.97)
-          16.8 MPa < 17.5 MPa (70% allowable) → no mesh convergence re-run
+          16.8 MPa < 17.5 MPa → no mesh convergence re-run
 
-Structural analysis — midspan at x=50 mm:
-  h(50)  = 90 − (90−20)/115 × 50 = 63.9 mm
-  M(50)  = 392.4 × 50 = 19 620 N·mm
-  I_web  = 1.2 × 61.5³ / 12   = 23 247 mm⁴
-  I_fl   = 2 × 8×1.2×31.35²   = 18 912 mm⁴
-  I      = 42 159 mm⁴,  c = 31.95 mm
-  σ(50) = 19 620 × 31.95 / 42 159 = 14.9 MPa < 25 MPa ✓
+Structural analysis — midspan (x=50 mm):
+  h(50) = 90 − (90−20)/115 × 50 = 63.9 mm
+  M(50) = 392.4 × 50 = 19 620 N·mm
+  I     = 42 159 mm⁴,  c = 31.95 mm
+  σ(50) = 14.9 MPa < 25 MPa ✓
 
-Volume estimate (tight plate + tapered arm):
-  Plate  70×70×1.2  − bolt holes ×4       ≈  5 500 mm³   (  6.8 g)
-  Web    (tapered trapezoid, 1.2 mm wide)  ≈  8 280 mm³   ( 10.3 g)
-  Flanges 8×1.2×115 × 2                   ≈  2 208 mm³   (  2.7 g)
-  Net                                      ≈ 15 988 mm³
-  Mass = 15 988 × 1.24 × 10⁻³             ≈  19.8 g
+Volume estimate:
+  Plate  69.5×69.5×3  − bolt holes ×4        ≈ 14 081 mm³  ( 17.5 g)
+  Web    tapered trapezoid, 1.2 mm wide       ≈  7 590 mm³  (  9.4 g)
+  Flanges 8×1.2×115 × 2                      ≈  2 208 mm³  (  2.7 g)
+  Net                                         ≈ 23 879 mm³
+  Mass = 23 879 × 1.24 × 10⁻³                ≈  29.6 g
 
-  vs thin-frame  (~27.0 g):  −27 %
-  vs taper-beam  ( 38.7 g):  −49 %
+  vs taper-beam ( 38.7 g verified):  −23 %
 """
 
 from __future__ import annotations
@@ -68,35 +66,35 @@ def generate(spec: dict) -> bytes:
     by_coords = [p[0] for p in bolt_pattern]
     bz_coords = [p[1] for p in bolt_pattern]
     bolt_r = bolt_d / 2.0
+    margin = bolt_r + 1.5            # 1.5 mm clearance beyond hole edge
 
-    # Tight plate margins: bolt_r + 1.5 mm clearance past outer bolts.
-    plate_y0 = min(by_coords) - bolt_r - 1.5   # ~-4.75 mm → clamp to 0
-    plate_y0 = max(0.0, plate_y0)
-    plate_y1 = max(by_coords) + bolt_r + 1.5   # 74.75 mm → 70+4.25+1.5
-    plate_z0 = 0.0
-    plate_z1 = max(bz_coords) + bolt_r + 1.5
+    # Plate: 3 mm (minimum proven thickness for C3D4 bolt-hole FEA).
+    # Extends margin past every bolt hole on all four sides.
+    plate_t  = 3.0
+    plate_y0 = min(by_coords) - margin
+    plate_y1 = max(by_coords) + margin
+    plate_z0 = min(bz_coords) - margin
+    plate_z1 = max(bz_coords) + margin
 
-    plate_t = min_wall                 # 1.2 mm (minimum printable wall)
-    arm_len = lp[0] + 15.0            # 115 mm
+    arm_len = lp[0] + 15.0            # 115 mm (15 mm past load point)
 
-    # I-beam parameters — all at minimum wall
+    # Arm I-beam — all walls at minimum printable thickness.
     web_w    = min_wall                # 1.2 mm
-    flange_w = 8.0                     # Y span; enough for σ < 70% allowable
+    flange_w = 8.0                    # Y span; enough for σ < 70% allowable
     flange_t = min_wall                # 1.2 mm
 
-    h_root = 90.0                     # I-beam height at x=0
-    h_tip  = 20.0                     # I-beam height at x=arm_len
+    h_root = 90.0                     # web height at x=0
+    h_tip  = 20.0                     # web height at x=arm_len
 
     y_center = lp[1]                  # 25 mm
 
-    # Bottom flange: flat at z=[0, flange_t], full arm length
+    # Bottom flange: flat at z=[0, flange_t], full arm length.
     bot_flange = BRepPrimAPI_MakeBox(
         gp_Pnt(0.0, y_center - flange_w / 2, 0.0),
         gp_Pnt(arm_len, y_center + flange_w / 2, flange_t),
     ).Shape()
 
-    # Tapered web: loft from (h_root − 2*flange_t) tall at root to
-    # (h_tip − 2*flange_t) tall at tip, bottom edge constant at z=flange_t.
+    # Tapered web: constant bottom at z=flange_t, top tapers from h_root to h_tip.
     web = _loft_rect(
         x0=0.0, x1=arm_len,
         y0=y_center - web_w / 2, y1=y_center + web_w / 2,
@@ -104,7 +102,7 @@ def generate(spec: dict) -> bytes:
         z0_far=flange_t,  z1_far=h_tip - flange_t,
     )
 
-    # Tapered top flange: follows the slanting top edge of the web
+    # Tapered top flange: follows the slanting top edge of the web.
     top_flange = _loft_rect(
         x0=0.0, x1=arm_len,
         y0=y_center - flange_w / 2, y1=y_center + flange_w / 2,
@@ -117,7 +115,7 @@ def generate(spec: dict) -> bytes:
     fuse2 = BRepAlgoAPI_Fuse(fuse1.Shape(), top_flange)
     fuse2.Build()
 
-    # Mounting plate at x=0 face (minimum wall, tight margins around bolts)
+    # Mounting plate: fused at x=[0, plate_t] for continuous junction with arm.
     plate = BRepPrimAPI_MakeBox(
         gp_Pnt(0.0, plate_y0, plate_z0),
         gp_Pnt(plate_t, plate_y1, plate_z1),
@@ -127,7 +125,7 @@ def generate(spec: dict) -> bytes:
     fuse3.Build()
     shape = fuse3.Shape()
 
-    # Drill bolt holes through the mounting plate
+    # Drill bolt holes through the mounting plate.
     for bby, bbz in bolt_pattern:
         axis = gp_Ax2(gp_Pnt(-1.0, bby, bbz), gp_Dir(1.0, 0.0, 0.0))
         hole = BRepPrimAPI_MakeCylinder(axis, bolt_r, plate_t + 2.0).Shape()
