@@ -38,7 +38,8 @@ This catches designs that exploit coarse-mesh stress underestimation: a part tha
 | Build volume | 150 × 100 × 100 mm |
 | Max overhang | 45° (no-support FDM printable) |
 | Min wall thickness | 1.2 mm |
-| Bolt holes | 4× M6 clearance (⌀6.5) at pattern (0,0), (60,0), (60,60), (0,60) mm |
+| Bolt holes | 4× M6 clearance (⌀6.5mm) at pattern [0,0], [60,0], [60,60], [0,60] mm |
+| Baseline mass | 180.0 g |
 
 ## FEA constraints
 
@@ -49,6 +50,16 @@ This catches designs that exploit coarse-mesh stress underestimation: a part tha
 | Safety factor | 2.0 |
 | Material | PLA (E=3500 MPa, yield=50 MPa) |
 | Allowable stress | 25.0 MPa (yield / safety factor) |
+
+## Mesh sensitivity in thin sections
+
+C3D4 linear tetrahedral elements struggle to resolve stress in thin-walled sections and at sharp geometric transitions. Known failure modes:
+
+- **Thin remaining walls** (< 1.8mm): pockets deeper than 1.2mm in a 3mm plate cause divergence between coarse and fine mesh results.
+- **Short arm tips** (h_tip < 15mm): when the arm cross-section at the load application point is very small, the FEA stress gradient becomes sharp and mesh-dependent.
+- **Steep tapers** (ratio > 6:1): a web that tapers from h_root to h_tip at more than 6:1 creates a stress concentration zone that mesh cannot converge on.
+
+For new designs: stay above 1.8mm wall thickness, keep h_tip ≥ 15mm, and verify taper ratios.
 
 **Correctness is a hard gate.** If max von Mises stress exceeds the allowable, the submission receives no score regardless of mass.
 
