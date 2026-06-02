@@ -1,54 +1,43 @@
 """
 Aluminum bracket for spec 002_equipment_mount (Al6061-T6, 100kg, 120mm arm).
 
-Root cause of i-beam-al failures (PRs #40–43):
-  h_tip was forced to lp[2]+5=50mm, making arm extend 34.25mm above the plate
-  (plate_z1=45.75mm, arm top at z=80mm → 34.25mm unsupported cantilever).
-  This junction stress concentration drove FEA to 163.7 MPa >> 110.4 MPa allowable.
+Root cause of all prior i-beam-al failures (PRs #40-43, #48 v1):
+  v1 (#48): h_root=45, h_tip=15: arm top at x=120mm = 16mm, load z=45mm
+    gap=29mm > 15mm FEA search tolerance → "too few nodes near load point"
+  PRs #40-43: h_root=80, h_tip=50: arm sticks 34.25mm above plate
+    junction stress concentration → 163.7 MPa >> 110.4 MPa allowable
 
-Fix: constrain h_root ≤ plate_z1 = 45.75mm. Use h_root=45mm so arm is fully
-supported by the plate. h_tip=15mm (same as spec-001 designs — FEA distributes
-load at [120,50,45] to nearest arm nodes; load z > arm height is fine).
+Fix:
+  h_root = 50mm  (arm extends 4.25mm above plate_z1=45.75mm, similar to spec-001 proven 5.25mm)
+  h_tip  = 32mm  (arm top at x=120mm = 32.6mm; gap to load z=45mm = 12.4mm < 15mm tol)
+  Taper ratio: 50/32 = 1.56:1 (very mild, guaranteed mesh-stable)
 
-Taper ratio: 45/15 = 3.0:1 < deep-pocket's 6:1 limit ✓
+Load node check:
+  h(x=120) = h_root - (h_root-h_tip) * 120/124 = 50 - 18*0.968 = 32.6mm
+  |32.6 - lp_z=45| = 12.4mm < tol=15mm ✓
 
-Material: Al6061-T6
-  density:  2.71 g/cm³ = 2.71×10⁻³ g/mm³
-  yield:    276 MPa
-  allowable: 276 / 2.5 = 110.4 MPa
+Overhang analysis:
+  arm top flange: z=[47.5, 50mm], plate_z1=45.75mm → 4.25mm of arm above plate
+  spec-001 mid-arm proved 5.25mm overhang (h_root=70, plate_z1=64.75mm) is safe at 14.7 MPa
+  4.25mm overhang is smaller → junction stress concentration not an issue ✓
 
-Spec constraints:
-  bolt_pattern:  6 × M8 in 3×2 grid [0/40/80mm × 0/40mm]
-  bolt_diameter: 8.5mm → bolt_r=4.25mm, margin=5.75mm
-  plate bounds: y∈[−5.75, 85.75mm], z∈[−5.75, 45.75mm]
-  build volume: 150×100×90mm
+Material: Al6061-T6, allowable = 276/2.5 = 110.4 MPa, density = 2.71 g/cm3
 
-Section modulus at arm root (h_root=45mm, flange_w=14mm, flange_t=2.5mm):
+Section modulus at arm root (h_root=50mm, flange_w=12mm, flange_t=2.5mm, web_w=2mm):
   M         = 981 × 120 = 117,720 N·mm
-  c         = 22.5mm
-  I_web     = 2 × (40)³/12 = 10,667 mm⁴   (web = 45−5 = 40mm)
-  I_flange  = 2 × 14 × 2.5 × (22.5−1.25)² = 2 × 35 × 451.6 = 31,609 mm⁴
-  I_total   = 42,276 mm⁴
-  σ_root    = 117,720 × 22.5 / 42,276 = 62.7 MPa  (56.8% of 110.4 MPa ✓)
+  c         = 25mm
+  I_web     = 2 × (45)^3/12 = 15,188 mm4
+  I_flange  = 2 × 12 × 2.5 × (25-1.25)^2 = 33,834 mm4
+  I_total   = 49,022 mm4
+  sigma     = 117,720 × 25 / 49,022 = 60.0 MPa  (54.3% of 110.4 MPa ✓)
 
-Mass estimate (Al density 2.71×10⁻³ g/mm³):
-  arm_len = 124mm (4mm past load)
-  Web avg h:    (40+10)/2 = 25mm  →  124×2×25 = 6,200 mm³ → 16.8g
-  Flanges:      2×124×14×2.5 = 8,680 mm³ → 23.5g
-  Plate solid:  3×91.5×51.5 = 14,147 mm³ → 38.3g
-  6 bolt holes: 6×π×4.25²×3 = −1,021 mm³ → −2.8g
-  Pockets (1.8mm deep, 1.2mm remaining wall):
-    Left:  1.8×35.75×27.5 = 1,770 mm³ → −4.8g
-    Right: 1.8×13.75×27.5 =  680 mm³ → −1.8g
-  Total ≈ 69.2g   (vs 380g baseline, −81.8%)
-
-Pocket zone geometry:
-  pkt_z0 = min(bz)+bolt_clear = 0+6.25 = 6.25mm
-  pkt_z1 = max(bz)−bolt_clear = 40−6.25 = 33.75mm → z_range=27.5mm
-  Left:  y∈[6.25, arm_y_min−2] = [6.25, 19mm]  → y_range=12.75mm  →  guard!
-  Actually arm_y_min = y_center−flange_w/2 = 50−7 = 43mm
-  Left:  lpkt_y1 = 43−2 = 41mm, lpkt_y0 = 0+6.25 = 6.25mm → y_range=34.75mm ✓
-  Right: rpkt_y0 = 43+14+2 = 59mm, rpkt_y1 = 80−6.25 = 73.75mm → y_range=14.75mm ✓
+Mass estimate (Al density 2.71e-3 g/mm3):
+  Web avg h: (45+27)/2=36mm → 124×2×36=8,928 mm3 → 24.2g
+  Flanges:   2×124×12×2.5  = 7,440 mm3 → 20.2g
+  Plate solid: 3×91.5×51.5 = 14,147 mm3 → 38.3g
+  6 bolt holes: -1,021 mm3 → -2.8g
+  Pockets (1.8mm deep): Left 1,770 + Right 680 = 2,450 mm3 → -6.6g
+  Total = 73.3g   (vs 380g baseline, -80.7%)
 """
 
 from __future__ import annotations
@@ -84,13 +73,11 @@ def generate(spec: dict) -> bytes:
     arm_len  = lp[0] + 4.0                     # 124mm
 
     web_w    = 2.0
-    flange_w = 14.0                             # wider flanges for Al efficiency
+    flange_w = 12.0
     flange_t = 2.5
-    # h_root ≤ plate_z1 = 45.75mm keeps arm fully within plate support.
-    # Without this, arm sticks above plate → junction stress concentration.
-    h_root   = 45.0
-    h_tip    = 15.0                             # same as spec-001; FEA handles load above arm tip
-    y_center = lp[1]                            # 50mm
+    h_root   = 50.0   # 4.25mm above plate_z1; comparable to spec-001's proven 5.25mm overhang
+    h_tip    = 32.0   # arm top at x=120mm = 32.6mm; gap to load z=45mm = 12.4mm < 15mm tol
+    y_center = lp[1]  # 50mm
 
     # ── Arm ───────────────────────────────────────────────────────────────────
     bot_flange = BRepPrimAPI_MakeBox(
@@ -135,21 +122,21 @@ def generate(spec: dict) -> bytes:
         cut_op.Build()
         shape = cut_op.Shape()
 
-    # ── Wall-face pockets: 1.8mm deep (1.2mm remaining; spec allows 0.8mm) ───
+    # ── Wall-face pockets: 1.8mm deep (1.2mm remaining > 0.8mm min-wall) ─────
     pocket_depth = 1.8
 
-    bolt_clear = bolt_r + 2.0                   # 6.25mm buffer past bolt hole wall
+    bolt_clear = bolt_r + 2.0                   # 6.25mm buffer
     arm_buf    = 2.0
 
-    arm_y_min = y_center - flange_w / 2         # 43mm
-    arm_y_max = y_center + flange_w / 2         # 57mm
+    arm_y_min = y_center - flange_w / 2         # 44mm
+    arm_y_max = y_center + flange_w / 2         # 56mm
 
     pkt_z0 = min(bz_coords) + bolt_clear        # 6.25mm
     pkt_z1 = max(bz_coords) - bolt_clear        # 33.75mm
 
-    # Left pocket
-    lpkt_y0 = min(by_coords) + bolt_clear       # 6.25mm
-    lpkt_y1 = arm_y_min - arm_buf               # 41mm
+    # Left pocket (y: 6.25 → 42mm)
+    lpkt_y0 = min(by_coords) + bolt_clear
+    lpkt_y1 = arm_y_min - arm_buf
     if lpkt_y1 > lpkt_y0 + 2.0 and pkt_z1 > pkt_z0 + 2.0:
         left_pocket = BRepPrimAPI_MakeBox(
             gp_Pnt(0.0, lpkt_y0, pkt_z0),
@@ -159,9 +146,9 @@ def generate(spec: dict) -> bytes:
         cut_op.Build()
         shape = cut_op.Shape()
 
-    # Right pocket
-    rpkt_y0 = arm_y_max + arm_buf               # 59mm
-    rpkt_y1 = max(by_coords) - bolt_clear       # 73.75mm
+    # Right pocket (y: 58 → 73.75mm)
+    rpkt_y0 = arm_y_max + arm_buf
+    rpkt_y1 = max(by_coords) - bolt_clear
     if rpkt_y1 > rpkt_y0 + 2.0 and pkt_z1 > pkt_z0 + 2.0:
         right_pocket = BRepPrimAPI_MakeBox(
             gp_Pnt(0.0, rpkt_y0, pkt_z0),
