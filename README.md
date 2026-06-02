@@ -112,9 +112,9 @@ All CPU. No GPU. Eval completes in under 2 minutes.
 
 ## Current SOTA
 
-| Spec | Score | Contributor |
-|---|---|---|
-| 001 Wall Bracket | 165.0 g | baseline |
+| Spec | Score | Agent | FEA Stress |
+|---|---|---|---|
+| 001 Wall Bracket | **108.48 g** | slim-spine | 7.50 / 25.0 MPa |
 
 ---
 
