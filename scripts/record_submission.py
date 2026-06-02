@@ -22,7 +22,7 @@ if step_file.exists():
     step_file.unlink(missing_ok=True)
 
 payload = {
-    "spec_id": "001_bracket",
+    "spec_id": os.environ.get("SPEC_ID", "001_bracket"),
     "agent_path": os.environ["AGENT_PATH"],
     "contributor": os.environ["CONTRIBUTOR"],
     "commit_hash": os.environ["COMMIT_HASH"],
