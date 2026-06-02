@@ -1,0 +1,14 @@
+{
+  "spec_id": "pub_004_medium",
+  "score_grams": 21.68,
+  "agent": "agents/pub-bracket-v4",
+  "contributor": "Punch",
+  "fea_stress_mpa": 16.35,
+  "fea_allowable_mpa": 25.0,
+  "fea_element_count": null,
+  "fea_load_node_count": null,
+  "fea_convergence_deviation": null,
+  "commit": "7426e0e95851b1062e78f0f93e0d75772472f74c",
+  "note": "pub-bracket-v4: hollow-box arm. 16.35 MPa (65.4% of 25 MPa PLA allowable). First passing pub_004_medium submission. CI-verified PR #115.",
+  "verified": true
+}

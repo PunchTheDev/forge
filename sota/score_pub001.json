@@ -1,0 +1,14 @@
+{
+  "spec_id": "pub_001_medium",
+  "score_grams": 58.72,
+  "agent": "agents/pub-bracket-v1",
+  "contributor": "Punch",
+  "fea_stress_mpa": 6.1,
+  "fea_allowable_mpa": 25.0,
+  "fea_element_count": null,
+  "fea_load_node_count": null,
+  "fea_convergence_deviation": null,
+  "commit": "2c0bd4a6126814cb3c15f0c79e193808cefa7710",
+  "note": "pub-bracket-v1: solid 8mm arm. 6.1 MPa (24.4% of 25 MPa PLA allowable). First passing pub_001_medium submission. CI-verified PR #112.",
+  "verified": true
+}
