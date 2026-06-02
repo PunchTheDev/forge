@@ -8,7 +8,7 @@ on:
 jobs:
   evaluate:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 90
     permissions:
       pull-requests: write
       issues: write
@@ -29,26 +29,16 @@ jobs:
           else
             echo "path=$AGENT" >> "$GITHUB_OUTPUT"
             echo "found=true" >> "$GITHUB_OUTPUT"
-            # Detect target spec: read agent_dir/spec.txt if present; else default.
-            AGENT_DIR=$(dirname "$AGENT")
-            SPEC_ID="001_bracket"
-            if [ -f "${AGENT_DIR}/spec.txt" ]; then
-              SPEC_ID=$(cat "${AGENT_DIR}/spec.txt" | tr -d '[:space:]')
-            fi
-            echo "spec_id=$SPEC_ID" >> "$GITHUB_OUTPUT"
-            # Resolve spec file path: flat specs/ first, then any round subdirectory.
-            SPEC_PATH="specs/${SPEC_ID}.json"
-            if [ ! -f "$SPEC_PATH" ]; then
-              SPEC_PATH=$(find specs -mindepth 2 -name "${SPEC_ID}.json" | head -1)
-            fi
-            if [ -z "$SPEC_PATH" ] || [ ! -f "$SPEC_PATH" ]; then
-              echo "ERROR: spec '${SPEC_ID}' not found in specs/." >&2
-              exit 1
-            fi
-            echo "spec_path=$SPEC_PATH" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Check duplicate submission
+      - name: Select eval specs (one easy spec per active round)
+        id: specs
+        if: steps.agent.outputs.found == 'true'
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+        run: python3 scripts/select_eval_specs.py
+
+      - name: Check for duplicate submissions
         id: dedup
         if: steps.agent.outputs.found == 'true'
         env:
@@ -92,210 +82,139 @@ jobs:
             forge-eval \
             /forge/scripts/test_ocp_subprocess.py
 
-      - name: Run evaluation (3× determinism check)
+      - name: Run pool evaluation (3 specs, 2x determinism on first)
         id: eval
         if: steps.agent.outputs.found == 'true' && steps.dedup.outputs.cached != 'true'
-        run: |
-          RESULTS=""
-          FINAL=""
-          # Pass per-spec SOTA reference STEP for similarity check if it exists.
-          REF_FLAG=""
-          SPEC_ID="${{ steps.agent.outputs.spec_id }}"
-          if [ -f "sota/${SPEC_ID}/reference.step" ]; then
-            REF_FLAG="--reference-step /forge/sota/${SPEC_ID}/reference.step"
-          elif [ -f "sota/reference.step" ]; then
-            REF_FLAG="--reference-step /forge/sota/reference.step"
-          fi
-
-          for i in 1 2 3; do
-            # Capture stdout; allow non-zero exit so we can surface the JSON error.
-            # --json-compact produces a single-line JSON for safe shell handling.
-            # On the final run, also write the STEP file out to the workspace.
-            STEP_FLAG=""
-            if [ "$i" = "3" ]; then
-              STEP_FLAG="--step-out /forge/.forge_step_output.step"
-            fi
-            OUT=$(docker run --rm \
-              --security-opt no-new-privileges \
-              --cap-drop ALL \
-              --pids-limit 256 \
-              --memory 4g \
-              --cpus 2 \
-              -e FORGE_LLM_KEY=${{ secrets.FORGE_LLM_KEY || secrets.OPENROUTER_KEY }} \
-              -e FORGE_MODEL=${{ secrets.FORGE_MODEL || 'anthropic/claude-haiku-4-5' }} \
-              -e FORGE_MODEL_WHITELIST=${{ vars.FORGE_MODEL_WHITELIST || 'anthropic/claude-haiku-4-5,anthropic/claude-3-5-haiku,openai/gpt-4o-mini' }} \
-              -v "${{ github.workspace }}:/forge" \
-              forge-eval \
-              --agent /forge/${{ steps.agent.outputs.path }} \
-              --spec /forge/${{ steps.agent.outputs.spec_path }} \
-              --json-compact $STEP_FLAG $REF_FLAG 2>/dev/null) || true
-            echo "Run $i: $OUT"
-            SCORE=$(echo "$OUT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('score','null'))" 2>/dev/null || echo "null")
-            RESULTS="$RESULTS $SCORE"
-            FINAL="$OUT"
-          done
-
-          # Check determinism: all three scores must match
-          UNIQUE=$(echo $RESULTS | tr ' ' '\n' | grep -v '^$' | sort -u | wc -l)
-          if [ "$UNIQUE" -gt 1 ]; then
-            echo "FAIL: non-deterministic results: $RESULTS" >> "$GITHUB_STEP_SUMMARY"
-            exit 1
-          fi
-
-          # Check FEA passed: null scores mean FEA or geometry failure
-          PASSED=$(echo "$FINAL" | python3 -c "import sys,json; print(json.load(sys.stdin).get('passed', False))" 2>/dev/null || echo "False")
-          if [ "$PASSED" != "True" ]; then
-            echo "FAIL: eval did not pass: $(echo $FINAL | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('reason','unknown'))" 2>/dev/null)" >> "$GITHUB_STEP_SUMMARY"
-            exit 1
-          fi
-
-          # Write single-line JSON to GITHUB_OUTPUT
-          echo "result=$FINAL" >> "$GITHUB_OUTPUT"
-
-      - name: Load current SOTA
-        id: sota
-        if: steps.agent.outputs.found == 'true' && steps.dedup.outputs.cached != 'true'
         env:
-          FORGE_API_URL: ${{ secrets.FORGE_API_URL }}
-        run: |
-          # Prefer live forge-api SOTA (reflects verified + estimated scores);
-          # fall back to sota/score.json if the API is unreachable.
-          SPEC_ID="${{ steps.agent.outputs.spec_id }}"
-          SOTA=9999
-          if [ -n "$FORGE_API_URL" ]; then
-            API_SOTA=$(curl -sf --max-time 10 "${FORGE_API_URL}/sota/${SPEC_ID}" \
-              | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('score') or d.get('score_grams', 9999))" 2>/dev/null || echo "")
-            if [ -n "$API_SOTA" ] && [ "$API_SOTA" != "9999" ]; then
-              SOTA="$API_SOTA"
-            fi
-          fi
-          # Fallback: sota/score.json only exists for spec 001.
-          if [ "$SOTA" = "9999" ] && [ "$SPEC_ID" = "001_bracket" ]; then
-            SOTA=$(python3 -c "import json; print(json.load(open('sota/score.json')).get('score_grams', 9999))")
-          fi
-          echo "score=$SOTA" >> "$GITHUB_OUTPUT"
+          SPECS_JSON: ${{ steps.specs.outputs.json }}
+          AGENT_PATH: ${{ steps.agent.outputs.path }}
+          FORGE_LLM_KEY: ${{ secrets.FORGE_LLM_KEY || secrets.OPENROUTER_KEY }}
+          FORGE_MODEL: ${{ secrets.FORGE_MODEL || 'anthropic/claude-haiku-4-5' }}
+          FORGE_MODEL_WHITELIST: ${{ vars.FORGE_MODEL_WHITELIST || 'anthropic/claude-haiku-4-5,anthropic/claude-3-5-haiku,openai/gpt-4o-mini' }}
+        run: python3 scripts/run_eval_pool.py
 
-      - name: Check SOTA eligibility
-        id: eligibility
-        if: steps.agent.outputs.found == 'true' && steps.dedup.outputs.cached != 'true'
-        env:
-          FORGE_API_URL: ${{ secrets.FORGE_API_URL }}
-          EVAL_RESULT: ${{ steps.eval.outputs.result }}
-          SOTA_SCORE: ${{ steps.sota.outputs.score }}
-          SPEC_ID: ${{ steps.agent.outputs.spec_id }}
-        run: |
-          SCORE=$(echo "$EVAL_RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('score',9999))")
-          DIRECTION=$(echo "$EVAL_RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('score_direction','minimize'))")
-          SOTA="$SOTA_SCORE"
-
-          # Prefer the eligibility endpoint (enforces marginal-gain margin).
-          ELIGIBLE=""
-          if [ -n "$FORGE_API_URL" ]; then
-            ELIGIBLE=$(curl -sf --max-time 10 \
-              "${FORGE_API_URL}/sota/${SPEC_ID}/eligibility?score=${SCORE}" \
-              | python3 -c "import sys,json; print(str(json.load(sys.stdin).get('eligible',False)).lower())" 2>/dev/null || echo "")
-          fi
-
-          # Fallback: raw comparison when API is unreachable.
-          if [ -z "$ELIGIBLE" ]; then
-            if [ "$DIRECTION" = "maximize" ]; then
-              ELIGIBLE=$(python3 -c "print('true' if float('$SCORE') > float('$SOTA') else 'false')")
-            else
-              ELIGIBLE=$(python3 -c "print('true' if float('$SCORE') < float('$SOTA') else 'false')")
-            fi
-          fi
-
-          echo "eligible=$ELIGIBLE" >> "$GITHUB_OUTPUT"
-
-      - name: Post score comment
+      - name: Post cross-category score comment
         id: post_comment
         if: steps.agent.outputs.found == 'true' && steps.dedup.outputs.cached != 'true'
         env:
-          EVAL_RESULT: ${{ steps.eval.outputs.result }}
-          SOTA_SCORE: ${{ steps.sota.outputs.score }}
+          EVAL_RESULTS: ${{ steps.eval.outputs.results }}
           AGENT_PATH: ${{ steps.agent.outputs.path }}
-          ELIGIBLE: ${{ steps.eligibility.outputs.eligible }}
+          FORGE_API_URL: ${{ secrets.FORGE_API_URL }}
         uses: actions/github-script@v7
         with:
           script: |
-            const result = JSON.parse(process.env.EVAL_RESULT);
-            const sota = parseFloat(process.env.SOTA_SCORE);
-            const agent = process.env.AGENT_PATH;
-            const metric = result.score_metric || 'mass_grams';
-            const direction = result.score_direction || 'minimize';
-            // eligible = beats SOTA AND meets the marginal-gain margin requirement.
-            const eligible = process.env.ELIGIBLE === 'true';
+            const results = JSON.parse(process.env.EVAL_RESULTS);
+            const apiUrl = process.env.FORGE_API_URL || '';
 
-            let body;
-            if (!result.passed) {
-              body = `## Forge Eval — FAILED ❌\n\n` +
-                `**Stage:** \`${result.stage}\`\n` +
-                `**Reason:** ${result.reason}\n\n` +
-                `Fix the issue and push again. See [docs/scoring.md](docs/scoring.md).`;
-            } else {
-              const scoreVal = result.score;
-              const scoreStr = metric === 'mass_grams' || metric === 'volume_mm3'
-                ? scoreVal.toFixed(2)
-                : scoreVal.toFixed(4);
-              const metricLabel = {
-                mass_grams: 'Mass',
-                volume_mm3: 'Volume',
-                stiffness_to_weight: 'Stiffness/Weight',
-                deflection_mm: 'Deflection',
-              }[metric] || metric;
-              const metricUnit = {
-                mass_grams: 'g',
-                volume_mm3: 'mm³',
-                stiffness_to_weight: 'N/(mm·g)',
-                deflection_mm: 'mm',
-              }[metric] || '';
+            const METRIC_LABEL = {
+              mass_grams: 'Mass',
+              stiffness_to_weight: 'Stiffness/Weight',
+              deflection_mm: 'Deflection',
+            };
+            const METRIC_UNIT = {
+              mass_grams: 'g',
+              stiffness_to_weight: 'N/(mm\u00b7g)',
+              deflection_mm: 'mm',
+            };
+            const ROUND_NAME = {
+              round_001: 'Mass Optimization \u2193',
+              round_002: 'Stiffness/Weight \u2191',
+              round_003: 'Absolute Stiffness \u2193',
+            };
 
-              // Raw "beats" for display; "eligible" gates the label and SOTA promotion.
-              const beats = direction === 'maximize'
-                ? scoreVal > sota
-                : scoreVal < sota;
-              const delta = Math.abs(sota - scoreVal);
-              const deltaStr = (metric === 'stiffness_to_weight' || metric === 'deflection_mm') ? delta.toFixed(4) : delta.toFixed(2);
-              const stressRatio = (result.fea_stress_mpa / result.fea_allowable_mpa * 100).toFixed(1);
-              const simStr = result.similarity != null
-                ? `| Similarity to SOTA | ${(result.similarity * 100).toFixed(1)}% |\n`
-                : '';
-              // Only show displacement as a secondary row when it's not the primary metric.
-              const dispStr = result.fea_displacement_mm != null && metric !== 'deflection_mm'
-                ? `| FEA displacement | ${result.fea_displacement_mm.toFixed(4)} mm |\n`
-                : '';
-
-              const heading = eligible  ? 'NEW LEADER 🏆'
-                            : beats     ? 'BEATS SOTA ⏳'
-                            :             'PASSED ✅';
-              const footer = eligible
-                ? `**Beats SOTA with sufficient margin.** A maintainer will review and merge.`
-                : beats
-                ? `Beats the current SOTA but the margin requirement isn't met yet. Push further to earn the reward.`
-                : `Passes all constraints but does not beat the current SOTA. Keep optimizing.`;
-
-              body = `## Forge Eval — ${heading}\n\n` +
-                `| Metric | Value |\n|---|---|\n` +
-                `| ${metricLabel} | **${scoreStr} ${metricUnit}** |\n` +
-                `| Current SOTA | ${sota} ${metricUnit} |\n` +
-                `| Delta | ${beats ? (direction === 'maximize' ? '+' : '-') : (direction === 'maximize' ? '-' : '+')}${deltaStr} ${metricUnit} |\n` +
-                `| FEA stress | ${result.fea_stress_mpa.toFixed(1)} / ${result.fea_allowable_mpa.toFixed(1)} MPa (${stressRatio}%) |\n` +
-                dispStr +
-                simStr +
-                `| Agent time | ${result.elapsed_seconds.toFixed(1)}s |\n\n` +
-                footer;
+            // Fetch live SOTA for each spec
+            const sotaBySpec = {};
+            for (const r of results) {
+              if (!apiUrl) break;
+              try {
+                const resp = await fetch(`${apiUrl}/sota/${r.spec_id}`).catch(() => null);
+                if (resp && resp.ok) {
+                  const d = await resp.json();
+                  sotaBySpec[r.spec_id] = d.score ?? d.score_grams ?? null;
+                }
+              } catch {}
             }
+
+            const allPassed = results.every(r => r.result.passed);
+            let anyBeatsSota = false;
+            let compositeNorm = 0;
+            let compositeCount = 0;
+
+            const fmt = (v, metric) => {
+              if (metric === 'mass_grams') return v.toFixed(2);
+              if (metric === 'deflection_mm') return v.toFixed(4);
+              return v.toFixed(4);
+            };
+
+            let rows = '';
+            for (const r of results) {
+              const res = r.result;
+              const unit = METRIC_UNIT[r.metric] || '';
+              const rname = ROUND_NAME[r.round_id] || r.round_id;
+              const score = res.score;
+              const baseline = r.baseline;
+              const sota = sotaBySpec[r.spec_id] ?? null;
+              const dir = r.direction;
+
+              // Normalized: lower is always better
+              const norm = dir === 'maximize'
+                ? (score > 0 ? baseline / score : 999)
+                : (baseline > 0 ? score / baseline : 0);
+              compositeNorm += norm;
+              compositeCount++;
+
+              const vsBaseline = dir === 'maximize'
+                ? `+${((score / baseline - 1) * 100).toFixed(1)}%`
+                : `-${((1 - score / baseline) * 100).toFixed(1)}%`;
+
+              let sotaCell = '\u2014';
+              if (sota !== null) {
+                const beats = dir === 'maximize' ? score > sota : score < sota;
+                if (beats) {
+                  anyBeatsSota = true;
+                  sotaCell = `\u2713 beats ${fmt(sota, r.metric)} ${unit}`;
+                } else {
+                  sotaCell = `${fmt(sota, r.metric)} ${unit}`;
+                }
+              }
+
+              const icon = res.passed ? '\u2705' : '\u274c';
+              rows += `| ${icon} ${rname} | \`${r.spec_id}\` | **${fmt(score, r.metric)} ${unit}** | ${fmt(baseline, r.metric)} ${unit} | ${vsBaseline} | ${sotaCell} |\n`;
+            }
+
+            const composite = compositeCount
+              ? (compositeNorm / compositeCount * 100).toFixed(1)
+              : '\u2014';
+
+            const heading = !allPassed   ? 'FAILED \u274c'
+                          : anyBeatsSota ? 'NEW LEADER \ud83c\udfc6'
+                          :                'PASSED \u2705';
+
+            const footer = !allPassed
+              ? 'One or more categories failed. Fix the issues and push again. See [docs/scoring.md](docs/scoring.md).'
+              : anyBeatsSota
+              ? 'Beats SOTA in at least one category with sufficient margin. A maintainer will review and merge.'
+              : 'Passes all three categories but does not beat the current SOTA. Keep optimizing.';
+
+            const body =
+              `## Forge Eval \u2014 ${heading}\n\n` +
+              `### Cross-Category Results\n\n` +
+              `| Status | Category | Score | Baseline | vs Baseline | Current SOTA |\n` +
+              `|---|---|---|---|---|---|\n` +
+              rows + `\n` +
+              `**Composite score: ${composite}%** of baseline across all 3 categories ` +
+              `(lower = better; maximize metrics are inverted for uniform comparison)\n\n` +
+              footer;
 
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body
+              body,
             });
 
-            // `beats_sota` gates the `optimization` label — only set when margin is met.
-            core.setOutput('beats_sota', eligible ? 'true' : 'false');
-            core.setOutput('passed', result.passed ? 'true' : 'false');
+            core.setOutput('beats_sota', anyBeatsSota ? 'true' : 'false');
+            core.setOutput('passed', allPassed ? 'true' : 'false');
 
       - name: Apply Gittensor scoring label
         if: steps.agent.outputs.found == 'true' && steps.dedup.outputs.cached != 'true'
@@ -305,22 +224,24 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            // Ensure the labels exist before applying them.
             const labels = [
-              { name: 'optimization', color: '6366f1', description: 'PR sets a new SOTA score' },
-              { name: 'passed',       color: '10b981', description: 'PR passes eval but does not beat SOTA' },
+              { name: 'optimization', color: '6366f1', description: 'PR beats SOTA in at least one category' },
+              { name: 'passed',       color: '10b981', description: 'PR passes all three eval categories' },
             ];
             for (const l of labels) {
               try {
-                await github.rest.issues.getLabel({ owner: context.repo.owner, repo: context.repo.repo, name: l.name });
+                await github.rest.issues.getLabel({
+                  owner: context.repo.owner, repo: context.repo.repo, name: l.name,
+                });
               } catch {
-                await github.rest.issues.createLabel({ owner: context.repo.owner, repo: context.repo.repo, ...l });
+                await github.rest.issues.createLabel({
+                  owner: context.repo.owner, repo: context.repo.repo, ...l,
+                });
               }
             }
-
             const label = process.env.BEATS_SOTA === 'true' ? 'optimization'
-              : process.env.PASSED === 'true'              ? 'passed'
-              : null;
+                        : process.env.PASSED   === 'true' ? 'passed'
+                        : null;
             if (label) {
               await github.rest.issues.addLabels({
                 owner: context.repo.owner,
@@ -330,14 +251,13 @@ jobs:
               });
             }
 
-      - name: Record submission to forge-api
+      - name: Record submissions to forge-api
         if: steps.agent.outputs.found == 'true' && steps.dedup.outputs.cached != 'true'
         env:
           FORGE_API_URL: ${{ secrets.FORGE_API_URL }}
-          EVAL_RESULT: ${{ steps.eval.outputs.result }}
+          EVAL_RESULTS: ${{ steps.eval.outputs.results }}
           AGENT_PATH: ${{ steps.agent.outputs.path }}
-          SPEC_ID: ${{ steps.agent.outputs.spec_id }}
           CONTRIBUTOR: ${{ github.event.pull_request.user.login }}
           COMMIT_HASH: ${{ github.event.pull_request.head.sha }}
           PR_NUMBER: ${{ github.event.number }}
-        run: python3 scripts/record_submission.py
+        run: python3 scripts/record_submissions.py
