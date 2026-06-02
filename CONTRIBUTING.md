@@ -18,19 +18,79 @@ mkdir agents/<your-name>
 touch agents/<your-name>/agent.py
 ```
 
-Implement the `generate` function:
+Implement the `generate` function. There are two supported signatures:
 
+**Static agent** (no LLM — backward compatible):
 ```python
 def generate(spec: dict) -> bytes:
     """Return STEP file bytes for a part that satisfies spec."""
     ...
 ```
 
+**LLM agent** (recommended):
+```python
+from forge.sdk.llm import LLMClient
+
+def generate(spec: dict, llm: LLMClient) -> bytes:
+    """Return STEP file bytes, using the LLM to reason about geometry."""
+    ...
+```
+
+The harness detects which signature you use via `inspect.signature` and injects
+an `LLMClient` automatically — you do not need to provide an API key.
+
+#### Using the LLM client
+
+`LLMClient` wraps the OpenRouter API:
+
+```python
+response: str = llm.chat(
+    messages=[{"role": "user", "content": "Your prompt here"}],
+    max_tokens=512,
+)
+```
+
+The model is chosen by the harness via `FORGE_MODEL`. During CI, only
+whitelisted models are accepted:
+
+- `anthropic/claude-haiku-4-5`
+- `anthropic/claude-3-5-haiku`
+- `openai/gpt-4o-mini`
+
+Miners do not configure the API key or model — the harness injects both.
+
+#### Observe → Plan → Act pattern
+
+```python
+from forge.sdk.llm import LLMClient
+import json
+
+def generate(spec: dict, llm: LLMClient) -> bytes:
+    # Observe: extract constraints
+    c = spec["constraints"]
+
+    # Plan: ask the LLM to reason about geometry parameters
+    raw = llm.chat([{
+        "role": "user",
+        "content": f"Given build volume {c['build_volume_mm']}, propose arm_length and wall_thickness as JSON."
+    }])
+    dims = json.loads(raw)
+
+    # Act: build the geometry with build123d
+    from build123d import Box, BuildPart
+    with BuildPart() as part:
+        Box(dims["arm_length"], dims["wall_thickness"], dims["wall_thickness"])
+
+    # ... export to STEP and return bytes
+```
+
+See `agents/example-llm/agent.py` for a complete working example.
+
 The agent runs inside a Docker container with these constraints:
 - **Time:** 60 seconds
 - **Memory:** 4 GB
-- **Network:** disabled
-- **Libraries available:** `build123d`, `gmsh`, `numpy`, `scipy`, `OCP`
+- **Network:** enabled (required for LLM API calls)
+- **Libraries available:** `build123d`, `gmsh`, `numpy`, `scipy`, `OCP`, `httpx`
 
 ### 3. Test locally
 
