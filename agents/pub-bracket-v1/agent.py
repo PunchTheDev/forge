@@ -4,7 +4,7 @@ pub-bracket-v1: Parametric hollow-box cantilever bracket for pub specs.
 Reads all constraints from spec dynamically. Works for PLA, PETG, Al6061.
 
 Design: hollow box arm + minimal mounting plate.
-  - Arm: fw=2×min_wall wide, h=build_vol_z×0.8 tall, extends to load x
+  - Arm: fw=3×min_wall wide, h=build_vol_z×0.75 tall, extends to load x
   - Wall thickness: min_wall on all sides
   - Arm length: min(load_x - load_tol, build_vol_x) where load_tol=15mm
   - Load nodes: arm covers z=load_z±(h/2), guaranteed within 15mm
@@ -12,7 +12,14 @@ Design: hollow box arm + minimal mounting plate.
 Adaptive sizing:
   - arm_len = min(load_x - 15.0, build_vol_x - 5.0) but ≥ load_x - 15
   - h = build_vol_z * 0.75 (leaves margin, centers on load_z roughly)
-  - fw = 2 × min_wall + min_wall (minimum hollow box)
+  - fw = 3 × min_wall (minimum hollow box)
+
+Plate margin:
+  - Ideal = bolt_r + min_wall on each side of bolt pattern
+  - If bolt pattern is close to build volume edge and the resulting sliver
+    between bolt hole and plate edge would be < 0.5 mm (causing surface-mesh
+    PLC errors in tetgen), pull the plate edge back so the bolt hole creates
+    a clean U-notch instead of a thin sliver.
 """
 
 from __future__ import annotations
@@ -42,32 +49,35 @@ def generate(spec: dict) -> bytes:
     by_coords = [p[0] for p in bolt_pattern]
     bz_coords = [p[1] for p in bolt_pattern]
     bolt_r = bolt_d / 2.0
-    margin = bolt_r + min_wall
 
-    # Mounting plate: minimal rectangle covering all bolt holes + margin
-    # Clip to build volume so plate never exceeds bounds.
+    bolt_y_span = max(by_coords) - min(by_coords)
+    bolt_z_span = max(bz_coords) - min(bz_coords)
+
+    # Available space on each side of the bolt pattern within build volume
+    # (keep 0.5 mm safety gap from the build volume edge itself)
+    y_half_avail = (bvy - bolt_y_span) / 2.0 - 0.5
+    z_half_avail = (bvz - bolt_z_span) / 2.0 - 0.5
+
+    ideal_margin = bolt_r + min_wall   # structural clearance around each hole
+
+    margin_y = min(ideal_margin, max(0.0, y_half_avail))
+    margin_z = min(ideal_margin, max(0.0, z_half_avail))
+
+    # When clipping forces the plate edge within 0.5 mm of a bolt hole edge,
+    # the surface mesher (gmsh/tetgen) fails with a PLC intersection error.
+    # Fix: pull the edge back to 0.5 mm INSIDE the bolt hole → clean U-notch.
+    MIN_SLIVER = 0.5
+    if 0.0 < margin_y - bolt_r < MIN_SLIVER:
+        margin_y = bolt_r - MIN_SLIVER
+    if 0.0 < margin_z - bolt_r < MIN_SLIVER:
+        margin_z = bolt_r - MIN_SLIVER
+
+    # Mounting plate extents (no separate clipping step needed — margin already fits)
     plate_t  = min_wall
-    plate_y0_raw = min(by_coords) - margin
-    plate_y1_raw = max(by_coords) + margin
-    plate_z0_raw = min(bz_coords) - margin
-    plate_z1_raw = max(bz_coords) + margin
-
-    # If raw span exceeds build volume, trim symmetrically
-    y_span = plate_y1_raw - plate_y0_raw
-    if y_span > bvy - 0.5:
-        shrink = (y_span - (bvy - 0.5)) / 2.0
-        plate_y0 = plate_y0_raw + shrink
-        plate_y1 = plate_y1_raw - shrink
-    else:
-        plate_y0, plate_y1 = plate_y0_raw, plate_y1_raw
-
-    z_span = plate_z1_raw - plate_z0_raw
-    if z_span > bvz - 0.5:
-        shrink = (z_span - (bvz - 0.5)) / 2.0
-        plate_z0 = plate_z0_raw + shrink
-        plate_z1 = plate_z1_raw - shrink
-    else:
-        plate_z0, plate_z1 = plate_z0_raw, plate_z1_raw
+    plate_y0 = min(by_coords) - margin_y
+    plate_y1 = max(by_coords) + margin_y
+    plate_z0 = min(bz_coords) - margin_z
+    plate_z1 = max(bz_coords) + margin_z
 
     # Arm geometry: hollow box in y-z, extends in x to near load point
     # fw: 2 walls of min_wall + 1 inner slot of min_wall (FEA mesh friendly)
