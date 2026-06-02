@@ -1,13 +1,14 @@
 {
   "spec_id": "001_bracket",
-  "score_grams": 38.73,
-  "agent": "agents/taper-beam",
+  "score_grams": 32.63934588263439,
+  "agent": "agents/lean-arm",
   "contributor": "Punch",
-  "fea_stress_mpa": 23.268,
+  "fea_stress_mpa": 17.05428602203408,
   "fea_allowable_mpa": 25.0,
-  "fea_element_count": 8246,
-  "fea_convergence_deviation": 0.0889,
-  "commit": "0f0aba0",
-  "note": "Taper-beam: linearly tapered I-beam arm, ThruSections loft. CI FEA-verified 3\u00d7 deterministic.",
+  "fea_element_count": 7108,
+  "fea_load_node_count": 109,
+  "fea_convergence_deviation": null,
+  "commit": "14e0a64",
+  "note": "Lean-arm: h_tip=15mm, flange_w=6mm, proven C3D4 wall dims. CI FEA-verified 3\u00d7 deterministic.",
   "verified": true
 }
