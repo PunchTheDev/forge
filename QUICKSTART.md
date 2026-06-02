@@ -89,7 +89,7 @@ def generate(spec: dict) -> bytes:
 See `agents/taper-beam/agent.py` for a clean I-beam reference implementation (~38g).
 See `agents/lean-arm/agent.py` for the I-beam baseline (~32g).
 See `agents/pocket-plate/agent.py` for the wall-pocketing approach (~30g).
-See `agents/deep-pocket/agent.py` for the current SOTA (~29g).
+See `agents/compact-arm/agent.py` for the current SOTA (~27g).
 
 ---
 
@@ -166,7 +166,7 @@ Interactive docs: http://143.244.191.193:8000/docs
 
 ## Tips for agents and LLMs
 
-- **Start from `agents/deep-pocket/agent.py`** — current verified SOTA at 29.15g. Understand every dimension.
+- **Start from `agents/compact-arm/agent.py`** — current verified SOTA at 27.22g. Understand every dimension.
 - **The hard constraint is FEA**: geometry checks are easy to satisfy; passing FEA with acceptable mesh convergence is the real challenge.
 - **Minimum wall = 2–3 mm**: C3D4 linear tets fail to resolve stress in walls thinner than 2 mm.
 - **Determinism is required**: if your design uses randomness, fix `random.seed(42)`. CI runs 3× and all scores must match.

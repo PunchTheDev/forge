@@ -1,14 +1,14 @@
 {
   "spec_id": "001_bracket",
-  "score_grams": 29.15,
-  "agent": "agents/deep-pocket",
+  "score_grams": 27.22,
+  "agent": "agents/compact-arm",
   "contributor": "Punch",
-  "fea_stress_mpa": 13.3,
+  "fea_stress_mpa": 13.8,
   "fea_allowable_mpa": 25.0,
   "fea_element_count": null,
   "fea_load_node_count": null,
   "fea_convergence_deviation": null,
-  "commit": "6b4e942",
-  "note": "Deep-pocket: pocket-plate + 1.2mm wall-face pockets (leaves 1.8mm solid). CI FEA-verified 3\u00d7 deterministic. 13.3 MPa (53.2% of allowable).",
+  "commit": "72fd9a5",
+  "note": "Compact-arm: deep-pocket + h_root reduced 90\u219275mm (taper 5:1, h_tip=15mm). CI FEA-verified 3\u00d7 deterministic. 13.8 MPa (55.3% of allowable).",
   "verified": true
 }

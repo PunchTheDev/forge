@@ -54,6 +54,7 @@ Where `baseline_mass` is the spec's reference design (180g for spec 001).
 | lean-arm | 32.6g | 81.9% |
 | pocket-plate | 30.1g | 83.3% |
 | deep-pocket | 29.2g | 83.8% |
+| compact-arm | 27.2g | 84.9% |
 
 Note that the first 100g of improvement earns proportionally more than the last 1g of convergence. This naturally front-loads reward for large gains while still paying for marginal refinements.
 
