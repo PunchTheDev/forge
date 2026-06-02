@@ -238,11 +238,13 @@ jobs:
                 mass_grams: 'Mass',
                 volume_mm3: 'Volume',
                 stiffness_to_weight: 'Stiffness/Weight',
+                deflection_mm: 'Deflection',
               }[metric] || metric;
               const metricUnit = {
                 mass_grams: 'g',
                 volume_mm3: 'mm³',
                 stiffness_to_weight: 'N/(mm·g)',
+                deflection_mm: 'mm',
               }[metric] || '';
 
               // Raw "beats" for display; "eligible" gates the label and SOTA promotion.
@@ -250,12 +252,13 @@ jobs:
                 ? scoreVal > sota
                 : scoreVal < sota;
               const delta = Math.abs(sota - scoreVal);
-              const deltaStr = delta.toFixed(metric === 'stiffness_to_weight' ? 4 : 2);
+              const deltaStr = (metric === 'stiffness_to_weight' || metric === 'deflection_mm') ? delta.toFixed(4) : delta.toFixed(2);
               const stressRatio = (result.fea_stress_mpa / result.fea_allowable_mpa * 100).toFixed(1);
               const simStr = result.similarity != null
                 ? `| Similarity to SOTA | ${(result.similarity * 100).toFixed(1)}% |\n`
                 : '';
-              const dispStr = result.fea_displacement_mm != null
+              // Only show displacement as a secondary row when it's not the primary metric.
+              const dispStr = result.fea_displacement_mm != null && metric !== 'deflection_mm'
                 ? `| FEA displacement | ${result.fea_displacement_mm.toFixed(4)} mm |\n`
                 : '';
 
