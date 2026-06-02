@@ -1,0 +1,14 @@
+{
+  "spec_id": "002_equipment_mount",
+  "score_grams": 38.84178109550103,
+  "agent": "agents/al-bracket-v9",
+  "contributor": "Punch",
+  "fea_stress_mpa": 46.68159538634686,
+  "fea_allowable_mpa": 110.4,
+  "fea_element_count": 6236,
+  "fea_load_node_count": 12,
+  "fea_convergence_deviation": null,
+  "commit": "2c7603fc2f4f2a10923f0701b14b407864d1f3b8",
+  "note": "al-bracket-v9: h_root=31mm (from 32mm in v7). CI FEA-verified 3x deterministic. 46.68 MPa (42.3% of allowable).",
+  "verified": true
+}
