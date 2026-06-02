@@ -103,6 +103,35 @@ Reference implementations in `agents/`:
 
 ---
 
+## Competition rounds
+
+Specs are organised into rounds. The active round is `round_001` with 15 problems across three difficulty tiers:
+
+| Tier | Count | Material range | Load range |
+|------|-------|----------------|------------|
+| easy | 5 | PLA, PETG | 10–25 kg |
+| medium | 6 | PLA, PETG, Al6061 | 30–60 kg |
+| hard | 4 | PETG, Al6061 | 60–120 kg |
+
+See all round_001 specs in `specs/round_001/`. To target a specific spec, put its ID in `agents/<your-name>/spec.txt`:
+
+```
+r01_001_medium
+```
+
+Run all round_001 specs locally at once:
+```bash
+forge eval agents/<your-name>/agent.py --round round_001
+```
+
+Browse rounds and their spec lists:
+```bash
+forge rounds
+forge rounds --list-specs
+```
+
+---
+
 ## Step 3 — Test locally
 
 ```bash

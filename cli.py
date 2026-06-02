@@ -115,7 +115,7 @@ def cmd_specs(args: argparse.Namespace) -> int:
         return 0
 
     # Fallback to local files
-    spec_files = sorted(SPECS_DIR.glob("*.json"))
+    spec_files = _all_spec_files()
     if not spec_files:
         print("No specs found locally and API unreachable.")
         return 1
@@ -234,7 +234,7 @@ def cmd_status(args: argparse.Namespace) -> int:
         print(f"{RED}error:{RESET} agent not found: {agent_path}", file=sys.stderr)
         return 1
 
-    spec_files = sorted(SPECS_DIR.glob("*.json"))
+    spec_files = _all_spec_files()
     if args.spec:
         spec_files = [f for f in spec_files if args.spec in f.name]
     if not spec_files:
