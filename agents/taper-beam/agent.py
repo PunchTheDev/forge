@@ -83,20 +83,20 @@ def generate(spec: dict) -> bytes:
         gp_Pnt(arm_len, y_center + flange_w / 2, flange_t),
     ).Shape()
 
-    # Tapered web: loft from root rectangle to tip rectangle
+    # Tapered web: loft from root rectangle (full height) to tip rectangle (reduced height)
     web = _loft_rect(
         x0=0.0, x1=arm_len,
         y0=y_center - web_w / 2, y1=y_center + web_w / 2,
-        z0_near=flange_t, z1_near=flange_t,         # bottom (constant)
-        z0_far=h_root - flange_t, z1_far=h_tip - flange_t,  # top (tapers)
+        z0_near=flange_t, z1_near=h_root - flange_t,   # near: z 1.2 → 88.8
+        z0_far=flange_t,  z1_far=h_tip - flange_t,      # far:  z 1.2 → 28.8
     )
 
-    # Tapered top flange: loft from root rectangle to tip rectangle
+    # Tapered top flange: sits on top of web, tapers with beam height
     top_flange = _loft_rect(
         x0=0.0, x1=arm_len,
         y0=y_center - flange_w / 2, y1=y_center + flange_w / 2,
-        z0_near=h_root - flange_t, z1_near=h_tip - flange_t,
-        z0_far=h_root, z1_far=h_tip,
+        z0_near=h_root - flange_t, z1_near=h_root,     # near: z 88.8 → 90.0
+        z0_far=h_tip - flange_t,   z1_far=h_tip,        # far:  z 28.8 → 30.0
     )
 
     # Fuse arm components
