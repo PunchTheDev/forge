@@ -1,44 +1,80 @@
 """
-Baseline stainless steel bracket for spec 003.
+Baseline stainless steel bracket for spec 003_pipe_clamp_bracket.
 
-Simple L-bracket: a 10mm-thick back plate covering the 6-bolt pattern
-plus a 15mm-thick horizontal arm extending 150mm from the wall.
-The arm cross-section (15mm z-height × 90mm y-width) gives a section
-modulus S = 90×15²/6 = 3375 mm³, producing σ_max ≈ 43.6 MPa against
-the 100 kg load at 150mm (M = 147,150 N·mm). That is well below the
-allowable 82 MPa (205/2.5). Estimated mass ≈ 1300 g.
+Parametric L-bracket: mounting plate with bolt clearance holes + horizontal
+shelf reaching the load point. Reads all geometry from the spec so it adapts
+to any spec. Designed with dimensions appropriate for heavy-duty stainless
+brackets (thicker walls than the PLA baseline).
+
+Estimated mass on spec 003 (stainless 316 @ 7.99 g/cm³): ~1300 g.
+Miners beat this by replacing the solid shelf with thin-wall I-beam topology.
 """
 
-import io
-from build123d import (
-    Box,
-    BuildPart,
-    Location,
-    Mode,
-    add,
-    export_step,
-)
+from __future__ import annotations
+
+import os
+import tempfile
 
 
 def generate(spec: dict) -> bytes:
-    """Return STEP bytes for a conservative L-bracket in stainless 316."""
-    # Spec constraints
-    bv = spec["constraints"]["build_volume_mm"]   # [x, y, z]
-    wall_x = 10.0   # back plate thickness
-    arm_z  = 15.0   # arm height (z) — drives section modulus
-    arm_y  = 90.0   # arm width  (y)
-    arm_x  = bv[0] - wall_x  # arm length to fill build volume
+    """Build a parametric stainless L-bracket and return STEP bytes."""
+    from OCP.BRepAlgoAPI import BRepAlgoAPI_Cut, BRepAlgoAPI_Fuse
+    from OCP.BRepPrimAPI import BRepPrimAPI_MakeBox, BRepPrimAPI_MakeCylinder
+    from OCP.Interface import Interface_Static
+    from OCP.STEPControl import STEPControl_AsIs, STEPControl_Writer
+    from OCP.gp import gp_Ax2, gp_Dir, gp_Pnt
 
-    with BuildPart() as part:
-        # Back plate — covers full y×z face of build volume
-        with Location((wall_x / 2, bv[1] / 2, bv[2] / 2)):
-            Box(wall_x, bv[1], bv[2], mode=Mode.ADD)
+    constraints = spec["constraints"]
+    bolt_pattern = constraints["bolt_pattern_mm"]
+    bolt_d = constraints["bolt_diameter_clearance_mm"]
 
-        # Horizontal arm — centered in y, sits at bottom half of z
-        arm_z_center = arm_z / 2
-        with Location((wall_x + arm_x / 2, bv[1] / 2, arm_z_center)):
-            Box(arm_x, arm_y, arm_z, mode=Mode.ADD)
+    by_coords = [p[0] for p in bolt_pattern]
+    bz_coords = [p[1] for p in bolt_pattern]
+    # Back plate sized to cover all bolt holes with margin.
+    plate_y = max(by_coords) + 15.0
+    plate_z = max(bz_coords) + 15.0
+    plate_t = 10.0
 
-    buf = io.BytesIO()
-    export_step(part.part, buf)
-    return buf.getvalue()
+    # Shelf reaches load point; thickness drives section modulus.
+    lp = constraints["load_point_mm"]
+    shelf_length = lp[0] + 15.0
+    shelf_thickness = 15.0   # thicker than the PLA baseline — suits high-load steel use
+    shelf_z = plate_z
+
+    # Mounting plate
+    plate = BRepPrimAPI_MakeBox(
+        gp_Pnt(0.0, 0.0, 0.0),
+        gp_Pnt(plate_t, plate_y, plate_z),
+    ).Shape()
+
+    # Horizontal shelf
+    shelf = BRepPrimAPI_MakeBox(
+        gp_Pnt(0.0, 0.0, 0.0),
+        gp_Pnt(shelf_length, shelf_z, shelf_thickness),
+    ).Shape()
+
+    fused = BRepAlgoAPI_Fuse(plate, shelf)
+    fused.Build()
+    body = fused.Shape()
+
+    # Bolt clearance holes through mounting plate.
+    for by, bz in bolt_pattern:
+        axis = gp_Ax2(gp_Pnt(-1.0, by, bz), gp_Dir(1.0, 0.0, 0.0))
+        hole = BRepPrimAPI_MakeCylinder(axis, bolt_d / 2, plate_t + 2.0).Shape()
+        cut = BRepAlgoAPI_Cut(body, hole)
+        cut.Build()
+        body = cut.Shape()
+
+    # Write STEP.
+    writer = STEPControl_Writer()
+    Interface_Static.SetCVal_s("write.step.schema", "AP203")
+    writer.Transfer(body, STEPControl_AsIs)
+
+    with tempfile.NamedTemporaryFile(suffix=".step", delete=False) as f:
+        path = f.name
+    try:
+        writer.Write(path)
+        with open(path, "rb") as f:
+            return f.read()
+    finally:
+        os.unlink(path)
