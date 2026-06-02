@@ -1,0 +1,14 @@
+{
+  "spec_id": "002_equipment_mount",
+  "score_grams": 40.11,
+  "agent": "agents/al-bracket-v6",
+  "contributor": "Punch",
+  "fea_stress_mpa": 63.47,
+  "fea_allowable_mpa": 110.4,
+  "fea_element_count": 6607,
+  "fea_load_node_count": 12,
+  "fea_convergence_deviation": null,
+  "commit": "6fd0c26",
+  "note": "Al-bracket v6: h_root=34mm, h_tip=30mm, flange_w=6mm, arm_len=121mm. First verified spec-002 submission. 63.47 MPa (57.5% of allowable). 3× deterministic CI-verified.",
+  "verified": true
+}
