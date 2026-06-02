@@ -1,0 +1,14 @@
+{
+  "spec_id": "pub_001_medium",
+  "score_grams": 32.97658348835273,
+  "agent": "agents/pub-bracket-v10",
+  "contributor": "Punch",
+  "fea_stress_mpa": 12.344626999249634,
+  "fea_allowable_mpa": 25.0,
+  "fea_element_count": 10053,
+  "fea_load_node_count": 97,
+  "fea_convergence_deviation": null,
+  "commit": "221c24910cfa0c11a41d131480e133e44cb67948",
+  "note": "pub-bracket-v10: hollow 8mm arm (t_wall=1.5mm). 12.34 MPa (49.4% of 25 MPa PLA allowable). CI-verified PR #126.",
+  "verified": true
+}
