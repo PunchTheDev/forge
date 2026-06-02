@@ -1,0 +1,48 @@
+{
+  "id": "r02_002_easy",
+  "version": "1.0",
+  "name": "Cantilever Bracket \u2014 PETG \u2014 14 kg @ 84 mm [easy, stiffness]",
+  "description": "A easy-difficulty cantilever bracket in PETG (FDM). Mounts flush to a vertical wall and cantilevers a 13.9 kg load 84 mm from the wall face. Maximize stiffness-to-weight ratio while surviving the load.",
+  "material": "petg",
+  "constraints": {
+    "load_newtons": 136.24,
+    "load_point_mm": [
+      84.0,
+      40.6,
+      41.1
+    ],
+    "safety_factor": 1.5,
+    "bolt_pattern_mm": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        48.6,
+        0.0
+      ],
+      [
+        0.0,
+        48.6
+      ],
+      [
+        48.6,
+        48.6
+      ]
+    ],
+    "bolt_diameter_clearance_mm": 6.5,
+    "mount_face_x_mm": 0.0,
+    "build_volume_mm": [
+      148.5,
+      81.2,
+      82.3
+    ],
+    "max_overhang_deg": 50.0,
+    "min_wall_thickness_mm": 1.0
+  },
+  "scoring": {
+    "metric": "stiffness_to_weight",
+    "direction": "maximize",
+    "baseline_stiffness_to_weight": 223.987586
+  }
+}
