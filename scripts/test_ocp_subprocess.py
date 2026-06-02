@@ -133,25 +133,15 @@ from OCP.BRepBuilderAPI import BRepBuilderAPI_Copy
 cp=BRepBuilderAPI_Copy(shape,True); shape=cp.Shape()
 w('step6g: Copy OK\n')
 
-# Quick sanity: can we STEP-export a simple box+hole (AP203)?
-simple_box=BRepPrimAPI_MakeBox(gp_Pnt(0,0,0),gp_Pnt(20,20,20)).Shape()
-ax2=gp_Ax2(gp_Pnt(10,10,-1),gp_Dir(0,0,1))
-hole2=BRepPrimAPI_MakeCylinder(ax2,3.25,22).Shape()
-sc=BRepAlgoAPI_Cut(simple_box,hole2); sc.Build(); scs=sc.Shape()
-wr2=STEPControl_Writer()
-Interface_Static.SetCVal_s('write.step.schema','AP203')
-wr2.Transfer(scs,STEPControl_AsIs)
-import tempfile,os
-with tempfile.NamedTemporaryFile(suffix='.step',delete=False) as f: p2=f.name
-wr2.Write(p2); os.unlink(p2)
-w('step6h: simple STEP AP203 OK\n')
-
-# Now try bracket shape with AP214IS (cadquery/build123d default) instead of AP203
+# Bracket shape → Transfer (AP203)
+w('step7a: STEPControl_Writer()\n')
 writer=STEPControl_Writer()
-Interface_Static.SetCVal_s('write.step.schema','AP214IS')
-w('step7a: before Transfer AP214IS\n')
+w('step7b: SetCVal_s AP203\n')
+Interface_Static.SetCVal_s('write.step.schema','AP203')
+w('step7c: Transfer\n')
 writer.Transfer(shape,STEPControl_AsIs)
-w('step7: Transfer AP214IS OK\n')
+w('step7: Transfer AP203 OK\n')
+import tempfile,os
 with tempfile.NamedTemporaryFile(suffix='.step',delete=False) as f: path=f.name
 writer.Write(path)
 data=open(path,'rb').read(); os.unlink(path)
