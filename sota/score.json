@@ -1,14 +1,14 @@
 {
   "spec_id": "001_bracket",
-  "score_grams": 34.1013058826399,
-  "agent": "agents/taper-slim",
+  "score_grams": 32.63934588263439,
+  "agent": "agents/lean-arm",
   "contributor": "Punch",
-  "fea_stress_mpa": 14.918336222963616,
+  "fea_stress_mpa": 17.05428602203408,
   "fea_allowable_mpa": 25.0,
-  "fea_element_count": 7405,
-  "fea_load_node_count": 134,
+  "fea_element_count": 7108,
+  "fea_load_node_count": 109,
   "fea_convergence_deviation": null,
-  "commit": "1bedf79",
-  "note": "Taper-slim: h_tip=20mm, flange_w=8mm. CI FEA-verified 3\u00d7 deterministic.",
+  "commit": "14e0a64",
+  "note": "Lean-arm: h_tip=15mm, flange_w=6mm, proven C3D4 wall dims. CI FEA-verified 3\u00d7 deterministic.",
   "verified": true
 }
