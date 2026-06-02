@@ -37,7 +37,7 @@ def generate(spec: dict) -> bytes:
     bv = c["build_volume_mm"]                  # [bvx, bvy, bvz]
 
     lx, ly, lz = lp[0], lp[1], lp[2]
-    bvz = bv[2]
+    bvx, bvy, bvz = bv[0], bv[1], bv[2]
 
     by_coords = [p[0] for p in bolt_pattern]
     bz_coords = [p[1] for p in bolt_pattern]
@@ -45,11 +45,29 @@ def generate(spec: dict) -> bytes:
     margin = bolt_r + min_wall
 
     # Mounting plate: minimal rectangle covering all bolt holes + margin
+    # Clip to build volume so plate never exceeds bounds.
     plate_t  = min_wall
-    plate_y0 = min(by_coords) - margin
-    plate_y1 = max(by_coords) + margin
-    plate_z0 = min(bz_coords) - margin
-    plate_z1 = max(bz_coords) + margin
+    plate_y0_raw = min(by_coords) - margin
+    plate_y1_raw = max(by_coords) + margin
+    plate_z0_raw = min(bz_coords) - margin
+    plate_z1_raw = max(bz_coords) + margin
+
+    # If raw span exceeds build volume, trim symmetrically
+    y_span = plate_y1_raw - plate_y0_raw
+    if y_span > bvy - 0.5:
+        shrink = (y_span - (bvy - 0.5)) / 2.0
+        plate_y0 = plate_y0_raw + shrink
+        plate_y1 = plate_y1_raw - shrink
+    else:
+        plate_y0, plate_y1 = plate_y0_raw, plate_y1_raw
+
+    z_span = plate_z1_raw - plate_z0_raw
+    if z_span > bvz - 0.5:
+        shrink = (z_span - (bvz - 0.5)) / 2.0
+        plate_z0 = plate_z0_raw + shrink
+        plate_z1 = plate_z1_raw - shrink
+    else:
+        plate_z0, plate_z1 = plate_z0_raw, plate_z1_raw
 
     # Arm geometry: hollow box in y-z, extends in x to near load point
     # fw: 2 walls of min_wall + 1 inner slot of min_wall (FEA mesh friendly)
