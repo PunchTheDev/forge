@@ -104,7 +104,9 @@ def run_agent(agent_path: str, spec: dict) -> AgentResult:
         if proc.returncode != 0:
             stderr_text = stderr_bytes.decode("utf-8", errors="replace").strip()
             # Truncate to last 800 chars to keep the CI comment readable.
-            err = stderr_text[-800:] if stderr_text else "Agent process crashed (no stderr)"
+            err = (stderr_text[-800:]
+                   if stderr_text
+                   else f"Agent process crashed (exit {proc.returncode}, no stderr)")
             _try_unlink(result_path)
             return AgentResult(success=False, elapsed_seconds=elapsed, error=err)
 
