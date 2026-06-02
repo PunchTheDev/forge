@@ -376,3 +376,123 @@ class TestSimilarity:
             score = compute(b"a", b"b")
         assert isinstance(score, float)
         assert 0.0 <= score <= 1.0
+
+
+# ---------------------------------------------------------------------------
+# FRD displacement parsing
+# ---------------------------------------------------------------------------
+
+class TestFRDDisplacementParsing:
+    """Unit tests for _parse_frd_displacement without running CalculiX."""
+
+    def _write_frd(self, tmp_path, node_disps: list[tuple[int, float, float, float]]) -> str:
+        """Write a minimal ASCII .frd file with a DISP block."""
+        lines = [" 9999 FORGE TEST\n"]
+        lines.append("  -4  DISP        4    4\n")
+        lines.append(" -5  D1          4    0    0    1\n")
+        lines.append(" -5  D2          4    0    0    2\n")
+        lines.append(" -5  D3          4    0    0    3\n")
+        lines.append(" -5  ALL         4    0    0    0    1ALL\n")
+        for nid, u1, u2, u3 in node_disps:
+            lines.append(f" -1{nid:10d}{u1:12.5E}{u2:12.5E}{u3:12.5E}\n")
+        lines.append(" -3\n")
+        frd_path = str(tmp_path / "job.frd")
+        Path(frd_path).write_text("".join(lines))
+        return frd_path
+
+    def test_max_u3_extracted(self, tmp_path):
+        from benchmark.fea import _parse_frd_displacement
+        frd = self._write_frd(tmp_path, [
+            (1, 0.001, 0.002, -0.010),
+            (2, 0.000, 0.001, -0.025),  # largest |U3|
+            (3, 0.002, 0.000, -0.005),
+        ])
+        result = _parse_frd_displacement(frd)
+        assert result is not None
+        assert abs(result - 0.025) < 1e-6
+
+    def test_no_displacement_block_returns_none(self, tmp_path):
+        from benchmark.fea import _parse_frd_displacement
+        frd_path = str(tmp_path / "empty.frd")
+        Path(frd_path).write_text(" 9999 FORGE TEST\n -3\n")
+        result = _parse_frd_displacement(frd_path)
+        assert result is None
+
+    def test_abs_value_used(self, tmp_path):
+        """Positive and negative U3 — max absolute value should win."""
+        from benchmark.fea import _parse_frd_displacement
+        frd = self._write_frd(tmp_path, [
+            (1, 0.0, 0.0, 0.030),   # positive U3
+            (2, 0.0, 0.0, -0.050),  # larger abs
+        ])
+        result = _parse_frd_displacement(frd)
+        assert result is not None
+        assert abs(result - 0.050) < 1e-6
+
+
+# ---------------------------------------------------------------------------
+# Multi-objective scoring
+# ---------------------------------------------------------------------------
+
+class TestMultiObjectiveScoring:
+    """Tests for direction-aware scoring in evaluate.py."""
+
+    def _mock_geo(self, mass=25.0, volume=10000.0):
+        geo = MagicMock()
+        geo.passed = True
+        geo.mass_grams = mass
+        geo.volume_mm3 = volume
+        geo.reason = ""
+        return geo
+
+    def _mock_fea(self, disp_mm=0.1):
+        from benchmark.fea import FEAResult
+        allowable = 25.0
+        return FEAResult(
+            passed=True,
+            max_stress_mpa=10.0,
+            allowable_mpa=allowable,
+            element_count=500,
+            load_node_count=20,
+            max_displacement_mm=disp_mm,
+        )
+
+    def test_mass_grams_score(self):
+        from benchmark.evaluate import _compute_score
+        geo = self._mock_geo(mass=25.0)
+        fea_result = self._mock_fea()
+        score = _compute_score(geo, fea_result, SPEC, "mass_grams")
+        assert score == 25.0
+
+    def test_volume_mm3_score(self):
+        from benchmark.evaluate import _compute_score
+        geo = self._mock_geo(volume=12345.0)
+        fea_result = self._mock_fea()
+        score = _compute_score(geo, fea_result, SPEC, "volume_mm3")
+        assert score == 12345.0
+
+    def test_stiffness_to_weight_score(self):
+        from benchmark.evaluate import _compute_score
+        geo = self._mock_geo(mass=25.0)
+        # load = 464.48 N, disp = 0.1 mm → stiffness = 4644.8 N/mm
+        # stiffness_to_weight = 4644.8 / 25.0 = 185.792
+        fea_result = self._mock_fea(disp_mm=0.1)
+        score = _compute_score(geo, fea_result, SPEC, "stiffness_to_weight")
+        load_n = SPEC["constraints"]["load_newtons"]
+        expected = (load_n / 0.1) / 25.0
+        assert abs(score - expected) < 1e-4
+
+    def test_stiffness_to_weight_zero_disp_raises(self):
+        from benchmark.evaluate import _compute_score
+        geo = self._mock_geo(mass=25.0)
+        fea_result = self._mock_fea(disp_mm=0.0)
+        with pytest.raises(ValueError, match="displacement"):
+            _compute_score(geo, fea_result, SPEC, "stiffness_to_weight")
+
+    def test_metrics_dict_has_expected_entries(self):
+        from benchmark.evaluate import METRICS
+        assert "mass_grams" in METRICS
+        assert "volume_mm3" in METRICS
+        assert "stiffness_to_weight" in METRICS
+        assert METRICS["mass_grams"] == "minimize"
+        assert METRICS["stiffness_to_weight"] == "maximize"

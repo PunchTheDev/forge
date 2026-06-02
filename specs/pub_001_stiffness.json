@@ -1,0 +1,34 @@
+{
+  "id": "pub_001_stiffness",
+  "version": "1.0",
+  "name": "Cantilever Bracket — PLA — 47 kg @ 99 mm [stiffness]",
+  "description": "A cantilever bracket in PLA (FDM). Mounts flush to a vertical wall and cantilevers a 47.3 kg load 99 mm from the wall face. Maximize stiffness-to-weight ratio: N/(mm·g). Higher score wins.",
+  "material": "pla",
+  "constraints": {
+    "load_newtons": 464.48,
+    "load_point_mm": [
+      99.3,
+      46.9,
+      38.6
+    ],
+    "safety_factor": 2.0,
+    "bolt_pattern_mm": [
+      [0.0, 0.0],
+      [42.8, 0.0],
+      [85.6, 0.0],
+      [0.0, 42.8],
+      [42.8, 42.8],
+      [85.6, 42.8]
+    ],
+    "bolt_diameter_clearance_mm": 7.0,
+    "mount_face_x_mm": 0.0,
+    "build_volume_mm": [134.1, 93.7, 77.3],
+    "max_overhang_deg": 45.0,
+    "min_wall_thickness_mm": 1.2
+  },
+  "scoring": {
+    "metric": "stiffness_to_weight",
+    "direction": "maximize",
+    "description": "stiffness (N/mm) / mass (g) — higher is better"
+  }
+}
