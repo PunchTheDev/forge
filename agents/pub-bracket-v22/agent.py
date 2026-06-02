@@ -1,11 +1,19 @@
 """
-pub-bracket-v22: Tighter hollow-box arm for pub_004_medium.
+pub-bracket-v22: I-beam arm for pub_004_medium.
 
-Improvement over v4: minimum viable arm dimensions.
-  - Arm height: load_z + mw + 12 mm (≥10 mm inner-ceiling clearance rule)
-  - Arm length: load_x - 12 mm (12 mm margin within ±15 mm load tolerance)
-  - Plate unchanged — same bolt grid, t_wall margins
-  - Arm utilisation target: ≤75% allowable
+Improvement over v4 (hollow box): I-beam cross-section uses material only
+where bending stress is highest — at the top and bottom flanges.
+
+  - Flanges: fw_f=20mm wide × mw thick, centred at arm y-axis
+  - Web: mw wide × (h-2mw) tall
+  - h = max(load_z + mw + 12, pz1 + 12) — arm top clearly above plate top
+  - arm_len = load_x − 12 mm (12 mm margin within ±15 mm load tolerance)
+
+Analytical check (PLA, 25 MPa allowable):
+  I ≈ 73,500 mm⁴, c = 32.5 mm, M = 303.22 × 71.3 = 21,620 N·mm
+  σ ≈ 9.6 MPa → 38% utilisation ✓
+
+Estimated mass ≈ 16.5 g (−24% vs v4 at 21.68 g).
 """
 
 from __future__ import annotations
@@ -15,7 +23,7 @@ import tempfile
 
 
 def generate(spec: dict) -> bytes:
-    """Return STEP bytes for pub-bracket-v22 (tight hollow arm, PLA, pub_004)."""
+    """Return STEP bytes for pub-bracket-v22 (I-beam arm, PLA, pub_004)."""
     from OCP.BRepAlgoAPI import BRepAlgoAPI_Cut, BRepAlgoAPI_Fuse
     from OCP.BRepPrimAPI import BRepPrimAPI_MakeBox, BRepPrimAPI_MakeCylinder
     from OCP.Interface import Interface_Static
@@ -36,48 +44,54 @@ def generate(spec: dict) -> bytes:
 
     # Plate extents
     pt    = mw
-    py0_r = min(p[0] for p in bp) - mg
-    py1_r = max(p[0] for p in bp) + mg
-    pz0_r = min(p[1] for p in bp) - mg
-    pz1_r = max(p[1] for p in bp) + mg
+    py0   = min(p[0] for p in bp) - mg
+    py1   = max(p[0] for p in bp) + mg
+    pz0   = min(p[1] for p in bp) - mg
+    pz1   = max(p[1] for p in bp) + mg
 
-    dy = py1_r - py0_r
+    dy = py1 - py0
     if dy > bvy - 0.5:
         sh = (dy - (bvy - 0.5)) / 2.0
-        py0, py1 = py0_r + sh, py1_r - sh
-    else:
-        py0, py1 = py0_r, py1_r
+        py0, py1 = py0 + sh, py1 - sh
 
-    dz = pz1_r - pz0_r
+    dz = pz1 - pz0
     if dz > bvz - 0.5:
         sh = (dz - (bvz - 0.5)) / 2.0
-        pz0, pz1 = pz0_r + sh, pz1_r - sh
-    else:
-        pz0, pz1 = pz0_r, pz1_r
+        pz0, pz1 = pz0 + sh, pz1 - sh
 
-    # Hollow arm — minimum viable dimensions
-    aw = 3.0 * mw          # arm y-width (3.6 mm at mw=1.2)
+    # I-beam arm parameters
+    fw_f = 20.0    # flange width in y — maximises I for given flange mass
+    yc   = ly      # arm centred on load point y
 
-    # Height: load_z + inner wall + 12 mm clearance (≥10 mm mesh stability rule)
-    h = lz + mw + 12.0
+    # Arm height: must clear plate top (pz1) by ≥12 mm to avoid near-degenerate
+    # geometry at arm-plate junction, AND satisfy CalculiX mesh rule.
+    h = max(lz + mw + 12.0, pz1 + 12.0)
+    h = min(h, bvz - 2.0)
 
-    # Length: 12 mm short of load point (±15 mm tolerance; 12 mm leaves mesh headroom)
+    # Arm length: 12 mm short of load point (mesh headroom within ±15 mm tolerance)
     al = lx - 12.0
     al = min(al, bvx - 2.0)
 
-    yc = ly
-
-    outer = BRepPrimAPI_MakeBox(
-        gp_Pnt(0.0, yc - aw / 2, 0.0),
-        gp_Pnt(al,  yc + aw / 2, h),
+    # Web: full height, mw wide
+    web = BRepPrimAPI_MakeBox(
+        gp_Pnt(0.0, yc - mw / 2, 0.0),
+        gp_Pnt(al,  yc + mw / 2, h),
     ).Shape()
 
-    inner = BRepPrimAPI_MakeBox(
-        gp_Pnt(pt, yc - aw / 2 + mw, mw),
-        gp_Pnt(al, yc + aw / 2 - mw, h - mw),
+    # Bottom flange: wide, mw thick, at z=0
+    bot_flange = BRepPrimAPI_MakeBox(
+        gp_Pnt(0.0, yc - fw_f / 2, 0.0),
+        gp_Pnt(al,  yc + fw_f / 2, mw),
     ).Shape()
 
-    arm = BRepAlgoAPI_Cut(outer, inner).Shape()
+    # Top flange: wide, mw thick, at z=h-mw
+    top_flange = BRepPrimAPI_MakeBox(
+        gp_Pnt(0.0, yc - fw_f / 2, h - mw),
+        gp_Pnt(al,  yc + fw_f / 2, h),
+    ).Shape()
+
+    arm = BRepAlgoAPI_Fuse(web, bot_flange).Shape()
+    arm = BRepAlgoAPI_Fuse(arm, top_flange).Shape()
 
     plate = BRepPrimAPI_MakeBox(
         gp_Pnt(0.0, py0, pz0),
