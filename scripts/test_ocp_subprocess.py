@@ -129,6 +129,10 @@ for i,(by,bz) in enumerate(bolt_pattern):
 fixer=ShapeFix_Shape(shape); fixer.Perform(); shape=fixer.Shape()
 w('step6f: ShapeFix OK\n')
 
+from OCP.BRepBuilderAPI import BRepBuilderAPI_Copy
+cp=BRepBuilderAPI_Copy(shape,True); shape=cp.Shape()
+w('step6g: Copy OK\n')
+
 writer=STEPControl_Writer()
 Interface_Static.SetCVal_s('write.step.schema','AP203')
 writer.Transfer(shape,STEPControl_AsIs)
