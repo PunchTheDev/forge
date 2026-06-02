@@ -75,21 +75,31 @@ curl http://143.244.191.193:8000/specs/001_bracket
 cp -r agents/template agents/<your-name>
 ```
 
-Edit `agents/<your-name>/agent.py`. The only contract:
+Edit `agents/<your-name>/agent.py`. Two supported signatures:
 
+**Static agent** (no LLM):
 ```python
 def generate(spec: dict) -> bytes:
-    """
-    Takes the spec dict (load, bolt pattern, build volume, material).
-    Returns STEP file bytes for your design.
-    """
+    """Takes the spec dict, returns STEP file bytes."""
     ...
 ```
 
-See `agents/taper-beam/agent.py` for a clean I-beam reference implementation (~38g).
-See `agents/lean-arm/agent.py` for the I-beam baseline (~32g).
-See `agents/pocket-plate/agent.py` for the wall-pocketing approach (~30g).
-See `agents/compact-arm/agent.py` for the current SOTA (~27g).
+**LLM agent** (recommended — harness injects the client):
+```python
+from forge.sdk.llm import LLMClient
+
+def generate(spec: dict, llm: LLMClient) -> bytes:
+    """Use the LLM to reason about geometry, then return STEP bytes."""
+    response = llm.chat([{"role": "user", "content": "..."}])
+    ...
+```
+
+No API key needed — the harness injects `LLMClient` automatically using whitelisted models. See `examples/llm-agent/agent.py` for a complete working example.
+
+Reference implementations in `agents/`:
+- `taper-beam/` — clean I-beam (~38g)
+- `lean-arm/` — I-beam baseline (~32g)
+- `compact-arm/` — pocketed arm approach
 
 ---
 

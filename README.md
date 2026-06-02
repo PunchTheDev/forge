@@ -63,7 +63,7 @@ forge eval agents/<your-name>/agent.py
 ## Submitting
 
 1. Fork this repo.
-2. Create `agents/<your-name>/agent.py` with a `generate(spec: dict) -> bytes` function.
+2. Create `agents/<your-name>/agent.py` with a `generate(spec, [llm]) -> bytes` function.
 3. Open a PR. CI scores your design automatically (~2 min) and posts:
    ```
    ## Forge Eval — NEW LEADER 🏆
@@ -77,18 +77,30 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for full guidelines.
 
 ## Agent interface
 
+Two supported signatures — the harness detects which one you use automatically:
+
+**Static agent** (no LLM):
 ```python
 def generate(spec: dict) -> bytes:
-    """
-    Takes the spec dict (load, bolt pattern, build volume, material).
-    Returns STEP file bytes for your design.
-
-    Sandbox: 60s timeout, 4GB RAM, no network access.
-    """
+    """Build and return STEP file bytes for the given spec."""
     ...
 ```
 
-Libraries available in eval: `build123d`, `OCP`, `gmsh`, `numpy`, `scipy`. See agents/ for reference implementations.
+**LLM agent** (recommended):
+```python
+from forge.sdk.llm import LLMClient
+
+def generate(spec: dict, llm: LLMClient) -> bytes:
+    """Use the LLM to reason about geometry, then return STEP bytes."""
+    response = llm.chat([{"role": "user", "content": "..."}])
+    ...
+```
+
+The harness injects `LLMClient` automatically — no API key required. Whitelisted models: `claude-haiku-4-5`, `claude-3-5-haiku`, `gpt-4o-mini`. See `examples/llm-agent/` for a complete working example.
+
+Sandbox constraints: **60s timeout · 4 GB RAM · network enabled (LLM calls only)**
+
+Libraries available: `build123d`, `OCP`, `gmsh`, `numpy`, `scipy`, `httpx`. See `agents/` for reference implementations.
 
 ---
 
@@ -135,11 +147,12 @@ All CPU. No GPU required.
 
 Live: http://143.244.191.193:8000/sota
 
-| Spec | Score | Agent | FEA Stress |
-|---|---|---|---|
-| 001 Wall Bracket | **27.22 g** | compact-arm | 13.8 / 25.0 MPa |
-| 002 Equipment Mount | — | — | — |
-| 003 Pipe-Clamp | 2799.52 g | baseline_steel | 22.18 / 82.0 MPa |
+| Spec | Score | Agent |
+|---|---|---|
+| spec-001 Wall Bracket | **23.48 g** | sub-nano |
+| spec-002 Equipment Mount | **25.84 g** | al-bracket-v19 |
+| spec-003 Pipe-Clamp | **71.42 g** | ss-bracket-v15 |
+| pub_001 – pub_005 | see leaderboard | various |
 
 ---
 

@@ -1,16 +1,22 @@
 """
 Template agent — start here.
 
-Contract: implement generate(spec) -> bytes (STEP file).
+Two supported signatures:
 
-The eval harness calls generate() with the spec dict for each problem.
-Return valid STEP bytes. The harness handles geometry checks and FEA;
-your job is to return the lightest part that passes all constraints.
+    generate(spec: dict) -> bytes              # static agent
+    generate(spec: dict, llm: LLMClient) -> bytes  # LLM agent (recommended)
 
-See QUICKSTART.md for a full walkthrough.
+The harness detects which you use via inspect.signature and injects LLMClient
+automatically if present — no API key required from you.
+
+See QUICKSTART.md for a full walkthrough and examples/llm-agent/ for an
+LLM agent example.
 """
 
 from __future__ import annotations
+
+# To use the LLM client, uncomment:
+# from forge.sdk.llm import LLMClient
 
 # TODO: import your geometry library
 # from build123d import ...          # recommended
@@ -21,27 +27,27 @@ def generate(spec: dict) -> bytes:
     """
     Build and return a STEP file for the given spec.
 
+    To use an LLM, change the signature to: generate(spec, llm: LLMClient)
+
     Args:
-        spec: Problem specification dict. Key structure:
-            spec["constraints"]["load_n"]               — applied load in Newtons
-            spec["constraints"]["load_point_mm"]        — [x, y, z] load application point
-            spec["constraints"]["build_volume_mm"]      — [x, y, z] max bounding box
-            spec["constraints"]["bolt_pattern_mm"]      — [[y, z], ...] bolt hole centers (x=0 plane)
-            spec["constraints"]["bolt_diameter_clearance_mm"] — minimum clearance diameter
-            spec["constraints"]["min_wall_thickness_mm"] — minimum feature wall
-            spec["constraints"]["max_overhang_deg"]     — max overhang from vertical
-            spec["material"]                            — material name (see benchmark/materials.py)
+        spec: Problem specification dict. Key fields:
+            spec["constraints"]["load_n"]               — load in Newtons
+            spec["constraints"]["load_point_mm"]        — [x, y, z] load point
+            spec["constraints"]["build_volume_mm"]      — [x, y, z] bounding box
+            spec["constraints"]["bolt_pattern_mm"]      — [[y, z], ...] bolt centers
+            spec["constraints"]["bolt_diameter_clearance_mm"] — hole clearance
+            spec["constraints"]["min_wall_thickness_mm"] — minimum wall
+            spec["constraints"]["max_overhang_deg"]     — max printable overhang
+            spec["material"]                            — material name
             spec["safety_factor"]                       — FEA stress safety factor
+            spec["scoring"]["metric"]                   — "mass_grams" | "volume_mm3" | ...
 
     Returns:
-        STEP file as raw bytes. Must be valid AP214IS STEP.
+        STEP file as raw bytes (AP214IS schema required).
 
     Notes:
-        - Must be deterministic: same spec → same bytes every call.
-          If you use any randomness, fix the seed (e.g. random.seed(42)).
-        - The FEA mesh uses C3D4 linear tets at ~2 mm characteristic length.
-          Avoid features thinner than 3 mm — they produce degenerate elements.
-        - Lower mass = better score. There is no ceiling; keep optimizing.
+        - Must be deterministic: same spec → same bytes. Fix any random seeds.
+        - Avoid features thinner than 3 mm — they produce degenerate FEA elements.
     """
 
     constraints = spec["constraints"]
