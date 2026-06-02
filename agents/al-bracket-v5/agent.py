@@ -1,13 +1,17 @@
 """
-Al-bracket v5: aggressive mass reduction targeting ~39.9g (spec-002).
+Al-bracket v5: h_root=31mm with pocket z-cap at arm height (spec-002).
 
 Baseline: al-bracket v4 (PR #60) passed at 41.81g, 24.7 MPa (22.4% of 110.4 MPa allowable).
-Stress headroom: 77.6% → significant further reduction possible.
+
+Key insight: pkt_z1 must be ≤ h_root. In v4, pkt_z1=33.75mm < h_root=34mm (0.25mm margin).
+v5 initial attempt: pkt_z1=34.95mm > h_root=31mm → pocket cut ABOVE arm height → 167.7 MPa.
+Fix: pkt_z1 = min(max(bz) - bolt_clear, h_root) — pocket never extends above arm top.
 
 Changes from al-bracket v4:
-  h_root     : 34mm → 31mm   (saves ~0.67g web; arm within plate ✓; load nodes ✓)
-  bolt_clear : 6.25mm → 5.05mm (=bolt_r+min_wall; larger pockets: saves ~0.75g)
-  arm_buf    : 2.0mm → 1.0mm  (pockets closer to arm: saves ~0.19g)
+  h_root     : 34mm → 31mm   (arm within plate ✓; load nodes ✓)
+  bolt_clear : 6.25mm → 5.05mm (=bolt_r+min_wall; pocket y-width increases)
+  arm_buf    : 2.0mm → 1.0mm  (pocket y-width increases further)
+  pkt_z1     : capped at h_root (new safety constraint)
 
 Unchanged from v4:
   plate_t=2.0mm, pocket_depth=1.2mm, flange_t=0.8mm, flange_w=8mm, h_tip=30mm,
@@ -15,7 +19,7 @@ Unchanged from v4:
 
 Load node check (h_root=31mm, h_tip=30mm):
   h(x=120) = 31 - (31-30) × 120/124 = 31 - 0.97 = 30.03mm
-  |30.03 - 45| = 14.97mm < 15mm tol ✓ (margin: 0.03mm above tol — passes strict inequality)
+  |30.03 - 45| = 14.97mm < 15mm tol ✓
 
 Arm within plate:
   plate_z1 = max(bz)+margin = 40+5.05 = 45.05mm; h_root=31 < 45.05mm ✓
@@ -23,21 +27,23 @@ Arm within plate:
 Bolt ring (margin=5.05mm): clearance = 5.05-4.25 = 0.80mm = spec min_wall ✓
 Pocket-to-bolt (bolt_clear=5.05mm): clearance = 5.05-4.25 = 0.80mm = spec min_wall ✓
 
-Stress estimate:
+Pocket z-range (with h_root cap):
+  pkt_z0 = 0 + 5.05 = 5.05mm; pkt_z1_raw = 40 - 5.05 = 34.95mm → capped to 31mm
+  Left:  y=5.05→45mm (39.95mm wide), z=5.05→31mm (25.95mm tall); area=1036mm²
+  Right: y=55→74.95mm (19.95mm wide), z=5.05→31mm (25.95mm tall); area=518mm²
+  vs v4 Left: y=6.25→44mm (37.75mm), z=6.25→33.75mm (27.5mm); area=1038mm²
+  vs v4 Right: y=56→73.75mm (17.75mm), z=same; area=488mm²
+  Pocket gain: (1554-1526)×1.2=34mm³ → 0.09g
+
+Stress estimate (same analysis as before):
   v4 I = 9,204 mm⁴, c=17mm, FEA=24.7 MPa
-  v5 I (h_root=31, flange_t=0.8, flange_w=8, web_h=29.4mm):
-    I = 2×8×0.8×(15.5-0.4)² + 2×29.4³/12 = 2918 + 4222 = 7,140 mm⁴, c=15.5mm
-  Ratio = (9,204/7,140) × (17/15.5) = 1.289 × 1.097 = 1.414
+  v5 I (h_root=31): I=7,149mm⁴, c=15.5mm; ratio × c = 1.414
   Estimated FEA stress = 24.7 × 1.414 = 34.9 MPa vs 110.4 MPa ✓ (31.6%)
 
-Convergence trigger: 77.3 MPa → 34.9 MPa well below → no convergence check expected.
-
 Mass estimate (savings over v4):
-  h_root 34→31mm: web_avg_h 30.4→29.4mm → 124×2×1.0=248mm³ → 0.67g
-  bolt_clear 6.25→5.05mm: extra pocket area = (37.75+16.75→38.95+18.95mm) × 27.5→29.9mm
-    Old: 1,499mm² × 1.2=1,799mm³; New: 1,731mm² × 1.2=2,077mm³ → 278mm³ → 0.75g
-  arm_buf 2→1mm: extra 2×1×29.9=59.8mm² × 1.2=71.8mm³ → 0.19g
-  Total savings: 0.67+0.75+0.19 = 1.61g → target: 41.81-1.61 = 40.20g
+  h_root 34→31mm: web ΔV = 124×2×((29.4+28.4)/2-(32.4+28.4)/2) = 124×2×1.5 = 372mm³ → 1.00g
+  pockets (h_root cap in z): +0.09g
+  Total savings: ~1.09g → target: 41.81 - 1.09 = 40.72g
 """
 
 from __future__ import annotations
@@ -132,7 +138,7 @@ def generate(spec: dict) -> bytes:
     arm_y_max = y_center + flange_w / 2   # 54.0mm
 
     pkt_z0 = min(bz_coords) + bolt_clear
-    pkt_z1 = max(bz_coords) - bolt_clear
+    pkt_z1 = min(max(bz_coords) - bolt_clear, h_root)  # cap: pocket must not exceed arm height
 
     # Left pocket
     lpkt_y0 = min(by_coords) + bolt_clear
