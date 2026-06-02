@@ -22,7 +22,6 @@ Stress check: v18b at 34.90 MPa (31.6% of 110.4 MPa). With plate_t=0.8mm:
   Stress scales roughly as 1/plate_t (thinner plate = more flexible = less load)
   or possibly 1/plate_t² (bending-dominated). Either way, stress should remain well
   below 110.4 MPa allowable."""
-"""
 
 from __future__ import annotations
 
