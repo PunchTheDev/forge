@@ -27,11 +27,13 @@ Side bars / spine / mid-bar (no bolt holes):
   spine_w = 8 mm ≥ arm flange_w + 2 mm margin = 6 + 2 = 8 mm ✓
   Arm flanges (±3 mm from y_center) fully enclosed within spine (±4 mm). ✓
 
-Mid-bar necessity: the arm (h_root=90 mm) extends 25 mm above the top bolt bar
-(plate_z1=64.75 mm) with no plate support. Without the mid-bar that overhang acts as
-an unsupported cantilever and concentrates stress at the top-bar / arm junction
-(same failure mode as frame-plate PR #32: 32.2 MPa > 25 MPa limit). The mid-bar at
-z=lp[2]=25 mm directly braces the arm at the load-application height.
+Spine height: spine extends from inner_z0=7.25 mm all the way to h_root=90 mm.
+Root cause of frame-plate FEA failures (32.2–32.6 MPa): spine stopped at inner_z1=52.75 mm
+while arm root reaches z=90 mm — the arm was unsupported from z=64.75 to z=90 mm, causing
+stress concentration at the arm/top-bar junction regardless of the mid-bar at z=25 mm.
+The extended spine provides a continuous load path: arm top → spine → top bolt bar → wall.
+
+Mid-bar at z=lp[2]=25 mm adds lateral bracing of the side/spine at load height.
 
 Mass estimate (PLA, 1.24 g/cm³):
   Bot bolt bar  (69.5 × 12 × 3 − 2 bolt holes) ≈  2 303 mm³  ( 2.9 g)
@@ -39,13 +41,14 @@ Mass estimate (PLA, 1.24 g/cm³):
   Left bar      ( 8   × 45.5 × 3)               ≈  1 092 mm³  ( 1.4 g)
   Right bar     ( 8   × 45.5 × 3)               ≈  1 092 mm³  ( 1.4 g)
   Mid-bar       (69.5 ×  8 × 3 − overlaps)      ≈  1 092 mm³  ( 1.4 g)
-  Spine         ( 8   × 45.5 × 3)               ≈  1 092 mm³  ( 1.4 g)
-  Frame net                                      ≈  8 974 mm³  (11.1 g)
+  Spine         ( 8   × 82.75 × 3)              ≈  1 986 mm³  ( 2.5 g)
+  Minus 4 bolt holes                             ≈   −299 mm³  (−0.4 g)
+  Frame net                                      ≈  9 569 mm³  (11.9 g)
   Arm (lean-arm, web + flanges)                  ≈ 12 636 mm³  (15.7 g)
-  Total                                          ≈ 21 610 mm³  (26.8 g)
+  Total (overlaps reduce actual ~5 %)            ≈ 22 205 mm³  (27.5 g)
 
-  vs H-frame-plate (~30.6 g est.): −12.4 %
-  vs lean-arm  (32.64 g SOTA):  −17.9 %
+  vs frame-plate (~28.6 g est.): −3.8 %
+  vs lean-arm  (32.64 g SOTA):  −15.7 %
 """
 
 from __future__ import annotations
@@ -118,15 +121,20 @@ def generate(spec: dict) -> bytes:
         (plate_t, plate_y1, inner_z1),
     )
 
-    # --- Spine (8 mm, centred on arm y, fully encloses arm flanges) ---
+    # --- I-beam arm dimensions (needed for spine height) ---
+    h_root   = 90.0
+
+    # Spine: 8 mm wide, extends from inner_z0 all the way to h_root.
+    # Critical: arm root reaches z=90 mm; top bolt bar only reaches z=64.75 mm.
+    # Spine must cover the full arm height or the arm is unsupported above z=64.75 mm.
     vert_spine = box(
         (0.0, y_center - spine_half, inner_z0),
-        (plate_t, y_center + spine_half, inner_z1),
+        (plate_t, y_center + spine_half, h_root),
     )
 
     # Horizontal mid-bar: full y-width, 8 mm tall, centred on load point z.
-    # Braces the arm at load-application height — eliminates the unsupported
-    # cantilever above the top bolt bar (same fix as H-frame-plate PR #32).
+    # Adds lateral bracing at load height; does not fix the arm-top stress issue
+    # (that is handled by the extended spine above).
     load_z = lp[2]                        # 25 mm
     mid_bar = box(
         (0.0, plate_y0, load_z - bar_w_side / 2),
@@ -139,11 +147,11 @@ def generate(spec: dict) -> bytes:
     frame = fuse(frame, vert_spine)
     frame = fuse(frame, mid_bar)
 
-    # --- I-beam arm (lean-arm dimensions, analytically verified) ---
+    # --- I-beam arm ---
     web_w    = 2.0
     flange_w = 6.0
     flange_t = 1.5
-    h_root   = 90.0
+    # h_root already defined above (= 90.0).
     h_tip    = 15.0
 
     bot_flange = box(
