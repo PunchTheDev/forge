@@ -76,9 +76,10 @@ jobs:
             --network none \
             --security-opt no-new-privileges \
             --memory 4g --cpus 2 \
+            --entrypoint python3 \
             -v "${{ github.workspace }}:/forge" \
             forge-eval \
-            python3 /forge/scripts/test_ocp_subprocess.py
+            /forge/scripts/test_ocp_subprocess.py
 
       - name: Run evaluation (3× determinism check)
         id: eval
