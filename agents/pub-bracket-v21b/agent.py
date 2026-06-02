@@ -91,7 +91,7 @@ def generate(spec: dict) -> bytes:
     # Arm: fw=8mm, tighter height and length
     fw      = 8.0
     t_wall  = min_wall
-    h       = 62.0                    # reduced from bvz-5=72.3mm
+    h       = 67.0                    # reduced from 72.3mm; 62mm gave mesh divergence
     arm_len = max(lx - 12.0, 1.0)    # 12 mm margin within ±15 mm load-point tolerance
     arm_len = min(arm_len, bv[0] - 2.0)
     yc      = ly
