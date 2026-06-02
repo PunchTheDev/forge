@@ -212,3 +212,68 @@ class TestFEAHardening:
             result = fea.run(self._fake_step(), SPEC, self._mat())
 
         assert result.element_count >= 100 or result.element_count > 0
+
+
+# ---------------------------------------------------------------------------
+# Geometric similarity
+# ---------------------------------------------------------------------------
+
+class TestSimilarity:
+    """Unit tests for benchmark.similarity. No OCP required — patches _sample_surface."""
+
+    def _pts(self, seed: int, n: int = 200, scale: float = 1.0) -> "np.ndarray":
+        import numpy as np
+        rng = np.random.default_rng(seed)
+        return rng.random((n, 3)) * scale * 100.0
+
+    def test_identical_inputs_score_one(self):
+        import numpy as np
+        from benchmark.similarity import compute
+
+        pts = self._pts(42)
+        with patch("benchmark.similarity._sample_surface", return_value=pts):
+            score = compute(b"a", b"b")
+        assert score >= 0.99, f"Identical point clouds should score ~1.0, got {score}"
+
+    def test_different_inputs_score_low(self):
+        import numpy as np
+        from benchmark.similarity import compute
+
+        pts_a = self._pts(1, scale=1.0)         # cluster near origin
+        pts_b = self._pts(2, scale=1.0) + 500   # cluster 500 mm away
+
+        call_count = [0]
+
+        def mock_sample(step_bytes, n, seed):
+            call_count[0] += 1
+            return pts_a if call_count[0] == 1 else pts_b
+
+        with patch("benchmark.similarity._sample_surface", side_effect=mock_sample):
+            score = compute(b"a", b"b")
+        assert score < 0.5, f"Well-separated point clouds should score < 0.5, got {score}"
+
+    def test_degenerate_returns_zero(self):
+        import numpy as np
+        from benchmark.similarity import compute
+
+        with patch("benchmark.similarity._sample_surface", return_value=np.zeros((0, 3))):
+            score = compute(b"a", b"b")
+        assert score == 0.0
+
+    def test_compute_returns_float_in_range(self):
+        import numpy as np
+        from benchmark.similarity import compute
+
+        pts_a = self._pts(10)
+        pts_b = self._pts(11)  # slightly different
+
+        call_count = [0]
+
+        def mock_sample(step_bytes, n, seed):
+            call_count[0] += 1
+            return pts_a if call_count[0] == 1 else pts_b
+
+        with patch("benchmark.similarity._sample_surface", side_effect=mock_sample):
+            score = compute(b"a", b"b")
+        assert isinstance(score, float)
+        assert 0.0 <= score <= 1.0

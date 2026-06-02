@@ -68,6 +68,12 @@ jobs:
         run: |
           RESULTS=""
           FINAL=""
+          # Pass the SOTA reference STEP for similarity check if it exists.
+          REF_FLAG=""
+          if [ -f "sota/reference.step" ]; then
+            REF_FLAG="--reference-step /forge/sota/reference.step"
+          fi
+
           for i in 1 2 3; do
             # Capture stdout; allow non-zero exit so we can surface the JSON error.
             # --json-compact produces a single-line JSON for safe shell handling.
@@ -86,7 +92,7 @@ jobs:
               forge-eval \
               --agent /forge/${{ steps.agent.outputs.path }} \
               --spec /forge/specs/001_bracket.json \
-              --json-compact $STEP_FLAG 2>/dev/null) || true
+              --json-compact $STEP_FLAG $REF_FLAG 2>/dev/null) || true
             echo "Run $i: $OUT"
             SCORE=$(echo "$OUT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('score','null'))" 2>/dev/null || echo "null")
             RESULTS="$RESULTS $SCORE"
@@ -130,6 +136,9 @@ jobs:
               const beats = result.score < sota;
               const delta = (sota - result.score).toFixed(2);
               const stressRatio = (result.fea_stress_mpa / result.fea_allowable_mpa * 100).toFixed(1);
+              const simStr = result.similarity != null
+                ? `| Similarity to SOTA | ${(result.similarity * 100).toFixed(1)}% |\n`
+                : '';
 
               body = `## Forge Eval — ${beats ? 'NEW LEADER 🏆' : 'PASSED ✅'}\n\n` +
                 `| Metric | Value |\n|---|---|\n` +
@@ -137,6 +146,7 @@ jobs:
                 `| Current SOTA | ${sota} g |\n` +
                 `| Delta | ${beats ? '-' : '+'}${Math.abs(delta)} g |\n` +
                 `| FEA stress | ${result.fea_stress_mpa.toFixed(1)} / ${result.fea_allowable_mpa.toFixed(1)} MPa (${stressRatio}%) |\n` +
+                simStr +
                 `| Agent time | ${result.elapsed_seconds.toFixed(1)}s |\n\n` +
                 (beats
                   ? `**Beats the current SOTA by ${delta} g.** A maintainer will review and merge.`
