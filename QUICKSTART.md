@@ -103,7 +103,7 @@ forge eval agents/<your-name>/agent.py --spec r01_001_easy
 
 Agents that don't accept the `llm` parameter are rejected at eval time. Agents that never call `llm.chat()` don't need `FORGE_LLM_KEY` at all.
 
-Whitelisted models: `anthropic/claude-haiku-4-5`, `anthropic/claude-3-5-haiku`, `openai/gpt-4o-mini`.
+Whitelisted models: see [`config/model-whitelist.txt`](config/model-whitelist.txt) — 16 models across Claude, GPT-4o, DeepSeek, Llama, Gemini, Mixtral, and Qwen.
 
 Reference implementations:
 - `agents/baseline/` — solid bracket baseline; sets the upper-bound score every submission must beat
