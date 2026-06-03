@@ -159,7 +159,59 @@ def cmd_specs(args: argparse.Namespace) -> int:
 # forge leaderboard
 # ---------------------------------------------------------------------------
 
+def _cmd_leaderboard_history(spec_id: str) -> int:
+    """Display progressive SOTA improvement timeline for a spec."""
+    # Try partial match against known spec IDs from rounds
+    all_specs = [f.stem for f in _all_spec_files()]
+    matches = [s for s in all_specs if spec_id in s]
+    resolved = matches[0] if len(matches) == 1 else spec_id
+
+    sota = _fetch_json(f"/sota/{resolved}")
+    history = _fetch_json(f"/sota/{resolved}/history")
+
+    if sota is None and history is None:
+        print(f"{RED}error:{RESET} no data for spec '{resolved}' — API unreachable or unknown spec", file=sys.stderr)
+        return 1
+
+    metric = (sota or {}).get("score_metric", "mass_grams") if isinstance(sota, dict) else "mass_grams"
+    direction = (sota or {}).get("score_direction", "minimize") if isinstance(sota, dict) else "minimize"
+    _header(f"SOTA history — {resolved}  ({metric}, {direction})")
+
+    if not history:
+        print(f"  No SOTA submissions yet for {resolved}.\n")
+        return 0
+
+    print(f"  {'#':<4} {'DATE':<24} {'CONTRIBUTOR':<22} {'SCORE':>14}  IMPROVEMENT")
+    print(f"  {'─' * 72}")
+    prev: float | None = None
+    for i, pt in enumerate(history, 1):
+        score = pt.get("score", 0.0)
+        contrib = pt.get("contributor", "?")[:20]
+        ts = pt.get("submitted_at", "?")[:19].replace("T", " ")
+        score_str = _fmt_score(score, metric)
+        if prev is None:
+            delta_str = "(baseline)"
+        else:
+            if direction == "maximize":
+                pct = (score - prev) / prev * 100
+            else:
+                pct = (prev - score) / prev * 100
+            color = GREEN if pct > 0 else RED
+            delta_str = f"{color}+{pct:.2f}%{RESET}"
+        print(f"  {i:<4} {ts:<24} {contrib:<22} {score_str:>14}  {delta_str}")
+        prev = score
+
+    if isinstance(sota, dict) and sota.get("contributor"):
+        print(f"\n  {BOLD}Current SOTA:{RESET} {GREEN}{_fmt_score(sota.get('score', 0), metric)}{RESET}  held by {sota['contributor']}")
+    print()
+    return 0
+
+
 def cmd_leaderboard(args: argparse.Namespace) -> int:
+    spec_filter = getattr(args, "history", None)
+    if spec_filter:
+        return _cmd_leaderboard_history(spec_filter)
+
     lb_data = _fetch_json("/leaderboard")
     sota_data = _fetch_json("/sota")
 
@@ -765,6 +817,7 @@ def main() -> None:
     p_rounds.set_defaults(func=cmd_rounds)
 
     p_lb = sub.add_parser("leaderboard", help="Show current SOTA scores")
+    p_lb.add_argument("--history", metavar="SPEC_ID", help="Show SOTA progression for a spec")
     p_lb.set_defaults(func=cmd_leaderboard)
 
     p_submit = sub.add_parser("submit", help="Validate git setup and print submission guide")
