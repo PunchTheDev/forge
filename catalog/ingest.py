@@ -61,7 +61,14 @@ def ingest(
 
             # Derive a deterministic per-spec seed from master seed + thing ID
             spec_seed = _derive_seed(seed, thing["id"])
-            spec_id = f"th_{thing['id']}"
+            # Include metric in the ID so the same thing can have specs for different metrics
+            # without filename collisions: th_<id>_mass, th_<id>_stiffness, th_<id>_deflection.
+            _metric_slug = {
+                "mass_grams": "mass",
+                "stiffness_to_weight": "stiffness",
+                "deflection_mm": "deflection",
+            }.get(scoring_metric, scoring_metric)
+            spec_id = f"th_{thing['id']}_{_metric_slug}"
 
             spec = generate_spec(
                 spec_id=spec_id,
