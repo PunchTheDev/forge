@@ -7,6 +7,11 @@ Format: newest entries first.
 
 ## [Unreleased]
 
+## 2026-06-03 (step 204)
+
+### Fixed
+- **`--docker` absent from local testing docs** (PR #255): CONTRIBUTING.md and QUICKSTART.md both showed bare `forge eval` in their "Test locally" sections after `--docker` was added in PR #253. Updated both to show `--docker` as the recommended form; bare eval retained as fallback for users with a local toolchain.
+
 ## 2026-06-03 (session 15)
 
 ### Added
