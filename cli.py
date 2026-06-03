@@ -363,9 +363,16 @@ def cmd_status(args: argparse.Namespace) -> int:
         print(f"{RED}error:{RESET} agent not found: {agent_path}", file=sys.stderr)
         return 1
 
-    spec_files = _all_spec_files()
-    if args.spec:
-        spec_files = [f for f in spec_files if args.spec in f.name]
+    round_filter: str | None = getattr(args, "round", None)
+    if round_filter:
+        spec_files = _specs_for_round(round_filter)
+        if not spec_files:
+            print(f"{RED}error:{RESET} no specs found for round '{round_filter}'", file=sys.stderr)
+            return 1
+    else:
+        spec_files = _all_spec_files()
+        if args.spec:
+            spec_files = [f for f in spec_files if args.spec in f.name]
     if not spec_files:
         print(f"{RED}error:{RESET} no specs found", file=sys.stderr)
         return 1
@@ -858,6 +865,7 @@ def main() -> None:
     p_status = sub.add_parser("status", help="Eval and compare against live SOTA")
     p_status.add_argument("agent", help="Path to agent.py")
     p_status.add_argument("--spec", metavar="ID", help="Limit to one spec")
+    p_status.add_argument("--round", metavar="ID", help="Limit to specs in one round")
     p_status.set_defaults(func=cmd_status)
 
     p_specs = sub.add_parser("specs", help="List available problem specs")
