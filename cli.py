@@ -623,6 +623,126 @@ def cmd_submit(args: argparse.Namespace) -> int:
 
 
 # ---------------------------------------------------------------------------
+# forge validate  (geometry-only fast check — skips FEA)
+# ---------------------------------------------------------------------------
+
+def _run_validate(agent_path: str, spec_path: str, verbose: bool) -> dict:
+    """Run agent + geometry validation only (no FEA). Fast local iteration."""
+    cmd = [
+        sys.executable, "-m", "benchmark.evaluate",
+        "--agent", agent_path,
+        "--spec", spec_path,
+        "--geometry-only",
+        "--json",
+    ]
+    env = os.environ.copy()
+    env.setdefault("FORGE_MODEL", "anthropic/claude-haiku-4-5")
+    wl_path = ROOT / "config" / "model-whitelist.txt"
+    if wl_path.exists():
+        wl = ",".join(
+            l.strip() for l in wl_path.read_text().splitlines()
+            if l.strip() and not l.strip().startswith("#")
+        )
+    else:
+        wl = "anthropic/claude-haiku-4-5,anthropic/claude-3-5-haiku,openai/gpt-4o-mini"
+    env.setdefault("FORGE_MODEL_WHITELIST", wl)
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, cwd=str(ROOT), env=env)
+    except FileNotFoundError:
+        return {"passed": False, "stage": "error", "reason": "benchmark module not found — run from repo root"}
+
+    stdout = proc.stdout.strip()
+    result: dict = {}
+    for line in stdout.splitlines():
+        line = line.strip()
+        if line.startswith("{"):
+            try:
+                result = json.loads(line)
+                break
+            except json.JSONDecodeError:
+                pass
+
+    if not result and proc.stdout:
+        try:
+            result = json.loads(proc.stdout)
+        except json.JSONDecodeError:
+            result = {"passed": False, "stage": "error", "reason": proc.stdout or proc.stderr}
+
+    if not result:
+        result = {"passed": False, "stage": "error", "reason": proc.stderr or "no output"}
+
+    if verbose:
+        if result.get("passed"):
+            mass = result.get("score")
+            elapsed = result.get("elapsed_seconds", "?")
+            mass_str = f"{mass:.3g} g" if isinstance(mass, (int, float)) else "?"
+            elapsed_str = f"{elapsed:.1f}s" if isinstance(elapsed, (int, float)) else "?"
+            _ok(f"geometry ok  mass≈{mass_str}  t={elapsed_str}")
+        else:
+            stage = result.get("stage", "?")
+            reason = result.get("reason", "unknown error")
+            _fail(f"stage={stage}")
+            print(f"         reason: {reason}")
+
+    return result
+
+
+def cmd_validate(args: argparse.Namespace) -> int:
+    """Geometry-only check — runs agent and validates STEP geometry, skips FEA."""
+    agent_path = Path(args.agent)
+    if not agent_path.exists():
+        print(f"{RED}error:{RESET} agent not found: {agent_path}", file=sys.stderr)
+        return 1
+
+    if getattr(args, "round", None):
+        spec_files = _specs_for_round(args.round)
+        if not spec_files:
+            print(f"{RED}error:{RESET} no specs found for round '{args.round}'", file=sys.stderr)
+            return 1
+    elif getattr(args, "all", False):
+        spec_files = _all_spec_files()
+    elif args.spec:
+        matches = list(SPECS_DIR.glob(f"*{args.spec}*.json"))
+        if not matches:
+            matches = list(SPECS_DIR.glob(f"**/*{args.spec}*.json"))
+        if not matches:
+            print(f"{RED}error:{RESET} no spec matching '{args.spec}'", file=sys.stderr)
+            return 1
+        spec_files = matches[:1]
+    else:
+        spec_files = sorted(SPECS_DIR.glob("*.json"))
+
+    if not spec_files:
+        print(f"{RED}error:{RESET} no specs found in specs/", file=sys.stderr)
+        return 1
+
+    overall_pass = True
+    results = []
+
+    for spec_file in spec_files:
+        spec = json.loads(spec_file.read_text())
+        spec_id = spec.get("id", spec_file.stem)
+
+        print(f"\n{'─' * 64}")
+        print(f"  spec: {spec_id}  ({spec.get('name', '')})")
+        print(f"  agent: {agent_path}  {CYAN}[geometry only — no FEA]{RESET}")
+        print(f"{'─' * 64}")
+
+        result = _run_validate(str(agent_path), str(spec_file), verbose=not args.json)
+        results.append({"spec": spec_id, **result})
+
+        if not result["passed"]:
+            overall_pass = False
+
+    if args.json:
+        print(json.dumps(results if len(results) > 1 else results[0], indent=2))
+    elif len(results) > 1:
+        _print_summary_table(results)
+
+    return 0 if overall_pass else 1
+
+
+# ---------------------------------------------------------------------------
 # forge rounds
 # ---------------------------------------------------------------------------
 
@@ -985,7 +1105,8 @@ HELP_TEXT = f"""{BOLD}{CYAN}  forge — Parametric CAD Benchmark CLI{RESET}
 
   {BOLD}Commands:{RESET}
     {GREEN}forge new <name>{RESET}               Scaffold a new agent in agents/<name>/
-    {GREEN}forge eval <agent>{RESET}             Run benchmark locally against all specs
+    {GREEN}forge eval <agent>{RESET}             Run full benchmark locally (geometry + FEA)
+    {GREEN}forge validate <agent>{RESET}         Geometry-only check — fast, no FEA
     {GREEN}forge status <agent>{RESET}           Eval and compare against live SOTA
     {GREEN}forge specs{RESET}                    List all specs with current SOTA state
     {GREEN}forge specs --unclaimed{RESET}        Show only specs with no current leader
@@ -1008,6 +1129,7 @@ HELP_TEXT = f"""{BOLD}{CYAN}  forge — Parametric CAD Benchmark CLI{RESET}
 
   {BOLD}Examples:{RESET}
     forge new my-agent
+    forge validate agents/my-agent/agent.py --spec r01_001_easy
     forge eval agents/my-agent/agent.py --spec r01_001_easy
     forge eval agents/my-agent/agent.py --round round_001
     forge rounds
@@ -1054,6 +1176,14 @@ def main() -> None:
     p_eval.add_argument("--docker", action="store_true", help="Run inside Docker (mirrors CI; builds image on first use)")
     p_eval.add_argument("--json", action="store_true", help="Output JSON")
     p_eval.set_defaults(func=cmd_eval)
+
+    p_validate = sub.add_parser("validate", help="Geometry-only check — fast local feedback, no FEA")
+    p_validate.add_argument("agent", help="Path to agent.py")
+    p_validate.add_argument("--spec", metavar="ID", help="Spec ID or partial name")
+    p_validate.add_argument("--round", metavar="ID", help="Run all specs in a competition round")
+    p_validate.add_argument("--all", action="store_true", help="Run against all specs including round subdirs")
+    p_validate.add_argument("--json", action="store_true", help="Output JSON")
+    p_validate.set_defaults(func=cmd_validate)
 
     p_status = sub.add_parser("status", help="Eval and compare against live SOTA")
     p_status.add_argument("agent", help="Path to agent.py")
