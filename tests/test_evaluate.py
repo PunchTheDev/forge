@@ -24,12 +24,6 @@ SPEC_PATH = Path(__file__).parent.parent / "specs" / "001_bracket.json"
 SPEC = json.loads(SPEC_PATH.read_text())
 
 CCX_AVAILABLE = shutil.which("ccx") is not None
-GEOMETRY_AVAILABLE = False
-try:
-    from OCP.BRepPrimAPI import BRepPrimAPI_MakeBox
-    GEOMETRY_AVAILABLE = True
-except ImportError:
-    pass
 
 
 # ---------------------------------------------------------------------------
