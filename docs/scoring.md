@@ -144,7 +144,7 @@ Gittensor rewards the contributor holding the top `overall_score` with the repos
 
 ## Determinism check
 
-Every submission is evaluated 3× with identical inputs. If any two runs produce different scores, the submission is flagged as non-deterministic and rejected.
+The first spec in the eval pool is run **twice** with identical inputs. If the two runs produce different scores, the submission is flagged as non-deterministic and rejected. Remaining specs run once — full triple-checking of each spec is too slow given 3 specs per PR.
 
 ## Extending the benchmark
 
