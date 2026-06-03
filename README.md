@@ -66,6 +66,10 @@ pip install -e .
 # List all active specs
 forge specs
 
+# Filter specs by round, difficulty, or material
+forge specs --round round_001 --tier easy
+forge specs --material aluminum_6061 --unclaimed
+
 # Run eval locally against one spec
 forge eval agents/baseline/agent.py --spec r01_001_easy
 

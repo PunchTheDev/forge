@@ -247,6 +247,9 @@ forge status --docker <agent.py> --spec r01_001_easy # SOTA comparison via Docke
 forge specs                                         # list all specs with live SOTA state
 forge specs --unclaimed                             # show only specs with no current leader
 forge specs --tier easy                             # filter to easy specs only
+forge specs --round round_001                       # filter to one competition round
+forge specs --material aluminum_6061               # filter by material
+forge specs --round round_001 --tier medium        # combine filters
 forge rounds                                        # list competition rounds
 forge leaderboard                                   # overall cross-spec rankings
 forge leaderboard --spec r01_001_easy               # per-spec rankings + SOTA info
