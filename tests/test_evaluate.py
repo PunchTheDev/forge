@@ -237,13 +237,13 @@ class TestMeshConvergence:
         )
 
     def test_convergence_not_triggered_when_stress_low(self):
-        """Stress well below 70% of allowable: fine-mesh pass not run."""
+        """Stress well below 40% of allowable: fine-mesh pass not run."""
         from benchmark import fea
 
         mat = self._mat()
         allowable = mat["yield_stress_mpa"] / SPEC["constraints"]["safety_factor"]
-        # 50% of allowable — below CONVERGENCE_TRIGGER_FRACTION (0.70)
-        low_stress = allowable * 0.50
+        # 30% of allowable — below CONVERGENCE_TRIGGER_FRACTION (0.40)
+        low_stress = allowable * 0.30
         coarse_result = self._passing_result(low_stress)
 
         with patch("benchmark.fea._run_at_mesh_size", return_value=coarse_result) as mock_run:
@@ -255,7 +255,7 @@ class TestMeshConvergence:
         assert result.convergence_deviation is None
 
     def test_convergence_triggered_when_stress_near_limit(self):
-        """Stress above 70% of allowable: fine-mesh pass runs."""
+        """Stress above 40% of allowable: fine-mesh pass runs."""
         from benchmark import fea
 
         mat = self._mat()

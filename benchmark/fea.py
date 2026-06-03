@@ -43,9 +43,11 @@ MESH_SIZE_MM = 4.0        # coarse element length — fast; used for first pass
 FINE_MESH_SIZE_MM = 2.5   # fine element length — used for convergence check only
 
 # Convergence check: run at FINE_MESH_SIZE_MM when coarse-pass stress exceeds
-# this fraction of allowable (designs near the limit are most likely to be
-# exploiting mesh coarseness).
-CONVERGENCE_TRIGGER_FRACTION = 0.70
+# this fraction of allowable.  Set conservatively low (0.40) so thin-wall
+# designs that pass at coarse-mesh stress ~50–65% are still checked — a
+# 4mm coarse mesh can underestimate stress in thin cross-sections enough to
+# make a design appear safe when it isn't.
+CONVERGENCE_TRIGGER_FRACTION = 0.40
 
 # Reject if fine-mesh stress deviates from coarse-mesh stress by more than
 # this relative fraction. Linear C3D4 tets underestimate stress at coarse
@@ -64,10 +66,10 @@ def run(step_bytes: bytes, spec: dict, mat: dict) -> FEAResult:
 
     Two-pass strategy:
       Pass 1 — coarse mesh (MESH_SIZE_MM).  All structural checks are applied here.
-      Pass 2 — fine mesh (FINE_MESH_SIZE_MM).  Only triggered when coarse stress
-               exceeds CONVERGENCE_TRIGGER_FRACTION of allowable.  If the two
-               passes disagree by >CONVERGENCE_THRESHOLD the submission is rejected
-               as mesh-dependent.
+      Pass 2 — fine mesh (FINE_MESH_SIZE_MM).  Triggered when coarse stress
+               exceeds CONVERGENCE_TRIGGER_FRACTION (40%) of allowable.  If the
+               two passes disagree by >CONVERGENCE_THRESHOLD the submission is
+               rejected as mesh-dependent.
     """
     allowable = mat["yield_stress_mpa"] / spec["constraints"]["safety_factor"]
 

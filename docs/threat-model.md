@@ -69,13 +69,12 @@ This document describes the attack surface of the Forge benchmark and the mitiga
 
 **Mitigations:**
 - FEA gate: CalculiX linear statics must pass; max stress ≤ allowable stress.
-- Geometry gate: `min_wall_thickness` constraint enforced via Shapely cross-section sampling.
 - Build volume, bolt pattern, overhang angle checked by `benchmark/geometry.py`.
 - 2× determinism check on the first spec: CI runs spec 0 twice; if the score differs, the submission is flagged non-deterministic and rejected. Remaining specs run once to keep CI time manageable. (Note: stochastic agents that vary only on later specs could slip through — improving this is a known gap.)
 
-**Residual risk:** Low-medium. The wall-thickness sampler uses a finite grid; pathological thin bridges between grid sample points could still slip through.
+**Implemented:** Two-density FEA mesh convergence. Eval runs a coarse mesh (4mm), and if max stress exceeds 40% of allowable, re-runs at fine density (2.5mm). Submissions with >10% stress deviation between densities are flagged as mesh-dependent and rejected. The 40% threshold (down from 70%) is deliberate: a 4mm coarse mesh can underestimate stress in thin cross-sections by 30–50%, so designs at 50–65% coarse stress still get the fine-mesh check.
 
-**Implemented:** Two-density FEA mesh convergence. Eval runs a coarse mesh (4mm), and if max stress exceeds 70% of allowable, re-runs at fine density (2.5mm). Submissions with >10% stress deviation between densities are flagged as potentially degenerate. Degenerate geometry (near-zero-thickness shells) that produces mesh singularity is rejected before scoring.
+**Known gap:** `min_wall_thickness_mm` is declared in each spec but not yet enforced by a geometric check. The FEA convergence gate is the current primary mitigation. A geometric cross-section sampler would close this fully.
 
 ---
 
