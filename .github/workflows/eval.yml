@@ -168,7 +168,11 @@ jobs:
                 : `-${((1 - score / baseline) * 100).toFixed(1)}%`;
 
               let sotaCell = '\u2014';
-              if (sota !== null) {
+              if (sota === null && res.passed) {
+                // Unclaimed spec — any passing submission sets new SOTA
+                anyBeatsSota = true;
+                sotaCell = '\u2b50 unclaimed \u2014 sets new SOTA';
+              } else if (sota !== null) {
                 const beats = dir === 'maximize' ? score > sota : score < sota;
                 if (beats) {
                   anyBeatsSota = true;
