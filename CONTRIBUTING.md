@@ -1,6 +1,6 @@
 # Contributing to Forge
 
-Forge is a competitive optimization benchmark. Contributions that set a new SOTA earn Gittensor emissions.
+Forge is a competitive optimization benchmark. Contributions that set a new SOTA earn Gittensor emissions on subnet 74.
 
 ## How to submit
 
@@ -9,151 +9,102 @@ Forge is a competitive optimization benchmark. Contributions that set a new SOTA
 ```bash
 gh repo fork PunchTheDev/forge --clone
 cd forge
+pip install -e .
 ```
 
 ### 2. Create your agent
 
 ```bash
-mkdir agents/<your-name>
-touch agents/<your-name>/agent.py
+forge new agents/<your-name>
 ```
 
-Implement the `generate` function. There are two supported signatures:
+This scaffolds `agents/<your-name>/agent.py` from the template. Implement the `generate` function:
 
-**Static agent** (no LLM — backward compatible):
+**LLM agent (recommended):**
+```python
+from forge.sdk.llm import LLMClient
+
+def generate(spec: dict, llm: LLMClient) -> bytes:
+    """Return STEP file bytes. Use the LLM to reason about geometry."""
+    ...
+```
+
+**Static agent (no LLM):**
 ```python
 def generate(spec: dict) -> bytes:
     """Return STEP file bytes for a part that satisfies spec."""
     ...
 ```
 
-**LLM agent** (recommended):
-```python
-from forge.sdk.llm import LLMClient
+The harness detects which signature you use and injects `LLMClient` automatically — no API key required. Whitelisted models: `claude-haiku-4-5`, `claude-3-5-haiku`, `gpt-4o-mini`.
 
-def generate(spec: dict, llm: LLMClient) -> bytes:
-    """Return STEP file bytes, using the LLM to reason about geometry."""
-    ...
-```
+See `examples/metric-aware-agent/agent.py` for the recommended starting point — it reads `spec["scoring"]["metric"]` and adapts geometry strategy for all three competition categories.
 
-The harness detects which signature you use via `inspect.signature` and injects
-an `LLMClient` automatically — you do not need to provide an API key.
-
-#### Using the LLM client
-
-`LLMClient` wraps the OpenRouter API:
-
-```python
-response: str = llm.chat(
-    messages=[{"role": "user", "content": "Your prompt here"}],
-    max_tokens=512,
-)
-```
-
-The model is chosen by the harness via `FORGE_MODEL`. During CI, only
-whitelisted models are accepted:
-
-- `anthropic/claude-haiku-4-5`
-- `anthropic/claude-3-5-haiku`
-- `openai/gpt-4o-mini`
-
-Miners do not configure the API key or model — the harness injects both.
-
-#### Observe → Plan → Act pattern
-
-```python
-from forge.sdk.llm import LLMClient
-import json
-
-def generate(spec: dict, llm: LLMClient) -> bytes:
-    # Observe: extract constraints
-    c = spec["constraints"]
-
-    # Plan: ask the LLM to reason about geometry parameters
-    raw = llm.chat([{
-        "role": "user",
-        "content": f"Given build volume {c['build_volume_mm']}, propose arm_length and wall_thickness as JSON."
-    }])
-    dims = json.loads(raw)
-
-    # Act: build the geometry with build123d
-    from build123d import Box, BuildPart
-    with BuildPart() as part:
-        Box(dims["arm_length"], dims["wall_thickness"], dims["wall_thickness"])
-
-    # ... export to STEP and return bytes
-```
-
-See `examples/metric-aware-agent/agent.py` for the recommended starting point — it reads `spec["scoring"]["metric"]` and adapts its geometry strategy for all three categories. `examples/llm-agent/agent.py` is a simpler single-category example.
-
-The agent runs inside a Docker container with these constraints:
-- **Time:** 60 seconds
-- **Memory:** 4 GB
-- **Network:** enabled (required for LLM API calls)
-- **Libraries available:** `build123d`, `gmsh`, `numpy`, `scipy`, `OCP`, `httpx`
+The agent runs inside a Docker container:
+- **Time:** 60 seconds | **Memory:** 4 GB | **Network:** enabled (LLM calls only)
+- **Libraries:** `build123d`, `gmsh`, `numpy`, `scipy`, `OCP`, `httpx`
 
 ### 3. Test locally
 
 ```bash
-docker build -t forge-eval .
-docker run --rm -v $(pwd):/forge forge-eval \
-  --agent /forge/agents/<your-name>/agent.py \
-  --spec /forge/specs/001_bracket.json
+# Evaluate on a specific spec
+forge eval agents/<your-name>/agent.py --spec r01_001_easy
+
+# Evaluate across an entire round
+forge eval agents/<your-name>/agent.py --round round_001
 ```
 
-Your agent must output `PASSED` before opening a PR.
+Your agent must pass all geometry and FEA checks before opening a PR.
 
 ### 4. Open a PR
 
 ```bash
-git checkout -b <your-name>/spec-001
+git checkout -b <your-name>/bracket-agent
 git add agents/<your-name>/
 git commit -m "Add <your-name> bracket agent"
-git push origin <your-name>/spec-001
-gh pr create --title "<your-name>: spec 001, <X> g"
+git push origin <your-name>/bracket-agent
+gh pr create --title "<your-name>: bracket agent"
 ```
 
-CI runs three deterministic eval rounds and posts your score as a comment.
+CI automatically evaluates your agent on one randomly-sampled spec from each of the three active rounds and posts a score comment on the PR.
 
-### 5. Beating the SOTA
+### 5. Beating SOTA
 
-If your score beats [`sota/score.json`](sota/score.json), a maintainer will:
-1. Verify the result manually.
-2. Merge the PR.
-3. Update `sota/score.json` with your score and contributor name.
+If your submission beats the current leader on any spec (by the required margin), the PR receives the `optimization` label and earns Gittensor emissions upon merge. The marginal-gain requirement decays over time — older SOTAs are easier to displace.
 
-You begin earning contributor emissions from that point.
+Check the live leaderboard: http://143.244.191.193:8080
 
 ---
 
-## What counts as beating SOTA
+## What the CI does
 
-- Your mass score must be strictly less than the current SOTA.
-- All geometry and FEA constraints must pass.
-- All three determinism runs must produce the same score.
-
-Minor improvements (< 0.1 g) may be held for batching to reduce churn.
+1. **Source similarity check** — agents that are near-copies of reference agents are rejected before eval runs.
+2. **Geometry checks** — build volume, bolt clearance, overhang, wall thickness.
+3. **FEA** — CalculiX linear statics. Part must survive `load × safety_factor`.
+4. **Score** — compared against baseline and current SOTA per spec.
+5. **Label** — `optimization` (SOTA beater) or `passed` (valid but didn't beat SOTA).
 
 ---
 
-## Design guidance
+## Scoring across all three categories
 
-The current SOTA is a naive L-bracket at ~165 g. The material's allowable stress is 25 MPa (PLA yield / safety factor 2). There is substantial room for improvement through:
+The competition has three active rounds, each optimizing a different structural metric:
 
-- **Topology optimization** — remove material from low-stress regions
-- **Ribbed/truss structures** — maintain stiffness while reducing bulk
-- **Shell designs** — thin-walled geometries with strategic reinforcement
-- **Lattice infill** — if treated as a continuous medium in FEA
+| Round | Metric | Direction |
+|---|---|---|
+| round_001 | `mass_grams` | minimize |
+| round_002 | `stiffness_to_weight` (N/(mm·g)) | maximize |
+| round_003 | `deflection_mm` | minimize |
 
-The load application point (100 mm from the mount face) and the bolt pattern define where stress concentrations occur. Start there.
+Every PR is evaluated on one spec from each round. A generalist agent that performs well across all three categories ranks highest overall.
 
 ---
 
 ## Code standards
 
-- No `_private` prefixes on names — use language idioms for scope.
+- No `_private` prefixes — use language-idiomatic privacy.
 - Keep agents self-contained in their directory — no cross-agent imports.
-- Comments only where the logic isn't obvious.
+- Comments only where the logic isn't self-evident.
 
 ---
 
