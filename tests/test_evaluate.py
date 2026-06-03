@@ -490,3 +490,83 @@ class TestMultiObjectiveScoring:
         assert "stiffness_to_weight" in METRICS
         assert METRICS["mass_grams"] == "minimize"
         assert METRICS["stiffness_to_weight"] == "maximize"
+
+
+# ---------------------------------------------------------------------------
+# geometry_only mode
+# ---------------------------------------------------------------------------
+
+class TestGeometryOnly:
+    """Verify that geometry_only=True skips FEA and returns a mass score."""
+
+    def _agent(self, tmp_path: Path, step_bytes: bytes = b"fakestep") -> Path:
+        agent = tmp_path / "agent.py"
+        content = repr(step_bytes)
+        agent.write_text(f"def generate(spec, llm):\n    return {content}\n")
+        return agent
+
+    def _passing_geo(self, mass: float = 18.5):
+        geo = MagicMock()
+        geo.passed = True
+        geo.mass_grams = mass
+        geo.volume_mm3 = 7500.0
+        geo.reason = ""
+        return geo
+
+    def _failing_geo(self, reason: str = "exceeds build volume"):
+        geo = MagicMock()
+        geo.passed = False
+        geo.mass_grams = None
+        geo.volume_mm3 = None
+        geo.reason = reason
+        return geo
+
+    def test_geometry_only_skips_fea(self, tmp_path):
+        """When geometry_only=True, fea.run must never be called."""
+        from benchmark.evaluate import evaluate
+        agent = self._agent(tmp_path)
+
+        with patch("benchmark.evaluate.geometry.validate", return_value=self._passing_geo()), \
+             patch("benchmark.evaluate.fea.run") as mock_fea:
+            result = evaluate(str(agent), str(SPEC_PATH), geometry_only=True)
+
+        mock_fea.assert_not_called()
+        assert result.passed
+
+    def test_geometry_only_returns_mass_score(self, tmp_path):
+        """Score should equal the geometry mass estimate."""
+        from benchmark.evaluate import evaluate
+        agent = self._agent(tmp_path)
+
+        with patch("benchmark.evaluate.geometry.validate", return_value=self._passing_geo(mass=22.3)):
+            result = evaluate(str(agent), str(SPEC_PATH), geometry_only=True)
+
+        assert result.passed
+        assert result.score == pytest.approx(22.3)
+        assert result.score_metric == "mass_grams"
+        assert result.score_direction == "minimize"
+        assert result.stage == "ok"
+
+    def test_geometry_only_propagates_geometry_failure(self, tmp_path):
+        """Geometry failure still surfaces correctly in geometry_only mode."""
+        from benchmark.evaluate import evaluate
+        agent = self._agent(tmp_path)
+
+        with patch("benchmark.evaluate.geometry.validate",
+                   return_value=self._failing_geo("exceeds build volume")):
+            result = evaluate(str(agent), str(SPEC_PATH), geometry_only=True)
+
+        assert not result.passed
+        assert result.stage == "geometry"
+        assert "build volume" in result.reason
+
+    def test_geometry_only_agent_failure_still_reported(self, tmp_path):
+        """Agent errors are reported even in geometry_only mode."""
+        agent = tmp_path / "bad.py"
+        agent.write_text("def generate(spec, llm):\n    raise RuntimeError('boom')\n")
+
+        from benchmark.evaluate import evaluate
+        result = evaluate(str(agent), str(SPEC_PATH), geometry_only=True)
+
+        assert not result.passed
+        assert result.stage == "agent"
