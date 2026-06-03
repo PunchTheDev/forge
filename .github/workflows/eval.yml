@@ -30,15 +30,29 @@ jobs:
       - name: Find changed agent
         id: agent
         run: |
-          AGENT=$(git diff --name-only origin/${{ github.base_ref }}...HEAD \
-            | grep '^agents/.*/agent\.py$' | grep -v '^agents/template/' | head -1)
-          if [ -z "$AGENT" ]; then
+          CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD \
+            | grep '^agents/.*/agent\.py$' | grep -v '^agents/template/')
+
+          if [ -z "$CHANGED" ]; then
             echo "No agent.py changed — skipping eval."
             echo "found=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "path=$AGENT" >> "$GITHUB_OUTPUT"
-            echo "found=true" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+
+          # Block PRs that touch multiple agent directories — prevents one miner
+          # from silently overwriting another miner's agent on merge.
+          DIRS=$(echo "$CHANGED" | sed 's|/agent\.py||' | sort -u)
+          DIR_COUNT=$(echo "$DIRS" | wc -l)
+          if [ "$DIR_COUNT" -gt "1" ]; then
+            echo "ERROR: PR modifies agent.py in multiple directories:" >&2
+            echo "$DIRS" >&2
+            echo "Each PR must touch exactly one agent directory." >&2
+            exit 1
+          fi
+
+          AGENT=$(echo "$CHANGED" | head -1)
+          echo "path=$AGENT" >> "$GITHUB_OUTPUT"
+          echo "found=true" >> "$GITHUB_OUTPUT"
 
       - name: Check source similarity against reference agents
         id: similarity
