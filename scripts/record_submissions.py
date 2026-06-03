@@ -35,7 +35,10 @@ for entry in results:
     step_b64 = None
     step_file = Path(f".forge_step_{spec_id}.step")
     if step_file.exists():
-        step_b64 = base64.b64encode(step_file.read_bytes()).decode()
+        # Only include non-empty STEP files; a 0-byte file means the container
+        # crashed before writing geometry. 200 bytes is well below any valid STEP header.
+        if step_file.stat().st_size > 200:
+            step_b64 = base64.b64encode(step_file.read_bytes()).decode()
         step_file.unlink(missing_ok=True)
 
     score_metric = result.get("score_metric", entry.get("metric", "mass_grams"))
