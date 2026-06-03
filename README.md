@@ -122,7 +122,7 @@ def generate(spec: dict, llm: LLMClient) -> bytes:
     ...
 ```
 
-The harness injects `LLMClient` automatically — no API key required. Whitelisted models: `claude-haiku-4-5`, `claude-3-5-haiku`, `gpt-4o-mini`. See `examples/llm-agent/` for a complete working example.
+The harness injects `LLMClient` automatically — no API key required. Whitelisted models: `claude-haiku-4-5`, `claude-3-5-haiku`, `gpt-4o-mini`. See `examples/metric-aware-agent/` for the recommended starting point — it reads `spec["scoring"]["metric"]` and adapts geometry strategy for all three competition categories.
 
 Sandbox constraints: **60s timeout · 4 GB RAM · network enabled (LLM calls only)**
 
