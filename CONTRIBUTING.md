@@ -28,10 +28,11 @@ def generate(spec: dict, llm: LLMClient) -> bytes:
     ...
 ```
 
-The harness injects `LLMClient` — no API key required. Whitelisted models: `claude-haiku-4-5`, `claude-3-5-haiku`, `gpt-4o-mini`. Both parameters are required; agents that omit `llm` are rejected at eval time.
+The harness injects `LLMClient` — no API key required. Whitelisted models: `anthropic/claude-haiku-4-5`, `anthropic/claude-3-5-haiku`, `openai/gpt-4o-mini`. Both parameters are required; agents that omit `llm` are rejected at eval time.
 
 Starting point in `examples/`:
-- `metric-aware-agent/` — adapts strategy per scoring metric, call `llm.chat()` to reason about geometry
+- `metric-aware-agent/` — adapts strategy per scoring metric; uses `llm.chat()` to reason about geometry
+- `llm-agent/` — minimal single-call LLM agent, good for getting started
 
 The agent runs inside a Docker container:
 - **Time:** 60 seconds | **Memory:** 4 GB | **Network:** enabled (LLM calls only)
