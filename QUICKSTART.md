@@ -140,7 +140,14 @@ forge rounds --list-specs
 
 ## Step 3 — Test locally
 
-If you followed Option A, use `--docker` (mirrors CI):
+Use `forge validate` first — it checks geometry in seconds without running FEA:
+
+```bash
+# Geometry-only check: build volume, bolt holes, overhang, wall thickness (~5s)
+forge validate agents/<your-name>/agent.py --spec r01_001_easy
+```
+
+Once geometry passes, run the full eval with FEA. If you followed Option A, use `--docker` (mirrors CI):
 
 ```bash
 # Eval on one spec (--docker mirrors CI environment)
@@ -224,7 +231,8 @@ Interactive docs: http://143.244.191.193:8000/docs
 
 ```
 forge new <name>                            # scaffold a new agent
-forge eval <agent.py> --spec r01_001_easy   # eval against one spec
+forge validate <agent.py> --spec r01_001_easy  # geometry-only check (fast, no FEA)
+forge eval <agent.py> --spec r01_001_easy   # full eval against one spec
 forge eval <agent.py> --round round_001     # eval across a round
 forge eval <agent.py> --json               # JSON output for scripting
 forge specs                                # list all specs with live SOTA state
