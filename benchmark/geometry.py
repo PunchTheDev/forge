@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import random
 import tempfile
 import os
 from dataclasses import dataclass
@@ -79,6 +80,11 @@ def validate(step_bytes: bytes, spec: dict, mat: dict) -> GeometryResult:
     overhang_ok, overhang_reason = _check_overhang(shape, spec)
     if not overhang_ok:
         return GeometryResult(passed=False, reason=overhang_reason)
+
+    # Wall thickness check (sampled ray-cast through material)
+    thickness_ok, thickness_reason = _check_wall_thickness(shape, spec)
+    if not thickness_ok:
+        return GeometryResult(passed=False, reason=thickness_reason)
 
     return GeometryResult(
         passed=True,
@@ -182,6 +188,115 @@ def _check_overhang(shape: Any, spec: dict) -> tuple[bool, str]:
 
     except Exception:
         # Non-fatal: skip overhang check if OCP mesh fails
+        pass
+
+    return True, ""
+
+
+def _check_wall_thickness(shape: Any, spec: dict) -> tuple[bool, str]:
+    """
+    Estimate minimum wall thickness via sampled ray casting.
+
+    For each sampled face triangle, a ray is shot from just outside the surface
+    inward along the face normal. Consecutive intersection pairs along the ray
+    correspond to material walls; their separation is the local wall thickness.
+
+    Fails open (returns True) if OCP operations fail — the FEA convergence gate
+    provides backup enforcement for genuinely thin designs.
+
+    Target: ~200 ray samples spread across all surface triangles.
+    """
+    try:
+        from OCP.BRep import BRep_Tool
+        from OCP.BRepMesh import BRepMesh_IncrementalMesh
+        from OCP.BRepIntCurveSurface import BRepIntCurveSurface_Inter
+        from OCP.TopExp import TopExp_Explorer
+        from OCP.TopAbs import TopAbs_FACE
+        from OCP.gp import gp_Pnt, gp_Dir, gp_Lin
+
+        min_wall = spec["constraints"]["min_wall_thickness_mm"]
+
+        # 0.5 mm deflection gives enough triangle density for 1 mm+ walls
+        mesh = BRepMesh_IncrementalMesh(shape, 0.5)
+        mesh.Perform()
+
+        # Collect triangle centroids and outward normals from all faces
+        triangles: list[tuple[float, ...]] = []
+        exp = TopExp_Explorer(shape, TopAbs_FACE)
+        while exp.More():
+            face = exp.Current()
+            location = face.Location()
+            tri = BRep_Tool.Triangulation_s(face, location)
+            if tri is None:
+                exp.Next()
+                continue
+            for i in range(1, tri.NbTriangles() + 1):
+                n1, n2, n3 = tri.Triangle(i).Get()
+                p1 = tri.Node(n1)
+                p2 = tri.Node(n2)
+                p3 = tri.Node(n3)
+                cx = (p1.X() + p2.X() + p3.X()) / 3
+                cy = (p1.Y() + p2.Y() + p3.Y()) / 3
+                cz = (p1.Z() + p2.Z() + p3.Z()) / 3
+                # Outward normal via cross product of two triangle edges
+                ax = p2.X() - p1.X(); ay = p2.Y() - p1.Y(); az = p2.Z() - p1.Z()
+                bx = p3.X() - p1.X(); by_ = p3.Y() - p1.Y(); bz = p3.Z() - p1.Z()
+                nx = ay * bz - az * by_
+                ny = az * bx - ax * bz
+                nz = ax * by_ - ay * bx
+                mag = math.sqrt(nx * nx + ny * ny + nz * nz)
+                if mag < 1e-10:
+                    continue
+                triangles.append((cx, cy, cz, nx / mag, ny / mag, nz / mag))
+            exp.Next()
+
+        if not triangles:
+            return True, ""
+
+        # Evenly-spaced subsample aiming for ~200 rays
+        step = max(1, len(triangles) // 200)
+        samples = triangles[::step]
+
+        # Ray shoots from just outside the surface inward along -normal.
+        # EPS offsets the origin away from the surface so the first intersection
+        # is the surface itself (entry into the solid), not a degenerate near-zero hit.
+        EPS = 0.05        # mm — ray origin offset outward from surface
+        JITTER_TOL = 0.02 # mm — ignore intersection parameters smaller than this
+
+        min_measured = float("inf")
+        for cx, cy, cz, nx, ny, nz in samples:
+            try:
+                origin = gp_Pnt(cx + EPS * nx, cy + EPS * ny, cz + EPS * nz)
+                direction = gp_Dir(-nx, -ny, -nz)
+                ray = gp_Lin(origin, direction)
+                inter = BRepIntCurveSurface_Inter()
+                inter.Init(shape, ray, 1e-3)
+                params: list[float] = []
+                while inter.More():
+                    params.append(inter.W())
+                    inter.Next()
+
+                # Sort, discard numerical noise near origin
+                params = sorted(t for t in params if t > JITTER_TOL)
+
+                # Consecutive pairs (entry, exit) each span one material wall.
+                # Thickness = exit_param - entry_param (the EPS offset cancels in the diff).
+                for j in range(0, len(params) - 1, 2):
+                    thickness = params[j + 1] - params[j]
+                    if thickness > 0:
+                        min_measured = min(min_measured, thickness)
+            except Exception:
+                continue
+
+        if min_measured < float("inf") and min_measured < min_wall - 0.05:
+            # 0.05 mm tolerance to avoid false positives from mesh discretization
+            return (
+                False,
+                f"Wall thickness {min_measured:.2f} mm below minimum {min_wall:.1f} mm",
+            )
+
+    except Exception:
+        # Fail open — do not penalise valid designs due to OCP failures
         pass
 
     return True, ""

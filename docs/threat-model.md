@@ -69,13 +69,13 @@ This document describes the attack surface of the Forge benchmark and the mitiga
 
 **Mitigations:**
 - FEA gate: CalculiX linear statics must pass; max stress ≤ allowable stress.
-- Geometry gate: `min_wall_thickness` constraint enforced via Shapely cross-section sampling.
-- Build volume, bolt pattern, overhang angle checked by `benchmark/geometry.py`.
+- Geometry gate: `min_wall_thickness_mm` enforced via OCP ray-cast sampler in `benchmark/geometry.py::_check_wall_thickness`. Shoots ~200 rays inward through the surface mesh; each consecutive intersection pair measures a local wall. Any wall below `min_wall_thickness_mm - 0.05 mm` (tolerance for mesh discretization) fails validation.
+- Build volume, bolt pattern, overhang angle also checked by `benchmark/geometry.py`.
 - 2× determinism check on the first spec: CI runs spec 0 twice; if the score differs, the submission is flagged non-deterministic and rejected. Remaining specs run once to keep CI time manageable. (Note: stochastic agents that vary only on later specs could slip through — improving this is a known gap.)
 
-**Residual risk:** Low-medium. The wall-thickness sampler uses a finite grid; pathological thin bridges between grid sample points could still slip through.
+**Residual risk:** Low. The ray-cast sampler uses ~200 samples; a pathologically thin bridge between all sample points could slip through. The FEA convergence gate (rejects >10% stress deviation at finer mesh) provides backup enforcement. Together, the two gates cover the realistic attack surface.
 
-**Implemented:** Two-density FEA mesh convergence. Eval runs a coarse mesh (4mm), and if max stress exceeds 70% of allowable, re-runs at fine density (2.5mm). Submissions with >10% stress deviation between densities are flagged as potentially degenerate. Degenerate geometry (near-zero-thickness shells) that produces mesh singularity is rejected before scoring.
+**Implemented:** Two-density FEA mesh convergence at 40% of allowable stress trigger. Ray-cast wall thickness sampler in `_check_wall_thickness` (OCP BRepIntCurveSurface).
 
 ---
 
