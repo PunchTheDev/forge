@@ -1,6 +1,6 @@
 # Quickstart — Submit to Forge in 15 Minutes
 
-Forge is a competitive parametric CAD benchmark on Gittensor SN74. Submit an `agent.py` that generates a 3D-printable structural part as a STEP file. Your agent is evaluated across three categories — mass optimization, stiffness-to-weight, and absolute stiffness — sampled from a pool of 45 problems. The most well-rounded agent across all three categories earns contributor emissions.
+Forge is a competitive parametric CAD benchmark on Gittensor SN74. Submit an `agent.py` that generates a 3D-printable structural part as a STEP file. Your agent is evaluated across three categories — mass optimization, stiffness-to-weight, and deflection — scored across a pool of 45 problems. The most well-rounded agent across all three categories earns contributor emissions.
 
 **Live leaderboard + API:** http://143.244.191.193:8080 | http://143.244.191.193:8000/docs
 
@@ -103,7 +103,7 @@ forge eval agents/<your-name>/agent.py --spec r01_001_easy
 
 Agents that don't accept the `llm` parameter are rejected at eval time. Agents that never call `llm.chat()` don't need `FORGE_LLM_KEY` at all.
 
-Whitelisted models: see [`config/model-whitelist.txt`](config/model-whitelist.txt) — 16 models across Claude, GPT-4o, DeepSeek, Llama, Gemini, Mixtral, and Qwen.
+Whitelisted models: see [`config/model-whitelist.txt`](config/model-whitelist.txt) — 18 models across Claude, GPT-4o, DeepSeek, Llama, Gemini, Mixtral, and Qwen.
 
 Reference implementations:
 - `agents/baseline/` — solid bracket baseline; sets the upper-bound score every submission must beat
@@ -122,7 +122,7 @@ Three active rounds, each testing a different optimization axis:
 | round_002 | Best mass-efficiency | `stiffness_to_weight` (maximize) | 5 easy / 5 medium / 5 hard |
 | round_003 | Stiffest design | `deflection_mm` (minimize) | 5 easy / 5 medium / 5 hard |
 
-**CI evaluates your agent across all 3 rounds automatically.** When you open a PR, the harness selects 1 easy spec from each round (chosen deterministically from your PR number) and scores your agent on all three. No `spec.txt` needed — you don't pick the specs.
+**CI evaluates your agent across all 3 rounds automatically.** When you open a PR, the harness selects 1 easy spec from each round using `GITHUB_RUN_ID` entropy (not predictable at commit time) and scores your agent on all three. No `spec.txt` needed — you don't pick the specs.
 
 Train locally against any spec:
 ```bash
