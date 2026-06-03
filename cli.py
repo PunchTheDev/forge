@@ -717,6 +717,12 @@ def cmd_validate(args: argparse.Namespace) -> int:
         print(f"{RED}error:{RESET} no specs found in specs/", file=sys.stderr)
         return 1
 
+    use_docker = getattr(args, "docker", False)
+    if use_docker:
+        rc = _ensure_docker_image()
+        if rc != 0:
+            return rc
+
     overall_pass = True
     results = []
 
@@ -727,10 +733,14 @@ def cmd_validate(args: argparse.Namespace) -> int:
         if not args.json:
             print(f"\n{'─' * 64}")
             print(f"  spec: {spec_id}  ({spec.get('name', '')})")
-            print(f"  agent: {agent_path}  {CYAN}[geometry only — no FEA]{RESET}")
+            mode_note = f"  {YELLOW}[Docker — geometry only, no FEA]{RESET}" if use_docker else f"  {CYAN}[geometry only — no FEA]{RESET}"
+            print(f"  agent: {agent_path}{mode_note}")
             print(f"{'─' * 64}")
 
-        result = _run_validate(str(agent_path), str(spec_file), verbose=not args.json)
+        if use_docker:
+            result = _run_evaluate_docker(str(agent_path), str(spec_file), verbose=not args.json, geometry_only=True)
+        else:
+            result = _run_validate(str(agent_path), str(spec_file), verbose=not args.json)
         results.append({"spec": spec_id, **result})
 
         if not result["passed"]:
@@ -997,8 +1007,11 @@ def _ensure_docker_image() -> int:
     return 0
 
 
-def _run_evaluate_docker(agent_path: str, spec_path: str, verbose: bool) -> dict:
-    """Run the eval inside the forge-eval Docker container (mirrors CI behaviour)."""
+def _run_evaluate_docker(agent_path: str, spec_path: str, verbose: bool, geometry_only: bool = False) -> dict:
+    """Run the eval inside the forge-eval Docker container (mirrors CI behaviour).
+
+    Set geometry_only=True to skip FEA — same fast path as forge validate but in Docker.
+    """
     import uuid
 
     workspace = str(ROOT)
@@ -1035,6 +1048,8 @@ def _run_evaluate_docker(agent_path: str, spec_path: str, verbose: bool) -> dict
         "--spec", f"/forge/{spec_rel}",
         "--json",
     ]
+    if geometry_only:
+        cmd.append("--geometry-only")
 
     try:
         proc = subprocess.run(
@@ -1223,6 +1238,7 @@ def main() -> None:
     p_validate.add_argument("--round", metavar="ID", help="Run all specs in a competition round")
     p_validate.add_argument("--all", action="store_true", help="Run against all specs including round subdirs")
     p_validate.add_argument("--json", action="store_true", help="Output JSON")
+    p_validate.add_argument("--docker", action="store_true", help="Run inside forge-eval Docker container (no local OCP needed)")
     p_validate.set_defaults(func=cmd_validate)
 
     p_status = sub.add_parser("status", help="Eval and compare against live SOTA")
