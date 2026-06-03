@@ -7,6 +7,11 @@ Format: newest entries first.
 
 ## [Unreleased]
 
+## 2026-06-03
+
+### Changed
+- **`forge specs` now shows live SOTA state** (`cli.py`): fetches `/sota` in one call and adds a SOTA column to the spec table — unclaimed specs shown as `OPEN` in green, claimed specs show the current score and contributor. `--unclaimed` flag filters to only show specs with no current leader.
+
 ## 2026-06-05
 
 ### Added
