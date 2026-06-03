@@ -7,6 +7,14 @@ Format: newest entries first.
 
 ## [Unreleased]
 
+## 2026-06-03 (step 205)
+
+### Added
+- **GHCR pre-built eval image** (PR #257, #258): `publish-image.yml` workflow builds and pushes `ghcr.io/punchthedev/forge-eval:latest` whenever `Dockerfile` or `requirements.txt` change on main. `_ensure_docker_image()` now pulls from GHCR on first use (~1 min download) and falls back to a local build if the pull fails. Saves ~4 min on first `forge eval --docker` run.
+
+### Fixed
+- **QUICKSTART.md Option A timing** (PR #258): updated build time claim from "~5 minutes" to "~1 min download" to reflect the GHCR pull path.
+
 ## 2026-06-03 (step 204)
 
 ### Fixed
