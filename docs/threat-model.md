@@ -42,9 +42,9 @@ This document describes the attack surface of the Forge benchmark and the mitiga
 - Submissions with similarity ≥ 0.95 are rejected (`stage: similarity`).
 - Agent source-code diff can be manually inspected by maintainer before merge.
 
-**Residual risk:** Medium. The similarity check catches STEP copies; it does not catch source-code clones that produce different geometry. A manual review step is the last line of defense for algorithmic plagiarism.
+**Residual risk:** Low. Both STEP geometry and agent source are checked for similarity against all prior submissions.
 
-**Planned:** Automatic AST/token similarity check for agent source across all prior submissions.
+**Implemented (PR #175):** `benchmark/agent_similarity.py` tokenizes agent source and computes similarity against every previously accepted agent. CI rejects submissions with similarity ≥ 0.95 — catches verbatim copies and rename-only clones. `scripts/check_source_similarity.py` runs as a CI step before eval.
 
 ---
 
@@ -57,9 +57,9 @@ This document describes the attack surface of the Forge benchmark and the mitiga
 - Gittensor hyperparameter `excessive_pr_penalty_base_threshold: 3` — miners who open >3 PRs in a lookback window take a credibility penalty.
 - `max_open_pr_threshold: 10` — PRs beyond 10 open at once are ignored by the validator.
 
-**Residual risk:** Medium. Hash dedup prevents exact-commit replay; it does not prevent unique-commit spam. A per-miner rate limit (planned) would close this further.
+**Residual risk:** Low-medium. Per-miner rate limit is in place; determined actors can still spray unique commits within the daily window.
 
-**Planned:** Per-miner daily eval budget, queue depth limit of 1 in-flight eval per contributor.
+**Implemented:** Per-contributor daily eval budget via `MAX_EVALS_PER_DAY` env var in forge-api (default configurable). Exceeding the limit returns HTTP 429. The Gittensor `excessive_pr_penalty_base_threshold: 3` adds a credibility penalty on top.
 
 ---
 
@@ -73,9 +73,9 @@ This document describes the attack surface of the Forge benchmark and the mitiga
 - Build volume, bolt pattern, overhang angle checked by `benchmark/geometry.py`.
 - 3× determinism check: eval runs three times with the same seed; non-deterministic outputs are rejected.
 
-**Residual risk:** Medium. The wall-thickness sampler uses a finite grid; pathological thin bridges between grid sample points could slip through. Mesh convergence at two densities (planned) would catch degenerate meshes.
+**Residual risk:** Low-medium. The wall-thickness sampler uses a finite grid; pathological thin bridges between grid sample points could still slip through.
 
-**Planned:** Two-density FEA mesh convergence check (flag >5% stress deviation); degenerate geometry rejection before meshing.
+**Implemented:** Two-density FEA mesh convergence. Eval runs a coarse mesh (4mm), and if max stress exceeds 70% of allowable, re-runs at fine density (2.5mm). Submissions with >10% stress deviation between densities are flagged as potentially degenerate. Degenerate geometry (near-zero-thickness shells) that produces mesh singularity is rejected before scoring.
 
 ---
 
@@ -149,10 +149,10 @@ This document describes the attack surface of the Forge benchmark and the mitiga
 | Threat | Severity | Status |
 |---|---|---|
 | Marginal improvement gaming | High | Mitigated (marginal-gain rule) |
-| Plagiarism / code cloning | Medium | Partially mitigated (STEP similarity) |
-| Submission spam | Medium | Partially mitigated (commit dedup, Gittensor penalties) |
-| Geometry exploitation | Medium | Partially mitigated (FEA + geometry gates) |
+| Plagiarism / code cloning | Medium | Mitigated (STEP + source similarity checks) |
+| Submission spam | Medium | Partially mitigated (commit dedup, rate limit, Gittensor penalties) |
+| Geometry exploitation | Medium | Mitigated (FEA + geometry gates + two-density mesh convergence) |
 | Code injection | High | Partially mitigated (`--cap-drop ALL`, `--pids-limit`) |
 | Sybil submissions | Low | Mitigated (credibility + min PR requirement) |
-| Eval overfitting | Medium | Partially mitigated (rotation) |
+| Eval overfitting | Medium | Mitigated (hidden spec set + rotation) |
 | Load-case overfitting | Low | Mitigated (seeded load perturbation in FEA) |
