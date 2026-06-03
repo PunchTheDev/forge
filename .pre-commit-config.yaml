@@ -1,0 +1,23 @@
+# Pre-commit hooks for Forge benchmark/ code.
+# Install: pip install pre-commit && pre-commit install
+# Run manually: pre-commit run --all-files
+repos:
+  - repo: https://github.com/psf/black
+    rev: 24.10.0
+    hooks:
+      - id: black
+        files: ^(benchmark|scripts|specs|catalog)/
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.4
+    hooks:
+      - id: ruff
+        args: [--fix]
+        files: ^(benchmark|scripts|specs|catalog)/
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.13.0
+    hooks:
+      - id: mypy
+        files: ^benchmark/
+        args: [--ignore-missing-imports, --no-strict-optional]

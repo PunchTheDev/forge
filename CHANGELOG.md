@@ -9,6 +9,9 @@ Format: newest entries first.
 
 ## 2026-06-04
 
+### Added
+- **Pre-commit hooks** (`.pre-commit-config.yaml`): black + ruff + mypy for `benchmark/`, `scripts/`, `specs/`, `catalog/`. Install: `pip install pre-commit && pre-commit install`.
+
 ### Changed
 - **Dockerfile base pinned by digest** (`ubuntu:24.04@sha256:023f...`): prevents silent base-image changes from breaking eval parity across CI runs.
 

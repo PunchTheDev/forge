@@ -29,4 +29,3 @@ Ordered by priority. Completed items are not tracked here — see `CHANGELOG.md`
 ## Hardening (low priority)
 
 - [ ] Randomized load-case perturbations (±10% load, ±5° direction) — hardens against stress-test gaming
-- [ ] Pre-commit hooks (black, ruff, mypy) for `benchmark/` code — local dev quality gate
