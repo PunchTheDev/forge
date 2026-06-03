@@ -1,0 +1,63 @@
+{
+  "id": "th_2448971_dm",
+  "version": "1.0",
+  "name": "Articulating, Wall-Mounted, Magnetic Phone Mount [medium]",
+  "description": "A medium-difficulty cantilever bracket in PETG (FDM). Mounts flush to a vertical wall and cantilevers a 57.8 kg load 100 mm from the wall face. Minimize tip deflection under load \u2014 maximize absolute stiffness regardless of mass.",
+  "material": "petg",
+  "constraints": {
+    "load_newtons": 567.32,
+    "load_point_mm": [
+      100.4,
+      45.6,
+      49.3
+    ],
+    "safety_factor": 2.0,
+    "bolt_pattern_mm": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        51.5,
+        0.0
+      ],
+      [
+        103.0,
+        0.0
+      ],
+      [
+        0.0,
+        51.5
+      ],
+      [
+        51.5,
+        51.5
+      ],
+      [
+        103.0,
+        51.5
+      ]
+    ],
+    "bolt_diameter_clearance_mm": 5.5,
+    "mount_face_x_mm": 0.0,
+    "build_volume_mm": [
+      138.8,
+      91.2,
+      98.6
+    ],
+    "max_overhang_deg": 45.0,
+    "min_wall_thickness_mm": 1.2
+  },
+  "scoring": {
+    "metric": "deflection_mm",
+    "direction": "minimize",
+    "baseline_deflection_mm": 0.01251
+  },
+  "source": {
+    "platform": "thingiverse",
+    "thing_id": 2448971,
+    "url": "https://www.thingiverse.com/thing:2448971",
+    "thumbnail": "https://cdn.thingiverse.com/assets/66/9f/a9/64/89/IMG_0163.jpg",
+    "original_name": "Articulating, Wall-Mounted, Magnetic Phone Mount"
+  }
+}

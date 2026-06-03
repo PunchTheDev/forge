@@ -1,0 +1,55 @@
+{
+  "id": "th_1436529_dm",
+  "version": "1.0",
+  "name": "Spray-can holder [medium]",
+  "description": "A medium-difficulty cantilever bracket in PLA (FDM). Mounts flush to a vertical wall and cantilevers a 36.9 kg load 127 mm from the wall face. Minimize tip deflection under load \u2014 maximize absolute stiffness regardless of mass.",
+  "material": "pla",
+  "constraints": {
+    "load_newtons": 362.3,
+    "load_point_mm": [
+      126.9,
+      44.6,
+      50.8
+    ],
+    "safety_factor": 2.0,
+    "bolt_pattern_mm": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        41.8,
+        0.0
+      ],
+      [
+        0.0,
+        41.8
+      ],
+      [
+        41.8,
+        41.8
+      ]
+    ],
+    "bolt_diameter_clearance_mm": 6.5,
+    "mount_face_x_mm": 0.0,
+    "build_volume_mm": [
+      132.0,
+      89.3,
+      101.5
+    ],
+    "max_overhang_deg": 45.0,
+    "min_wall_thickness_mm": 1.2
+  },
+  "scoring": {
+    "metric": "deflection_mm",
+    "direction": "minimize",
+    "baseline_deflection_mm": 0.009061
+  },
+  "source": {
+    "platform": "thingiverse",
+    "thing_id": 1436529,
+    "url": "https://www.thingiverse.com/thing:1436529",
+    "thumbnail": "https://cdn.thingiverse.com/assets/a0/54/8d/10/d4/After.jpg",
+    "original_name": "Spray-can holder"
+  }
+}
