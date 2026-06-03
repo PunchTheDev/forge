@@ -1,0 +1,63 @@
+{
+  "id": "th_5904534_mass",
+  "version": "1.0",
+  "name": "Cat key hook [medium]",
+  "description": "A medium-difficulty cantilever bracket in PLA (FDM). Mounts flush to a vertical wall and cantilevers a 58.6 kg load 83 mm from the wall face. Minimize mass while surviving the load.",
+  "material": "pla",
+  "constraints": {
+    "load_newtons": 575.15,
+    "load_point_mm": [
+      83.2,
+      54.0,
+      51.7
+    ],
+    "safety_factor": 2.0,
+    "bolt_pattern_mm": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        52.2,
+        0.0
+      ],
+      [
+        104.4,
+        0.0
+      ],
+      [
+        0.0,
+        52.2
+      ],
+      [
+        52.2,
+        52.2
+      ],
+      [
+        104.4,
+        52.2
+      ]
+    ],
+    "bolt_diameter_clearance_mm": 5.5,
+    "mount_face_x_mm": 0.0,
+    "build_volume_mm": [
+      144.5,
+      108.1,
+      103.4
+    ],
+    "max_overhang_deg": 45.0,
+    "min_wall_thickness_mm": 1.2
+  },
+  "scoring": {
+    "metric": "mass_grams",
+    "direction": "minimize",
+    "baseline_mass_grams": 283.6
+  },
+  "source": {
+    "platform": "thingiverse",
+    "thing_id": 5904534,
+    "url": "https://www.thingiverse.com/thing:5904534",
+    "thumbnail": "https://cdn.thingiverse.com/assets/54/1d/4d/11/b1/69eaabc8-dcdf-4657-aac6-7bb5693d8724.png",
+    "original_name": "Cat key hook"
+  }
+}

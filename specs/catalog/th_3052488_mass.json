@@ -1,0 +1,63 @@
+{
+  "id": "th_3052488_mass",
+  "version": "1.0",
+  "name": "Ender 3 Filament Roller Guide [medium]",
+  "description": "A medium-difficulty cantilever bracket in PLA (FDM). Mounts flush to a vertical wall and cantilevers a 58.6 kg load 80 mm from the wall face. Minimize mass while surviving the load.",
+  "material": "pla",
+  "constraints": {
+    "load_newtons": 575.21,
+    "load_point_mm": [
+      80.3,
+      49.9,
+      36.6
+    ],
+    "safety_factor": 2.0,
+    "bolt_pattern_mm": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        43.4,
+        0.0
+      ],
+      [
+        86.8,
+        0.0
+      ],
+      [
+        0.0,
+        43.4
+      ],
+      [
+        43.4,
+        43.4
+      ],
+      [
+        86.8,
+        43.4
+      ]
+    ],
+    "bolt_diameter_clearance_mm": 6.5,
+    "mount_face_x_mm": 0.0,
+    "build_volume_mm": [
+      156.6,
+      99.8,
+      73.2
+    ],
+    "max_overhang_deg": 45.0,
+    "min_wall_thickness_mm": 1.2
+  },
+  "scoring": {
+    "metric": "mass_grams",
+    "direction": "minimize",
+    "baseline_mass_grams": 198.8
+  },
+  "source": {
+    "platform": "thingiverse",
+    "thing_id": 3052488,
+    "url": "https://www.thingiverse.com/thing:3052488",
+    "thumbnail": "https://cdn.thingiverse.com/assets/5e/d0/2b/a3/f5/608-roller-2.jpg",
+    "original_name": "Ender 3 Filament Roller Guide"
+  }
+}

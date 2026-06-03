@@ -1,0 +1,55 @@
+{
+  "id": "th_3338467_mass",
+  "version": "1.0",
+  "name": "Universal Auto-Rewind Spool Holder [medium]",
+  "description": "A medium-difficulty cantilever bracket in PETG (FDM). Mounts flush to a vertical wall and cantilevers a 47.1 kg load 98 mm from the wall face. Minimize mass while surviving the load.",
+  "material": "petg",
+  "constraints": {
+    "load_newtons": 462.13,
+    "load_point_mm": [
+      97.5,
+      43.6,
+      52.8
+    ],
+    "safety_factor": 2.0,
+    "bolt_pattern_mm": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        41.9,
+        0.0
+      ],
+      [
+        0.0,
+        41.9
+      ],
+      [
+        41.9,
+        41.9
+      ]
+    ],
+    "bolt_diameter_clearance_mm": 5.5,
+    "mount_face_x_mm": 0.0,
+    "build_volume_mm": [
+      138.8,
+      87.2,
+      105.6
+    ],
+    "max_overhang_deg": 45.0,
+    "min_wall_thickness_mm": 1.2
+  },
+  "scoring": {
+    "metric": "mass_grams",
+    "direction": "minimize",
+    "baseline_mass_grams": 241.5
+  },
+  "source": {
+    "platform": "thingiverse",
+    "thing_id": 3338467,
+    "url": "https://www.thingiverse.com/thing:3338467",
+    "thumbnail": "https://cdn.thingiverse.com/assets/61/98/89/8d/b1/1-DSC09533-003.JPG",
+    "original_name": "Universal Auto-Rewind Spool Holder"
+  }
+}
