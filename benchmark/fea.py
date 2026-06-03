@@ -414,6 +414,10 @@ def _parse_frd_stress(frd_path: str) -> float | None:
     """
     Parse CalculiX .frd output to extract max von Mises stress.
     Stress components per node: S11, S22, S33, S12, S13, S23.
+
+    CalculiX .frd uses fixed-width Fortran format: record type (3) + node ID (10)
+    + 6 × 12-char float fields. Adjacent negative values can run together without
+    whitespace, so we parse by column offsets rather than splitting on whitespace.
     """
     try:
         with open(frd_path) as f:
@@ -432,18 +436,36 @@ def _parse_frd_stress(frd_path: str) -> float | None:
             if line.startswith(" -3"):
                 break
             if line.startswith(" -1"):
-                parts = line.split()
-                if len(parts) >= 7:
-                    try:
-                        s11, s22, s33 = float(parts[2]), float(parts[3]), float(parts[4])
-                        s12, s13, s23 = float(parts[5]), float(parts[6]), float(parts[7]) if len(parts) > 7 else 0.0
-                        vm = math.sqrt(
-                            0.5 * ((s11-s22)**2 + (s22-s33)**2 + (s33-s11)**2)
-                            + 3 * (s12**2 + s13**2 + s23**2)
-                        )
-                        max_vm = max(max_vm, vm)
-                    except (ValueError, IndexError):
-                        pass
+                # Fixed-width layout: " -1" (3) + node_id (10) + S11 (12) + S22 (12)
+                # + S33 (12) + S12 (12) + S13 (12) + S23 (12) — total 85 chars min.
+                try:
+                    s11 = float(line[13:25])
+                    s22 = float(line[25:37])
+                    s33 = float(line[37:49])
+                    s12 = float(line[49:61])
+                    s13 = float(line[61:73])
+                    s23 = float(line[73:85]) if len(line) > 73 else 0.0
+                    vm = math.sqrt(
+                        0.5 * ((s11-s22)**2 + (s22-s33)**2 + (s33-s11)**2)
+                        + 3 * (s12**2 + s13**2 + s23**2)
+                    )
+                    max_vm = max(max_vm, vm)
+                except (ValueError, IndexError):
+                    # Fall back to whitespace split for non-standard formatting.
+                    parts = line.split()
+                    if len(parts) >= 7:
+                        try:
+                            s11, s22, s33 = float(parts[2]), float(parts[3]), float(parts[4])
+                            s12 = float(parts[5]) if len(parts) > 5 else 0.0
+                            s13 = float(parts[6]) if len(parts) > 6 else 0.0
+                            s23 = float(parts[7]) if len(parts) > 7 else 0.0
+                            vm = math.sqrt(
+                                0.5 * ((s11-s22)**2 + (s22-s33)**2 + (s33-s11)**2)
+                                + 3 * (s12**2 + s13**2 + s23**2)
+                            )
+                            max_vm = max(max_vm, vm)
+                        except (ValueError, IndexError):
+                            pass
 
     return max_vm if max_vm > 0 else None
 
