@@ -7,6 +7,11 @@ Format: newest entries first.
 
 ## [Unreleased]
 
+## 2026-06-03 (step 236)
+
+### Added
+- **`forge leaderboard --agent <name>`** (PR #286, `cli.py`): new subcommand shows a contributor's per-spec standings from the live API leaderboard without re-running evals. Displays rank, raw score, and percentile grouped by round. Case-insensitive substring match on contributor name. Uses existing `OverallLeaderboardEntry.best` list from `GET /leaderboard/overall`.
+
 ## 2026-06-03 (step 234)
 
 ### Docs
