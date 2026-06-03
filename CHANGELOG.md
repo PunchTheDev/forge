@@ -7,6 +7,11 @@ Format: newest entries first.
 
 ## [Unreleased]
 
+## 2026-06-03 (step 211)
+
+### Fixed
+- **`--json` mode clean output** (PR #265, `cli.py`): `forge eval --json` and `forge validate --json` were printing spec/agent divider headers before the JSON payload, making the output unparseable by `jq` or any JSON consumer. Guarded the per-spec header block with `if not args.json:` in both `cmd_eval` and `cmd_validate`.
+
 ## 2026-06-03 (step 210)
 
 ### Added
