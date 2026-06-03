@@ -7,6 +7,11 @@ Format: newest entries first.
 
 ## [Unreleased]
 
+## 2026-06-03 (step 214)
+
+### Changed
+- **Model whitelist expanded to Claude 4.6** (PR #268, `config/model-whitelist.txt`): added `anthropic/claude-sonnet-4-6`, `anthropic/claude-opus-4-6`, and `anthropic/claude-haiku-4-5-20251001`. Miners can now use the latest Claude generation in their agents.
+
 ## 2026-06-03 (step 212)
 
 ### Changed
