@@ -25,8 +25,8 @@ def generate(spec: dict, llm: LLMClient) -> bytes:
     """
     Build and return a STEP file for the given spec.
 
-    Use `llm.chat(messages)` to call the whitelisted LLM
-    (claude-haiku-4-5, claude-3-5-haiku, or gpt-4o-mini).
+    Use `llm.chat(messages)` to call the whitelisted LLM.
+    Allowed models are listed in config/model-whitelist.txt.
 
     Args:
         spec: Problem specification dict. Key fields:
