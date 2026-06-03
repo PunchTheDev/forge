@@ -1,0 +1,55 @@
+{
+  "id": "th_2957550_sw",
+  "version": "1.0",
+  "name": "Corner Brackets For System20 2020 / 2040 Extrusion [medium]",
+  "description": "A medium-difficulty cantilever bracket in PLA (FDM). Mounts flush to a vertical wall and cantilevers a 56.1 kg load 109 mm from the wall face. Maximize stiffness-to-weight ratio while surviving the load.",
+  "material": "pla",
+  "constraints": {
+    "load_newtons": 550.15,
+    "load_point_mm": [
+      109.2,
+      39.9,
+      52.6
+    ],
+    "safety_factor": 2.0,
+    "bolt_pattern_mm": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        42.3,
+        0.0
+      ],
+      [
+        0.0,
+        42.3
+      ],
+      [
+        42.3,
+        42.3
+      ]
+    ],
+    "bolt_diameter_clearance_mm": 7.0,
+    "mount_face_x_mm": 0.0,
+    "build_volume_mm": [
+      158.1,
+      79.7,
+      105.2
+    ],
+    "max_overhang_deg": 45.0,
+    "min_wall_thickness_mm": 1.2
+  },
+  "scoring": {
+    "metric": "stiffness_to_weight",
+    "direction": "maximize",
+    "baseline_stiffness_to_weight": 245.381046
+  },
+  "source": {
+    "platform": "thingiverse",
+    "thing_id": 2957550,
+    "url": "https://www.thingiverse.com/thing:2957550",
+    "thumbnail": "https://cdn.thingiverse.com/assets/1e/93/ce/ea/30/thingiverse_brackets.png",
+    "original_name": "Corner Brackets For System20 2020 / 2040 Extrusion"
+  }
+}
