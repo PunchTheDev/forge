@@ -7,21 +7,22 @@ Format: newest entries first.
 
 ## [Unreleased]
 
-## 2026-06-04
-
-### Added
-- **Pre-commit hooks** (`.pre-commit-config.yaml`): black + ruff + mypy for `benchmark/`, `scripts/`, `specs/`, `catalog/`. Install: `pip install pre-commit && pre-commit install`.
-
-### Changed
-- **Dockerfile base pinned by digest** (`ubuntu:24.04@sha256:023f...`): prevents silent base-image changes from breaking eval parity across CI runs.
-
 ## 2026-06-03
 
 ### Added
+- **Private held-out eval set** (`scripts/generate_hidden_specs.py`, `scripts/run_hidden_eval.py`): 15 hidden specs (5 per round, seeds 9000–9204). Post-merge `score.yml` runs one hidden spec per round via forge-api admin endpoints. Threat 7 (eval overfitting) mitigated.
+- **Spec rotation script** (`scripts/rotate_round.py`): closes a round, generates 15 fresh specs across easy/medium/hard tiers, posts Discord embed if `DISCORD_WEBHOOK_URL` is set. `--dry-run` for safe preview.
+- **Seeded load-case perturbation** (`benchmark/fea.py: _perturb_load`): ±10% magnitude, ±5° direction deviation, seeded by `spec["id"]`. Miners see only nominal `load_newtons`; actual FEA load is opaque. Scores remain comparable (same perturbation per spec for all submissions). Threat 8 (load-case overfitting) documented.
+- **Source similarity check** (`benchmark/agent_similarity.py`, `scripts/check_source_similarity.py`): CI rejects agents with token similarity ≥ 0.95 vs any reference agent. Catches verbatim copies and rename-only clones.
+- **Post-merge full-round eval** (`.github/workflows/score.yml`): after a miner PR merges, fans out to 3 parallel matrix jobs scoring all 15 specs per round; records to forge-api.
+- **Pre-commit hooks** (`.pre-commit-config.yaml`): black + ruff + mypy for `benchmark/`, `scripts/`, `specs/`, `catalog/`. Install: `pip install pre-commit && pre-commit install`.
 - **Metric-aware example** (`examples/metric-aware-agent/`): reads `spec["scoring"]["metric"]` and sends a tailored geometry strategy to the LLM per category — recommended starting point for new agents.
 - **`forge leaderboard --history <spec_id>`**: prints chronological SOTA progression for a spec — date, contributor, score, % improvement per step. Fetches from `/sota/{spec_id}/history`.
 - **Multi-spec pool eval in CI** (`scripts/select_eval_specs.py`, `run_eval_pool.py`, `record_submissions.py`): each PR is evaluated on one randomly-sampled easy spec from each of the 3 active rounds (not just round_001). PR comment shows cross-category table + composite score.
 - **Per-spec SOTA reference STEPs** (`sota/{spec_id}/reference.step`): geometric similarity check is now per-spec first, falling back to the global reference.
+
+### Changed
+- **Dockerfile base pinned by digest** (`ubuntu:24.04@sha256:023f...`): prevents silent base-image changes from breaking eval parity across CI runs.
 
 ### Fixed
 - **CLI metric units in eval output**: `forge eval` verbose output and summary table now use `_fmt_score(score, metric)` instead of hardcoded `g` — round_002 shows `N/(mm·g)`, round_003 shows `mm`.
