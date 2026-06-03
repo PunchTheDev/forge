@@ -54,9 +54,26 @@ jobs:
           echo "path=$AGENT" >> "$GITHUB_OUTPUT"
           echo "found=true" >> "$GITHUB_OUTPUT"
 
+      - name: Reject PRs that touch protected benchmark infrastructure
+        id: infra_guard
+        if: steps.agent.outputs.found == 'true'
+        run: |
+          # A miner PR that changes benchmark/, scripts/, Dockerfile, or CI
+          # alongside an agent could run modified eval code inside the Docker
+          # container (the workspace is volume-mounted). Block any PR that
+          # touches protected paths so only agents/ changes are evaluated.
+          PROTECTED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD \
+            | grep -E '^(benchmark/|scripts/|Dockerfile|\.github/)' || true)
+          if [ -n "$PROTECTED" ]; then
+            echo "ERROR: PR modifies protected benchmark infrastructure alongside an agent:" >&2
+            echo "$PROTECTED" >&2
+            echo "Agent PRs must only modify files under agents/. Open a separate PR for infrastructure changes." >&2
+            exit 1
+          fi
+
       - name: Check source similarity against reference agents
         id: similarity
-        if: steps.agent.outputs.found == 'true'
+        if: steps.agent.outputs.found == 'true' && steps.infra_guard.outcome == 'success'
         run: |
           python3 scripts/check_source_similarity.py --agent "${{ steps.agent.outputs.path }}"
 
