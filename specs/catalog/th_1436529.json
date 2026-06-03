@@ -2,14 +2,14 @@
   "id": "th_1436529",
   "version": "1.0",
   "name": "Spray-can holder [medium]",
-  "description": "A medium-difficulty cantilever bracket in PLA (FDM). Mounts flush to a vertical wall and cantilevers a 36.9 kg load 127 mm from the wall face. Minimize mass while surviving the load.",
-  "material": "pla",
+  "description": "A medium-difficulty cantilever bracket in PETG (FDM). Mounts flush to a vertical wall and cantilevers a 47.8 kg load 103 mm from the wall face. Maximize stiffness-to-weight ratio while surviving the load.",
+  "material": "petg",
   "constraints": {
-    "load_newtons": 362.3,
+    "load_newtons": 468.67,
     "load_point_mm": [
-      126.9,
-      44.6,
-      50.8
+      103.0,
+      35.4,
+      42.5
     ],
     "safety_factor": 2.0,
     "bolt_pattern_mm": [
@@ -18,32 +18,32 @@
         0.0
       ],
       [
-        41.8,
+        42.6,
         0.0
       ],
       [
         0.0,
-        41.8
+        42.6
       ],
       [
-        41.8,
-        41.8
+        42.6,
+        42.6
       ]
     ],
-    "bolt_diameter_clearance_mm": 6.5,
+    "bolt_diameter_clearance_mm": 7.0,
     "mount_face_x_mm": 0.0,
     "build_volume_mm": [
-      132.0,
-      89.3,
-      101.5
+      159.5,
+      70.8,
+      85.0
     ],
     "max_overhang_deg": 45.0,
     "min_wall_thickness_mm": 1.2
   },
   "scoring": {
-    "metric": "mass_grams",
-    "direction": "minimize",
-    "baseline_mass_grams": 242.5
+    "metric": "stiffness_to_weight",
+    "direction": "maximize",
+    "baseline_stiffness_to_weight": 113.102126
   },
   "source": {
     "platform": "thingiverse",

@@ -2,14 +2,14 @@
   "id": "th_2194278",
   "version": "1.0",
   "name": "Modular Mounting System [medium]",
-  "description": "A medium-difficulty cantilever bracket in Aluminum 6061-T6. Mounts flush to a vertical wall and cantilevers a 42.9 kg load 119 mm from the wall face. Minimize mass while surviving the load.",
-  "material": "aluminum_6061",
+  "description": "A medium-difficulty cantilever bracket in PETG (FDM). Mounts flush to a vertical wall and cantilevers a 38.4 kg load 93 mm from the wall face. Maximize stiffness-to-weight ratio while surviving the load.",
+  "material": "petg",
   "constraints": {
-    "load_newtons": 421.07,
+    "load_newtons": 376.31,
     "load_point_mm": [
-      118.9,
-      48.2,
-      48.6
+      92.8,
+      46.0,
+      45.8
     ],
     "safety_factor": 2.0,
     "bolt_pattern_mm": [
@@ -18,40 +18,40 @@
         0.0
       ],
       [
-        49.9,
+        49.0,
         0.0
       ],
       [
-        99.8,
+        98.0,
         0.0
       ],
       [
         0.0,
-        49.9
+        49.0
       ],
       [
-        49.9,
-        49.9
+        49.0,
+        49.0
       ],
       [
-        99.8,
-        49.9
+        98.0,
+        49.0
       ]
     ],
     "bolt_diameter_clearance_mm": 6.5,
     "mount_face_x_mm": 0.0,
     "build_volume_mm": [
-      155.1,
-      96.4,
-      97.2
+      151.3,
+      92.0,
+      91.6
     ],
     "max_overhang_deg": 45.0,
     "min_wall_thickness_mm": 1.2
   },
   "scoring": {
-    "metric": "mass_grams",
-    "direction": "minimize",
-    "baseline_mass_grams": 625.7
+    "metric": "stiffness_to_weight",
+    "direction": "maximize",
+    "baseline_stiffness_to_weight": 195.910661
   },
   "source": {
     "platform": "thingiverse",

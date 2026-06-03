@@ -2,14 +2,14 @@
   "id": "th_2759439",
   "version": "1.0",
   "name": "Petsfang Duct for CR10 MicroSwiss/Stock/E3D/Volcano/TevoTorn [hard]",
-  "description": "A hard-difficulty cantilever bracket in Stainless Steel 316. Mounts flush to a vertical wall and cantilevers a 105.8 kg load 176 mm from the wall face. Minimize mass while surviving the load.",
-  "material": "stainless_316",
+  "description": "A hard-difficulty cantilever bracket in Aluminum 6061-T6. Mounts flush to a vertical wall and cantilevers a 81.0 kg load 174 mm from the wall face. Maximize stiffness-to-weight ratio while surviving the load.",
+  "material": "aluminum_6061",
   "constraints": {
-    "load_newtons": 1038.37,
+    "load_newtons": 794.5,
     "load_point_mm": [
-      176.4,
-      44.1,
-      44.0
+      173.6,
+      39.5,
+      45.8
     ],
     "safety_factor": 2.5,
     "bolt_pattern_mm": [
@@ -18,32 +18,32 @@
         0.0
       ],
       [
-        60.6,
+        59.1,
         0.0
       ],
       [
         0.0,
-        60.6
+        59.1
       ],
       [
-        60.6,
-        60.6
+        59.1,
+        59.1
       ]
     ],
     "bolt_diameter_clearance_mm": 6.5,
     "mount_face_x_mm": 0.0,
     "build_volume_mm": [
-      129.0,
-      88.2,
-      87.9
+      136.6,
+      79.1,
+      91.5
     ],
     "max_overhang_deg": 40.0,
     "min_wall_thickness_mm": 1.5
   },
   "scoring": {
-    "metric": "mass_grams",
-    "direction": "minimize",
-    "baseline_mass_grams": 1503.9
+    "metric": "stiffness_to_weight",
+    "direction": "maximize",
+    "baseline_stiffness_to_weight": 400.126725
   },
   "source": {
     "platform": "thingiverse",

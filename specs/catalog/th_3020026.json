@@ -2,14 +2,14 @@
   "id": "th_3020026",
   "version": "1.0",
   "name": "Filler - The Customizable Filament Holder that fills your pr [medium]",
-  "description": "A medium-difficulty cantilever bracket in PLA (FDM). Mounts flush to a vertical wall and cantilevers a 57.3 kg load 85 mm from the wall face. Minimize mass while surviving the load.",
-  "material": "pla",
+  "description": "A medium-difficulty cantilever bracket in Aluminum 6061-T6. Mounts flush to a vertical wall and cantilevers a 43.0 kg load 98 mm from the wall face. Maximize stiffness-to-weight ratio while surviving the load.",
+  "material": "aluminum_6061",
   "constraints": {
-    "load_newtons": 561.71,
+    "load_newtons": 422.26,
     "load_point_mm": [
-      84.6,
-      50.7,
-      39.5
+      97.8,
+      47.0,
+      45.7
     ],
     "safety_factor": 2.0,
     "bolt_pattern_mm": [
@@ -18,40 +18,40 @@
         0.0
       ],
       [
-        40.1,
+        47.0,
         0.0
       ],
       [
-        80.2,
+        94.0,
         0.0
       ],
       [
         0.0,
-        40.1
+        47.0
       ],
       [
-        40.1,
-        40.1
+        47.0,
+        47.0
       ],
       [
-        80.2,
-        40.1
+        94.0,
+        47.0
       ]
     ],
-    "bolt_diameter_clearance_mm": 6.5,
+    "bolt_diameter_clearance_mm": 7.0,
     "mount_face_x_mm": 0.0,
     "build_volume_mm": [
-      130.1,
-      101.4,
-      78.9
+      154.5,
+      94.0,
+      91.4
     ],
     "max_overhang_deg": 45.0,
     "min_wall_thickness_mm": 1.2
   },
   "scoring": {
-    "metric": "mass_grams",
-    "direction": "minimize",
-    "baseline_mass_grams": 183.7
+    "metric": "stiffness_to_weight",
+    "direction": "maximize",
+    "baseline_stiffness_to_weight": 2476.349302
   },
   "source": {
     "platform": "thingiverse",
