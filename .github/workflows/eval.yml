@@ -147,15 +147,23 @@ jobs:
               round_003: 'Absolute Stiffness \u2193',
             };
 
-            // Fetch live SOTA for each spec
+            // Fetch live SOTA for each spec.
+            // Track apiReachable separately: if the API is down, null sota entries
+            // should NOT be treated as "unclaimed" — we just don't know their status.
             const sotaBySpec = {};
+            let apiReachable = !apiUrl; // treat "no URL configured" as reachable-but-empty
             for (const r of results) {
               if (!apiUrl) break;
               try {
                 const resp = await fetch(`${apiUrl}/sota/${r.spec_id}`).catch(() => null);
                 if (resp && resp.ok) {
+                  apiReachable = true;
                   const d = await resp.json();
                   sotaBySpec[r.spec_id] = d.score ?? d.score_grams ?? null;
+                } else if (resp && resp.status === 404) {
+                  // Spec has no SOTA — genuinely unclaimed
+                  apiReachable = true;
+                  sotaBySpec[r.spec_id] = undefined; // use undefined to mark "unclaimed"
                 }
               } catch {}
             }
@@ -178,7 +186,9 @@ jobs:
               const rname = ROUND_NAME[r.round_id] || r.round_id;
               const score = res.score;  // null when eval failed
               const baseline = r.baseline;
-              const sota = sotaBySpec[r.spec_id] ?? null;
+              // sotaBySpec[id] values: number = has SOTA, undefined = unclaimed, missing key = API was down
+              const sotaKnown = r.spec_id in sotaBySpec;
+              const sota = sotaBySpec[r.spec_id] ?? null; // null means unclaimed (if sotaKnown)
               const dir = r.direction;
               const icon = res.passed ? '\u2705' : '\u274c';
 
@@ -204,7 +214,10 @@ jobs:
               const vsBaseline = (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%';
 
               let sotaCell = '\u2014';
-              if (sota === null) {
+              if (!apiReachable || !sotaKnown) {
+                // API was down — can't determine SOTA status; don't guess
+                sotaCell = '\u2014 (API unreachable)';
+              } else if (sota === null || sota === undefined) {
                 // Unclaimed spec — any passing submission sets new SOTA
                 anyBeatsSota = true;
                 sotaCell = '\u2b50 unclaimed \u2014 sets new SOTA';
