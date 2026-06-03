@@ -103,10 +103,25 @@ def cmd_new(args: argparse.Namespace) -> int:
 # ---------------------------------------------------------------------------
 
 def cmd_specs(args: argparse.Namespace) -> int:
+    round_filter: str | None = getattr(args, "round", None)
+
+    # Resolve allowed spec IDs from round manifest if --round given
+    allowed_ids: set[str] | None = None
+    if round_filter:
+        round_file = ROUNDS_DIR / f"{round_filter}.json"
+        if not round_file.exists():
+            print(f"Round '{round_filter}' not found in rounds/.")
+            return 1
+        round_data = json.loads(round_file.read_text())
+        allowed_ids = {e["id"] for e in round_data.get("specs", [])}
+
     data = _fetch_json("/specs")
 
     if data:
-        _header("Specs  (live)")
+        if allowed_ids is not None:
+            data = [s for s in data if s.get("id") in allowed_ids]
+        label = f"Specs — {round_filter}  (live)" if round_filter else "Specs  (live)"
+        _header(label)
         print(f"  {'ID':<20} {'NAME':<28} {'MATERIAL':<12} {'LOAD':>8}  {'BUILD VOL (mm)':>18}  {'BASELINE':>10}")
         print(f"  {'─' * 100}")
         for s in data:
@@ -810,6 +825,7 @@ def main() -> None:
     p_status.set_defaults(func=cmd_status)
 
     p_specs = sub.add_parser("specs", help="List available problem specs")
+    p_specs.add_argument("--round", metavar="ID", help="Filter to specs in one round (e.g. round_001)")
     p_specs.set_defaults(func=cmd_specs)
 
     p_rounds = sub.add_parser("rounds", help="List competition rounds and spec sets")
