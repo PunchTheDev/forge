@@ -7,6 +7,11 @@ Format: newest entries first.
 
 ## [Unreleased]
 
+## 2026-06-03 (step 232)
+
+### Docs
+- **QUICKSTART/README accuracy fixes** (PR #279, `QUICKSTART.md`, `README.md`): three stale facts corrected. (1) Round 003 category label "absolute stiffness" → "deflection" — the metric is `deflection_mm`; only the dashboard had been updated in steps 229-230. (2) Whitelisted model count "16 models" → "18 models" — PR #269 added 3 models but QUICKSTART was never updated. (3) CI spec selection description "chosen deterministically from your PR number" → uses `GITHUB_RUN_ID` entropy — PR #222 changed this but the old description remained.
+
 ## 2026-06-03 (step 231)
 
 ### Fixed
