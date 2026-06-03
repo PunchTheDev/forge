@@ -156,14 +156,15 @@ def cmd_specs(args: argparse.Namespace) -> int:
 
         has_sota = bool(sota_by_id)
         if has_sota:
-            print(f"  {'ID':<22} {'MAT':<8} {'LOAD':>8}  {'BASELINE':>14}  {'SOTA':>14}  STATUS")
-            print(f"  {'─' * 78}")
+            print(f"  {'ID':<22} {'TIER':<7} {'MAT':<8} {'LOAD':>8}  {'BASELINE':>14}  {'SOTA':>14}  STATUS")
+            print(f"  {'─' * 86}")
         else:
-            print(f"  {'ID':<22} {'NAME':<26} {'MAT':<8} {'LOAD':>8}  {'BASELINE':>14}")
-            print(f"  {'─' * 88}")
+            print(f"  {'ID':<22} {'TIER':<7} {'NAME':<26} {'MAT':<8} {'LOAD':>8}  {'BASELINE':>14}")
+            print(f"  {'─' * 96}")
 
         for s in data:
             sid = s.get("id", "?")
+            tier = sid.rsplit("_", 1)[-1] if "_" in sid else "?"
             mat = (s.get("material", "?") or "?")[:7]
             c = s.get("constraints", {})
             load = c.get("load_newtons", 0)
@@ -188,10 +189,10 @@ def cmd_specs(args: argparse.Namespace) -> int:
                     sota_str = "OPEN"
                     status = f"{GREEN}unclaimed{RESET}"
                 sota_col = f"{GREEN}{sota_str:<14}{RESET}" if sota is None else f"{sota_str:<14}"
-                print(f"  {sid:<22} {mat:<8} {load:>8.1f}N  {baseline_str:>14}  {sota_col}  {status}")
+                print(f"  {sid:<22} {tier:<7} {mat:<8} {load:>8.1f}N  {baseline_str:>14}  {sota_col}  {status}")
             else:
                 name = s.get("name", "?")[:24]
-                print(f"  {sid:<22} {name:<26} {mat:<8} {load:>8.1f}N  {baseline_str:>14}")
+                print(f"  {sid:<22} {tier:<7} {name:<26} {mat:<8} {load:>8.1f}N  {baseline_str:>14}")
 
         unclaimed_count = sum(1 for s in data if s.get("id") not in sota_by_id)
         if has_sota and not unclaimed_only:
@@ -208,16 +209,17 @@ def cmd_specs(args: argparse.Namespace) -> int:
 
     _warn("API unreachable — showing local specs")
     _header("Specs  (local fallback)")
-    print(f"  {'ID':<16} {'NAME':<30} {'MATERIAL':<10} {'LOAD'}")
-    print(f"  {'─' * 72}")
+    print(f"  {'ID':<22} {'TIER':<7} {'NAME':<30} {'MATERIAL':<10} {'LOAD'}")
+    print(f"  {'─' * 80}")
     for sf in spec_files:
         try:
             spec = json.loads(sf.read_text())
             sid = spec.get("id", sf.stem)
+            tier = sid.rsplit("_", 1)[-1] if "_" in sid else "?"
             name = spec.get("name", "?")[:28]
             mat = spec.get("material", "?")
             load = spec.get("constraints", {}).get("load_newtons", "?")
-            print(f"  {sid:<16} {name:<30} {mat:<10} {load}N")
+            print(f"  {sid:<22} {tier:<7} {name:<30} {mat:<10} {load}N")
         except (json.JSONDecodeError, KeyError):
             print(f"  {sf.stem:<16} (parse error)")
     print()
