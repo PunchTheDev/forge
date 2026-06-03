@@ -64,7 +64,7 @@ TIER_CONFIG = {
 ROUND_NAMES = {
     "mass_grams":         "Mass Minimization",
     "stiffness_to_weight": "Structural Efficiency",
-    "deflection_mm":      "Absolute Stiffness",
+    "deflection_mm":      "Deflection",
 }
 
 

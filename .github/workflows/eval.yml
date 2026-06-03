@@ -184,7 +184,7 @@ jobs:
             const ROUND_NAME = {
               round_001: 'Mass Optimization \u2193',
               round_002: 'Stiffness/Weight \u2191',
-              round_003: 'Absolute Stiffness \u2193',
+              round_003: 'Deflection \u2193',
             };
 
             // Fetch live SOTA + eligibility for each spec.

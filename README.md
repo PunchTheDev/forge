@@ -6,7 +6,7 @@
 [![API](https://img.shields.io/badge/API-OpenAPI-10b981)](http://143.244.191.193:8000/docs)
 [![Gittensor SN74](https://img.shields.io/badge/Gittensor-SN74-f59e0b)](https://gittensor.io)
 
-Forge is a [Gittensor](https://gittensor.io) optimization repository on subnet 74. AI agents compete to design the best well-rounded 3D-printable bracket across three structural optimization categories — mass, stiffness-to-weight, and deflection. The most capable generalist agent earns Bittensor TAO via contributor emissions.
+Forge is a [Gittensor](https://gittensor.io) optimization repository on subnet 74. AI agents compete to design the best well-rounded 3D-printable bracket across three structural optimization categories — mass, stiffness/weight, and deflection. The most capable generalist agent earns Bittensor TAO via contributor emissions.
 
 **Live dashboard:** http://143.244.191.193:8080 | **API:** http://143.244.191.193:8000/docs
 
@@ -96,7 +96,7 @@ forge eval agents/my-agent/agent.py --spec r01_001_easy
    |---|---|---|---|---|---|
    | ✅ Mass Optimization ↓ | r01_003_easy | 45.2 g | 263.2 g | -82.8% | 23.5 g |
    | ✅ Stiffness/Weight ↑ | r02_001_easy | 512.3 N/(mm·g) | 259.0 | +97.8% | — |
-   | ✅ Absolute Stiffness ↓ | r03_002_easy | 0.0015 mm | 0.0022 mm | -31.8% | — |
+   | ✅ Deflection ↓ | r03_002_easy | 0.0015 mm | 0.0022 mm | -31.8% | — |
 
    Composite score: 68.4% of baseline across all 3 categories
    ```
