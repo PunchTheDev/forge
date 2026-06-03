@@ -1,0 +1,63 @@
+{
+  "id": "th_3020026",
+  "version": "1.0",
+  "name": "Filler - The Customizable Filament Holder that fills your pr [medium]",
+  "description": "A medium-difficulty cantilever bracket in PLA (FDM). Mounts flush to a vertical wall and cantilevers a 57.3 kg load 85 mm from the wall face. Minimize mass while surviving the load.",
+  "material": "pla",
+  "constraints": {
+    "load_newtons": 561.71,
+    "load_point_mm": [
+      84.6,
+      50.7,
+      39.5
+    ],
+    "safety_factor": 2.0,
+    "bolt_pattern_mm": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        40.1,
+        0.0
+      ],
+      [
+        80.2,
+        0.0
+      ],
+      [
+        0.0,
+        40.1
+      ],
+      [
+        40.1,
+        40.1
+      ],
+      [
+        80.2,
+        40.1
+      ]
+    ],
+    "bolt_diameter_clearance_mm": 6.5,
+    "mount_face_x_mm": 0.0,
+    "build_volume_mm": [
+      130.1,
+      101.4,
+      78.9
+    ],
+    "max_overhang_deg": 45.0,
+    "min_wall_thickness_mm": 1.2
+  },
+  "scoring": {
+    "metric": "mass_grams",
+    "direction": "minimize",
+    "baseline_mass_grams": 183.7
+  },
+  "source": {
+    "platform": "thingiverse",
+    "thing_id": 3020026,
+    "url": "https://www.thingiverse.com/thing:3020026",
+    "thumbnail": "https://cdn.thingiverse.com/assets/ed/a6/ad/03/75/3DPNFilHoldFull.jpg",
+    "original_name": "Filler - The Customizable Filament Holder that fills your printer!"
+  }
+}
