@@ -84,7 +84,13 @@ def _compute_score(
     return geo.mass_grams
 
 
-def evaluate(agent_path: str, spec_path: str, reference_step_path: str | None = None) -> EvalResult:
+def evaluate(
+    agent_path: str,
+    spec_path: str,
+    reference_step_path: str | None = None,
+    geometry_only: bool = False,
+) -> EvalResult:
+    """Run the full evaluation pipeline (or geometry-only when geometry_only=True)."""
     spec = json.loads(Path(spec_path).read_text())
     mat = materials.get(spec["material"])
 
@@ -120,6 +126,19 @@ def evaluate(agent_path: str, spec_path: str, reference_step_path: str | None = 
             stage="geometry",
             reason=geo.reason,
             elapsed_seconds=agent_result.elapsed_seconds,
+        )
+
+    # Geometry-only mode: skip FEA and similarity.
+    if geometry_only:
+        return EvalResult(
+            passed=True,
+            score=geo.mass_grams,
+            score_metric="mass_grams",
+            score_direction="minimize",
+            stage="ok",
+            reason="",
+            elapsed_seconds=agent_result.elapsed_seconds,
+            step_bytes=step_bytes,
         )
 
     # Stage 3: FEA stress check (correctness gate).
@@ -227,9 +246,19 @@ def main() -> None:
         default=None,
         help="Path to current SOTA reference STEP for similarity check (optional)",
     )
+    parser.add_argument(
+        "--geometry-only",
+        action="store_true",
+        help="Run agent and geometry check only — skip FEA and similarity (fast)",
+    )
     args = parser.parse_args()
 
-    result = evaluate(args.agent, args.spec, reference_step_path=args.reference_step)
+    result = evaluate(
+        args.agent,
+        args.spec,
+        reference_step_path=args.reference_step,
+        geometry_only=args.geometry_only,
+    )
 
     if args.step_out and result.step_bytes is not None:
         Path(args.step_out).write_bytes(result.step_bytes)
