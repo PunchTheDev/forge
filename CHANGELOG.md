@@ -7,6 +7,14 @@ Format: newest entries first.
 
 ## [Unreleased]
 
+## 2026-06-03 (session 8)
+
+### Added
+- **`min_wall_thickness_mm` geometric enforcement** (PR #229, `benchmark/geometry.py`): ray-cast cross-section sampler along X, Y, Z axes (8×8 grid per axis) rejects any solid chord shorter than the spec's minimum wall thickness minus 0.1mm print tolerance. X-rays exclude bolt-hole center positions to avoid flagging intentional clearance voids. Closes the known gap documented in the threat model.
+
+### Documentation
+- **Threat model updated** (PR #229, `docs/threat-model.md`): wall thickness check marked Implemented; removed Known Gap note.
+
 ## 2026-06-03 (session 7)
 
 ### Fixed
