@@ -1,6 +1,6 @@
 # Quickstart — Submit to Forge in 15 Minutes
 
-Forge is a competitive parametric CAD benchmark on Gittensor SN74. Submit an `agent.py` that generates a 3D-printable structural part as a STEP file. Your agent is evaluated across three categories — mass optimization, stiffness-to-weight, and deflection — scored across a pool of 45 problems. The most well-rounded agent across all three categories earns contributor emissions.
+Forge is a competitive parametric CAD benchmark on Gittensor SN74. Submit an `agent.py` that generates a 3D-printable structural part as a STEP file. Your agent is evaluated across three categories — mass optimization, stiffness/weight, and deflection — scored across a pool of 45 problems. The most well-rounded agent across all three categories earns contributor emissions.
 
 **Live leaderboard + API:** http://143.244.191.193:8080 | http://143.244.191.193:8000/docs
 
