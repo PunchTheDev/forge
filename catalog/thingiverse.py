@@ -20,6 +20,7 @@ from __future__ import annotations
 import os
 import time
 from typing import Iterator
+from urllib.parse import quote
 
 import httpx
 
@@ -56,7 +57,7 @@ class ThingiverseClient:
     ) -> list[dict]:
         """Search for things matching a query. Returns normalized records."""
         resp = self.client.get(
-            f"{BASE_URL}/search/{httpx.utils.quote(query)}",
+            f"{BASE_URL}/search/{quote(query)}",
             params={"per_page": per_page, "sort": sort, "type": "things"},
         )
         resp.raise_for_status()
