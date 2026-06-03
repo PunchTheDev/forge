@@ -52,6 +52,7 @@ class EvalResult:
     fea_load_node_count: int | None = None
     fea_convergence_deviation: float | None = None
     fea_displacement_mm: float | None = None  # max Z-displacement from FEA (mm)
+    fea_applied_load_n: float | None = None   # actual load applied (N, after perturbation)
     similarity: float | None = None
     elapsed_seconds: float = 0.0
     step_bytes: bytes | None = None
@@ -75,7 +76,8 @@ def _compute_score(
             )
         if metric == "deflection_mm":
             return disp  # minimize absolute tip deflection
-        load_n = spec["constraints"]["load_newtons"]
+        # Use actual applied load (may differ from nominal due to perturbation).
+        load_n = fea_result.applied_load_n or spec["constraints"]["load_newtons"]
         stiffness = load_n / disp  # N/mm
         return stiffness / geo.mass_grams  # N/(mm·g)
     # Default: mass_grams
@@ -205,6 +207,7 @@ def evaluate(agent_path: str, spec_path: str, reference_step_path: str | None = 
         fea_load_node_count=fea_result.load_node_count or None,
         fea_convergence_deviation=fea_result.convergence_deviation,
         fea_displacement_mm=fea_result.max_displacement_mm,
+        fea_applied_load_n=fea_result.applied_load_n,
         similarity=similarity_score,
         elapsed_seconds=agent_result.elapsed_seconds,
         step_bytes=step_bytes,
@@ -244,6 +247,7 @@ def main() -> None:
         "fea_load_node_count": result.fea_load_node_count,
         "fea_convergence_deviation": result.fea_convergence_deviation,
         "fea_displacement_mm": result.fea_displacement_mm,
+        "fea_applied_load_n": result.fea_applied_load_n,
         "similarity": result.similarity,
         "elapsed_seconds": result.elapsed_seconds,
     }
