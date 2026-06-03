@@ -31,16 +31,16 @@ def generate(spec: dict) -> bytes:
 
     Args:
         spec: Problem specification dict. Key fields:
-            spec["constraints"]["load_n"]               — load in Newtons
-            spec["constraints"]["load_point_mm"]        — [x, y, z] load point
-            spec["constraints"]["build_volume_mm"]      — [x, y, z] bounding box
-            spec["constraints"]["bolt_pattern_mm"]      — [[y, z], ...] bolt centers
+            spec["constraints"]["load_newtons"]               — load in Newtons
+            spec["constraints"]["load_point_mm"]              — [x, y, z] load point
+            spec["constraints"]["build_volume_mm"]            — [x, y, z] bounding box
+            spec["constraints"]["bolt_pattern_mm"]            — [[y, z], ...] bolt centers
             spec["constraints"]["bolt_diameter_clearance_mm"] — hole clearance
-            spec["constraints"]["min_wall_thickness_mm"] — minimum wall
-            spec["constraints"]["max_overhang_deg"]     — max printable overhang
-            spec["material"]                            — material name
-            spec["safety_factor"]                       — FEA stress safety factor
-            spec["scoring"]["metric"]                   — "mass_grams" | "volume_mm3" | ...
+            spec["constraints"]["min_wall_thickness_mm"]      — minimum wall
+            spec["constraints"]["max_overhang_deg"]           — max printable overhang
+            spec["constraints"]["safety_factor"]              — FEA stress safety factor
+            spec["material"]                                  — material name
+            spec["scoring"]["metric"]                         — "mass_grams" | "stiffness_to_weight" | "deflection_mm"
 
     Returns:
         STEP file as raw bytes (AP214IS schema required).
@@ -53,7 +53,7 @@ def generate(spec: dict) -> bytes:
     constraints = spec["constraints"]
 
     # TODO: read the constraints you need
-    # load_n = constraints["load_n"]
+    # load_n = constraints["load_newtons"]
     # load_point = constraints["load_point_mm"]      # [x, y, z]
     # build_vol = constraints["build_volume_mm"]     # [x, y, z] max box
     # bolt_pattern = constraints["bolt_pattern_mm"]  # [[y, z], ...]

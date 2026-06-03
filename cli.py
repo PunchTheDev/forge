@@ -615,7 +615,8 @@ def _run_evaluate(agent_path: str, spec_path: str, verbose: bool) -> dict:
             stress = result.get("fea_stress_mpa", "?")
             allowable = result.get("fea_allowable_mpa", "?")
             elapsed = result.get("elapsed_seconds", "?")
-            score_str = f"{score:.2f}g" if isinstance(score, (int, float)) else str(score)
+            metric = result.get("score_metric", "mass_grams")
+            score_str = _fmt_score(score, metric) if isinstance(score, (int, float)) else str(score)
             elapsed_str = f"{elapsed:.1f}s" if isinstance(elapsed, (int, float)) else str(elapsed)
             _ok(f"score={score_str}  stress={stress}/{allowable} MPa  t={elapsed_str}")
         else:
@@ -635,7 +636,8 @@ def _print_summary_table(results: list[dict]) -> None:
         spec = r.get("spec", "?")
         passed = r.get("passed", False)
         status_str = f"{GREEN}PASS{RESET}" if passed else f"{RED}FAIL{RESET}"
-        score = f"{r['score']:.2f}g" if passed and r.get("score") else "—"
+        metric = r.get("score_metric", "mass_grams")
+        score = _fmt_score(r["score"], metric) if passed and r.get("score") else "—"
         reason = "" if passed else r.get("reason", "")[:30]
         print(f"  {spec:<20} {status_str}     {score:>8}  {reason}")
     print(f"{'─' * 64}\n")
