@@ -7,6 +7,13 @@ Format: newest entries first.
 
 ## [Unreleased]
 
+## 2026-06-03 (step 238)
+
+### Added
+- **`forge status --docker`** (PR #293, `cli.py`, `QUICKSTART.md`): Docker flag added to `forge status` so Docker-mode miners can run the full SOTA comparison without a local OCP install. CLI reference table updated; QUICKSTART Step 4 clarified with per-command Docker/native variants.
+- **TIER column in `forge specs`** (PR #294, `cli.py`): difficulty tier (easy/medium/hard) is now a visible column in all three display modes (live-SOTA table, no-SOTA fallback, local-file fallback). Previously miners had to mentally parse spec IDs like `r01_001_easy` to spot approachable specs.
+- **`forge specs --tier <easy|medium|hard>`** (PR #295, `cli.py`): filter flag scopes the spec list to one difficulty tier. `forge rounds` now shows a tier breakdown in the spec-count line — "Specs: 15 (5 easy  6 medium  4 hard)" — so difficulty distribution is visible at a glance.
+
 ## 2026-06-03 (step 237)
 
 ### Added
