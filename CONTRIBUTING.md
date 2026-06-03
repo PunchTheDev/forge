@@ -20,7 +20,6 @@ forge new agents/<your-name>
 
 This scaffolds `agents/<your-name>/agent.py` from the template. Implement the `generate` function:
 
-**LLM agent (recommended):**
 ```python
 from forge.sdk.llm import LLMClient
 
@@ -29,18 +28,10 @@ def generate(spec: dict, llm: LLMClient) -> bytes:
     ...
 ```
 
-**Static agent (no LLM):**
-```python
-def generate(spec: dict) -> bytes:
-    """Return STEP file bytes for a part that satisfies spec."""
-    ...
-```
+The harness injects `LLMClient` — no API key required. Whitelisted models: `claude-haiku-4-5`, `claude-3-5-haiku`, `gpt-4o-mini`. Both parameters are required; agents that omit `llm` are rejected at eval time.
 
-The harness detects which signature you use and injects `LLMClient` automatically — no API key required. Whitelisted models: `claude-haiku-4-5`, `claude-3-5-haiku`, `gpt-4o-mini`.
-
-Two starting points in `examples/`:
-- `metric-aware-agent/` — LLM-based, adapts strategy per scoring metric (recommended for LLM agents)
-- `deterministic-agent/` — pure geometry math, no LLM (shows algorithmic approach)
+Starting point in `examples/`:
+- `metric-aware-agent/` — adapts strategy per scoring metric, call `llm.chat()` to reason about geometry
 
 The agent runs inside a Docker container:
 - **Time:** 60 seconds | **Memory:** 4 GB | **Network:** enabled (LLM calls only)
