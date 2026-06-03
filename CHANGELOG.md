@@ -7,6 +7,11 @@ Format: newest entries first.
 
 ## [Unreleased]
 
+## 2026-06-04
+
+### Changed
+- **Dockerfile base pinned by digest** (`ubuntu:24.04@sha256:023f...`): prevents silent base-image changes from breaking eval parity across CI runs.
+
 ## 2026-06-03
 
 ### Added
