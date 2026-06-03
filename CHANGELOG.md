@@ -7,6 +7,11 @@ Format: newest entries first.
 
 ## [Unreleased]
 
+## 2026-06-03 (session 14)
+
+### Fixed
+- **Stale 3-model whitelist in docs and code** (PRs #249, #250, #251): `README.md`, `QUICKSTART.md`, `cli.py`, `scripts/run_eval_pool.py`, `scripts/run_hidden_eval.py`, and `agents/template/agent.py` all referenced the old hardcoded 3-model list instead of `config/model-whitelist.txt`. CLI and scripts now load the file at runtime (falling back to the 3-model list only if the file is absent); docs now link to the file directly.
+
 ## 2026-06-03 (session 11)
 
 ### Added
