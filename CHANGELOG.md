@@ -7,6 +7,16 @@ Format: newest entries first.
 
 ## [Unreleased]
 
+## 2026-06-04
+
+### Added
+- **`forge status --round <id>`** (`cli.py`): scope SOTA comparison to one round's 15 specs instead of all 54. Miners testing round_001 agents no longer trigger 54 Docker evals.
+
+### Fixed
+- **`forge submit` NameError** (`cli.py`): `branch` was read before assignment if run outside a git repo (CalledProcessError left it uninitialized).
+- **`forge submit` leaderboard URL** (`cli.py`): link updated from legacy `/leaderboard` to `/leaderboard/overall`.
+- **QUICKSTART `--spec` example** (`QUICKSTART.md`): "Train locally" section showed a file path (`specs/round_001/r01_001_easy.json`) for `--spec` instead of a spec ID (`r01_001_easy`); file paths are not valid for this flag.
+
 ## 2026-06-03
 
 ### Added
