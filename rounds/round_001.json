@@ -1,6 +1,6 @@
 {
   "id": "round_001",
-  "name": "Round 1 — Cantilever Bracket",
+  "name": "Round 1 — Mass Optimization",
   "description": "Fifteen bracket problems across three difficulty tiers. Minimize mass while meeting FEA safety requirements. The best generalist agent wins across all tiers.",
   "status": "active",
   "starts": "2026-06-02",

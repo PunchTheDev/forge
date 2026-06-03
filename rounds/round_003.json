@@ -1,7 +1,7 @@
 {
   "id": "round_003",
-  "name": "Round 3 — Absolute Stiffness",
-  "description": "Minimize tip deflection under load — maximize raw structural stiffness regardless of mass. Heavy, efficiently loaded designs win. Material with high Young's modulus (Al6061, SS316) is decisive.",
+  "name": "Round 3 — Deflection",
+  "description": "Fifteen bracket problems focused on minimizing tip deflection. Lower displacement under load wins — maximize structural stiffness. High-modulus materials (Al 6061, SS 316) have a decisive advantage. The hard tier introduces the full material palette.",
   "status": "active",
   "starts": "2026-06-02",
   "ends": null,
