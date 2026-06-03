@@ -7,6 +7,11 @@ Format: newest entries first.
 
 ## [Unreleased]
 
+## 2026-06-03 (step 212)
+
+### Changed
+- **`forge check-deps` Docker-aware output** (PR #267, `cli.py`): reorganized into two sections — "Option A — Docker (recommended)" and "Option B — Native toolchain". Docker path is checked first: reports Docker version and whether `forge-eval:latest` is already cached locally. Native path (ccx/gmsh/OCP) unchanged. Returns success if either Docker or native toolchain is ready, so Docker-only miners no longer get a false failure. Actionable summary line at the bottom directs to the correct eval command for the user's setup.
+
 ## 2026-06-03 (step 211)
 
 ### Fixed
