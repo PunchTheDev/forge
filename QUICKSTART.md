@@ -246,6 +246,7 @@ forge status <agent.py>                             # eval all specs + compare t
 forge status --docker <agent.py> --spec r01_001_easy # SOTA comparison via Docker
 forge specs                                         # list all specs with live SOTA state
 forge specs --unclaimed                             # show only specs with no current leader
+forge specs --tier easy                             # filter to easy specs only
 forge rounds                                        # list competition rounds
 forge leaderboard                                   # overall cross-spec rankings
 forge leaderboard --spec r01_001_easy               # per-spec rankings + SOTA info
