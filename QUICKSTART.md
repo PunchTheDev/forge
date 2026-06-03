@@ -108,6 +108,7 @@ Reference implementations:
 - `agents/baseline/` — solid bracket baseline; sets the upper-bound score every submission must beat
 - `examples/metric-aware-agent/` — adapts geometry to mass / stiffness / deflection objectives
 - `examples/llm-agent/` — minimal LLM integration example
+- `examples/deterministic-agent/` — pure geometry math, no LLM; shows algorithms are welcome
 
 ---
 

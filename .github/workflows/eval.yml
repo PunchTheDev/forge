@@ -167,10 +167,20 @@ jobs:
               const res = r.result;
               const unit = METRIC_UNIT[r.metric] || '';
               const rname = ROUND_NAME[r.round_id] || r.round_id;
-              const score = res.score;
+              const score = res.score;  // null when eval failed
               const baseline = r.baseline;
               const sota = sotaBySpec[r.spec_id] ?? null;
               const dir = r.direction;
+              const icon = res.passed ? '\u2705' : '\u274c';
+
+              if (!res.passed || score === null) {
+                // Failed eval — show reason, skip numeric cells
+                const reason = (res.reason || 'eval failed').slice(0, 80);
+                compositeNorm += 999;
+                compositeCount++;
+                rows += `| ${icon} ${rname} | \`${r.spec_id}\` | \u2014 | ${fmt(baseline, r.metric)} ${unit} | \u2014 | \u274c ${reason} |\n`;
+                continue;
+              }
 
               // Normalized: lower is always better
               const norm = dir === 'maximize'
@@ -185,11 +195,11 @@ jobs:
               const vsBaseline = (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%';
 
               let sotaCell = '\u2014';
-              if (sota === null && res.passed) {
+              if (sota === null) {
                 // Unclaimed spec — any passing submission sets new SOTA
                 anyBeatsSota = true;
                 sotaCell = '\u2b50 unclaimed \u2014 sets new SOTA';
-              } else if (sota !== null) {
+              } else {
                 const beats = dir === 'maximize' ? score > sota : score < sota;
                 if (beats) {
                   anyBeatsSota = true;
@@ -199,11 +209,10 @@ jobs:
                 }
               }
 
-              const icon = res.passed ? '\u2705' : '\u274c';
               rows += `| ${icon} ${rname} | \`${r.spec_id}\` | **${fmt(score, r.metric)} ${unit}** | ${fmt(baseline, r.metric)} ${unit} | ${vsBaseline} | ${sotaCell} |\n`;
             }
 
-            const composite = compositeCount
+            const composite = allPassed && compositeCount
               ? (compositeNorm / compositeCount * 100).toFixed(1)
               : '\u2014';
 
