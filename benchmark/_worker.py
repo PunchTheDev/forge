@@ -4,9 +4,15 @@ Standalone subprocess worker for agent evaluation.
 Called by sandbox.run_agent() via subprocess.Popen. Runs in a fresh Python
 interpreter so it is immune to multiprocessing fork/semaphore issues.
 
+Agent contract: generate(spec: dict, llm: LLMClient) -> bytes
+  - spec: full problem spec JSON
+  - llm: injected LLMClient bound to a whitelisted model (use llm.chat())
+  - returns: raw STEP file bytes
+  Agents must accept both parameters. Static/no-LLM agents are rejected.
+
 Exit codes:
   0  — STEP bytes written to --out path
-  1  — agent raised an exception (message on stderr)
+  1  — agent raised an exception or rejected (message on stderr)
   2  — generate() returned non-bytes (message on stderr)
   3  — unexpected error outside the agent try/except (message on stderr)
 """
@@ -59,12 +65,18 @@ def main() -> None:
         loader_spec.loader.exec_module(mod)
 
         sig = inspect.signature(mod.generate)
-        if len(sig.parameters) >= 2:
-            from forge.sdk.llm import LLMClient
-            llm = LLMClient()
-            step_bytes = mod.generate(spec, llm)
-        else:
-            step_bytes = mod.generate(spec)
+        if len(sig.parameters) < 2:
+            print(
+                "generate() must accept (spec, llm) — static agents without an LLMClient "
+                "parameter are not permitted. Update your signature to: "
+                "def generate(spec: dict, llm: LLMClient) -> bytes",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
+        from forge.sdk.llm import LLMClient
+        llm = LLMClient()
+        step_bytes = mod.generate(spec, llm)
     except Exception as exc:
         print(f"{type(exc).__name__}: {exc}", file=sys.stderr)
         sys.exit(1)

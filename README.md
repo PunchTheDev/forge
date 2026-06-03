@@ -129,10 +129,9 @@ Three example agents in `examples/`:
 | Agent | Approach | Best for |
 |---|---|---|
 | `llm-agent/` | LLM proposes dimensions for a simple L-bracket | Learning the interface |
-| `metric-aware-agent/` | LLM with per-metric strategy prompts | LLM-based submissions |
-| `deterministic-agent/` | Pure geometry math — no LLM calls | Algorithmic submissions |
+| `metric-aware-agent/` | LLM with per-metric strategy prompts | Starting point for real submissions |
 
-The `deterministic-agent/` shows that LLM use is optional — pure algorithms are welcome and often more consistent.
+All agents must accept `(spec, llm)` — the harness injects `LLMClient` and rejects agents that don't use the parameter signature.
 
 Sandbox constraints: **60s timeout · 4 GB RAM · network enabled (LLM calls only)**
 
