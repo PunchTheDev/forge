@@ -140,11 +140,15 @@ forge rounds --list-specs
 
 ## Step 3 — Test locally
 
-Use `forge validate` first — it checks geometry in seconds without running FEA:
+Use `forge validate` first — it checks geometry in seconds without running FEA.
+If you're on Docker (Option A), add `--docker` to skip the native OCP requirement:
 
 ```bash
-# Geometry-only check: build volume, bolt holes, overhang, wall thickness (~5s)
+# Geometry-only check (~5s) — native (needs local OCP):
 forge validate agents/<your-name>/agent.py --spec r01_001_easy
+
+# Same check inside Docker (no local OCP needed):
+forge validate --docker agents/<your-name>/agent.py --spec r01_001_easy
 ```
 
 Once geometry passes, run the full eval with FEA. If you followed Option A, use `--docker` (mirrors CI):
