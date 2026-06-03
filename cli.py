@@ -797,11 +797,16 @@ def _run_evaluate(agent_path: str, spec_path: str, verbose: bool) -> dict:
 
 
 DOCKER_IMAGE = "forge-eval:latest"
+DOCKER_REMOTE = "ghcr.io/punchthedev/forge-eval:latest"
 DOCKER_TIMEOUT = 25 * 60  # 25 minutes — same cap as CI
 
 
 def _ensure_docker_image() -> int:
-    """Build forge-eval:latest if it does not already exist locally."""
+    """Ensure forge-eval:latest is available locally.
+
+    Tries pulling from GHCR first (fast, pre-built). Falls back to a local
+    build if the pull fails (e.g. no internet, private network).
+    """
     check = subprocess.run(
         ["docker", "image", "inspect", DOCKER_IMAGE],
         capture_output=True,
@@ -809,7 +814,19 @@ def _ensure_docker_image() -> int:
     if check.returncode == 0:
         return 0  # image already present
 
-    print(f"  {CYAN}building forge-eval image (first run — takes ~5 min)…{RESET}")
+    print(f"  {CYAN}pulling forge-eval image from GHCR…{RESET}")
+    pull = subprocess.run(
+        ["docker", "pull", DOCKER_REMOTE],
+    )
+    if pull.returncode == 0:
+        # Tag the pulled image as the local name the rest of the code expects.
+        subprocess.run(
+            ["docker", "tag", DOCKER_REMOTE, DOCKER_IMAGE],
+            capture_output=True,
+        )
+        return 0
+
+    print(f"  {YELLOW}GHCR pull failed — falling back to local build (~5 min)…{RESET}")
     build = subprocess.run(
         ["docker", "build", "-t", DOCKER_IMAGE, str(ROOT)],
     )
