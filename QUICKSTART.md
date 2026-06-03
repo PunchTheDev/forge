@@ -8,14 +8,14 @@ Forge is a competitive parametric CAD benchmark on Gittensor SN74. Submit an `ag
 
 ## Option A — Docker (recommended)
 
-Requires Docker. No local OCP/CalculiX installation needed — the full eval pipeline runs inside the container. The image is built automatically on first use (~5 minutes).
+Requires Docker. No local OCP/CalculiX installation needed — the full eval pipeline runs inside the container. The pre-built image is pulled from GHCR on first use (~1 min download). If the pull fails it falls back to a local build automatically (~5 min).
 
 ```bash
 git clone https://github.com/PunchTheDev/forge.git
 cd forge
 pip install -e .                         # installs the `forge` CLI only
 
-# Build image and run baseline eval (--docker builds on first use)
+# Pull pre-built image and run baseline eval
 forge eval --docker agents/baseline/agent.py --spec r01_001_easy
 ```
 
