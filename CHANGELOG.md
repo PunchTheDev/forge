@@ -7,6 +7,12 @@ Format: newest entries first.
 
 ## [Unreleased]
 
+## 2026-06-03 (step 241)
+
+### Fixed
+- **`forge eval --docker` with directory agent path** (PR #297, `cli.py`): `_run_evaluate_docker` did not resolve a directory arg (e.g. `agents/baseline`) to `agent.py` before computing the relative path — caused "Cannot locate agent module" error inside the container. Added `resolved_agent / "agent.py"` fallback matching native eval path behaviour.
+- **Build volume check floating-point tolerance** (PR #298, `benchmark/geometry.py`): parts whose bounding box exactly matched the build volume (e.g. 100.0 × 80.0 × 80.0 mm) failed the check due to OCP `Bnd_Box` precision. Added 0.01 mm tolerance. Test count: 74 → 75.
+
 ## 2026-06-03 (step 238)
 
 ### Added
