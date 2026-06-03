@@ -29,15 +29,19 @@ def generate(spec: dict, llm: LLMClient) -> bytes:  # noqa: ARG001
     constraints = spec["constraints"]
     bolt_pattern = constraints["bolt_pattern_mm"]
     bolt_d = constraints["bolt_diameter_clearance_mm"]
+    bv = constraints["build_volume_mm"]  # [x, y, z] limits
+    load_pt = constraints["load_point_mm"]
 
     by_coords = [p[0] for p in bolt_pattern]
     bz_coords = [p[1] for p in bolt_pattern]
-    plate_y = max(by_coords) + 20.0
-    plate_z = max(bz_coords) + 20.0
+    # Clamp to build volume so the bracket always fits
+    plate_y = min(max(by_coords) + 20.0, bv[1])
+    plate_z = min(max(bz_coords) + 20.0, bv[2])
     plate_thickness = 10.0
 
-    shelf_length = constraints["load_point_mm"][0] + 15.0
-    shelf_thickness = 12.0
+    # Shelf must reach the load point in X and cover its Z coordinate
+    shelf_length = min(load_pt[0] + 15.0, bv[0])
+    shelf_thickness = min(max(15.0, load_pt[2] + 10.0), bv[2])
     shelf_z = plate_z
 
     # Mounting plate
