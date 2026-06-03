@@ -7,6 +7,12 @@ Format: newest entries first.
 
 ## [Unreleased]
 
+## 2026-06-03 (step 234)
+
+### Docs
+- **Fix round_003 "Absolute Stiffness" label** (PR #283, `eval.yml`, `README.md`, `QUICKSTART.md`, `scripts/rotate_round.py`): round_003 is `deflection_mm` (minimize tip deflection), not "absolute stiffness". Fixed in the CI PR comment table (`ROUND_NAME`), README example table, QUICKSTART intro, and `rotate_round.py` ROUND_NAMES. Also unified "stiffness-to-weight" → "stiffness/weight" in intro paragraphs across README and QUICKSTART.
+- **Dashboard label consistency** (forge-dashboard PR #53, `App.tsx`, `QuickstartGuide.tsx`): landing hero and step-01 card used "stiffness-to-weight" (hyphen) while every metric display uses "Stiffness/weight" (slash). Unified throughout.
+
 ## 2026-06-03 (step 233)
 
 ### Added
