@@ -7,6 +7,15 @@ Format: newest entries first.
 
 ## [Unreleased]
 
+## 2026-06-03 (session 2)
+
+### Fixed
+- **Baseline agent build-volume overflow** (PR #214, `agents/baseline/agent.py`): naive L-bracket used `max_bolt_coord + 20mm` for plate dimensions, exceeding build volume on some specs; also `shelf_thickness=12mm` fixed regardless of spec load-point Z, causing "too few nodes near load point" FEA failure. Fixed: all dimensions clamped to build volume with 2mm margin; shelf height computed from `load_point_mm[2]`.
+- **CONTRIBUTING model IDs** (PR #215): model IDs were shown without provider prefix (`claude-haiku-4-5` vs `anthropic/claude-haiku-4-5`); corrected to match `FORGE_MODEL_WHITELIST` format. Added `llm-agent/` to examples list.
+
+### Changed
+- **score.yml serialization** (PR #216, `.github/workflows/score.yml`): add `concurrency: group: score-main, cancel-in-progress: false` to serialize post-merge full scoring runs. Prevents concurrent SQLite writes overwhelming forge-api at high miner volume.
+
 ## 2026-06-03
 
 ### Added
