@@ -225,7 +225,8 @@ forge new <name>                            # scaffold a new agent
 forge eval <agent.py> --spec r01_001_easy   # eval against one spec
 forge eval <agent.py> --round round_001     # eval across a round
 forge eval <agent.py> --json               # JSON output for scripting
-forge specs                                # list all available specs
+forge specs                                # list all specs with live SOTA state
+forge specs --unclaimed                    # show only specs with no current leader
 forge rounds                               # list competition rounds
 forge leaderboard                          # show overall rankings
 forge leaderboard --history r01_001_easy   # SOTA progression for a spec

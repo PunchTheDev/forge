@@ -105,6 +105,7 @@ def cmd_new(args: argparse.Namespace) -> int:
 
 def cmd_specs(args: argparse.Namespace) -> int:
     round_filter: str | None = getattr(args, "round", None)
+    unclaimed_only: bool = getattr(args, "unclaimed", False)
 
     # Resolve allowed spec IDs from round manifest if --round given
     allowed_ids: set[str] | None = None
@@ -121,28 +122,65 @@ def cmd_specs(args: argparse.Namespace) -> int:
     if data:
         if allowed_ids is not None:
             data = [s for s in data if s.get("id") in allowed_ids]
-        label = f"Specs — {round_filter}  (live)" if round_filter else "Specs  (live)"
+
+        # Fetch all SOTA records in one call and index by spec_id.
+        sota_list = _fetch_json("/sota") or []
+        sota_by_id: dict[str, dict] = {r["spec_id"]: r for r in sota_list if isinstance(r, dict) and "spec_id" in r}
+
+        if unclaimed_only:
+            data = [s for s in data if s.get("id") not in sota_by_id]
+
+        label_parts = []
+        if round_filter:
+            label_parts.append(round_filter)
+        if unclaimed_only:
+            label_parts.append("unclaimed only")
+        label = "Specs — " + ", ".join(label_parts) + "  (live)" if label_parts else "Specs  (live)"
         _header(label)
-        print(f"  {'ID':<20} {'NAME':<28} {'MATERIAL':<12} {'LOAD':>8}  {'BUILD VOL (mm)':>18}  {'BASELINE':>10}")
-        print(f"  {'─' * 100}")
+
+        has_sota = bool(sota_by_id)
+        if has_sota:
+            print(f"  {'ID':<22} {'MAT':<8} {'LOAD':>8}  {'BASELINE':>14}  {'SOTA':>14}  STATUS")
+            print(f"  {'─' * 78}")
+        else:
+            print(f"  {'ID':<22} {'NAME':<26} {'MAT':<8} {'LOAD':>8}  {'BASELINE':>14}")
+            print(f"  {'─' * 88}")
+
         for s in data:
-            sid = s.get("id", "?")[:18]
-            name = s.get("name", "?")[:26]
-            mat = s.get("material", "?")[:10]
+            sid = s.get("id", "?")
+            mat = (s.get("material", "?") or "?")[:7]
             c = s.get("constraints", {})
-            load = c.get("load_newtons", "?")
-            bv = c.get("build_volume_mm", [])
-            bv_str = f"{bv[0]:.0f}x{bv[1]:.0f}x{bv[2]:.0f}" if len(bv) == 3 else "?"
+            load = c.get("load_newtons", 0)
             sc = s.get("scoring", {})
             metric = sc.get("metric", "mass_grams")
             baseline = (
                 sc.get("baseline_mass_grams")
                 or sc.get("baseline_stiffness_to_weight")
                 or sc.get("baseline_deflection_mm")
-                or "?"
+                or 0
             )
-            baseline_str = _fmt_score(baseline, metric) if isinstance(baseline, (int, float)) else "?"
-            print(f"  {sid:<20} {name:<28} {mat:<12} {load:>8}N  {bv_str:>18}  {baseline_str:>10}")
+            baseline_str = _fmt_score(baseline, metric) if isinstance(baseline, (int, float)) and baseline else "?"
+
+            if has_sota:
+                sota = sota_by_id.get(sid)
+                if sota:
+                    sota_score = sota.get("score") or sota.get("mass_grams")
+                    sota_str = _fmt_score(sota_score, metric) if sota_score is not None else "?"
+                    by = sota.get("contributor", "?")[:10]
+                    status = f"{RESET}by {by}"
+                else:
+                    sota_str = "OPEN"
+                    status = f"{GREEN}unclaimed{RESET}"
+                sota_col = f"{GREEN}{sota_str:<14}{RESET}" if sota is None else f"{sota_str:<14}"
+                print(f"  {sid:<22} {mat:<8} {load:>8.1f}N  {baseline_str:>14}  {sota_col}  {status}")
+            else:
+                name = s.get("name", "?")[:24]
+                print(f"  {sid:<22} {name:<26} {mat:<8} {load:>8.1f}N  {baseline_str:>14}")
+
+        unclaimed_count = sum(1 for s in data if s.get("id") not in sota_by_id)
+        if has_sota and not unclaimed_only:
+            total = len(data)
+            print(f"\n  {GREEN}{unclaimed_count} unclaimed{RESET} / {total} shown  — run 'forge specs --unclaimed' to filter")
         print()
         return 0
 
@@ -799,7 +837,8 @@ HELP_TEXT = f"""{BOLD}{CYAN}  forge — Parametric CAD Benchmark CLI{RESET}
     {GREEN}forge new <name>{RESET}               Scaffold a new agent in agents/<name>/
     {GREEN}forge eval <agent>{RESET}             Run benchmark locally against all specs
     {GREEN}forge status <agent>{RESET}           Eval and compare against live SOTA
-    {GREEN}forge specs{RESET}                    List all problem specs (live API + local)
+    {GREEN}forge specs{RESET}                    List all specs with current SOTA state
+    {GREEN}forge specs --unclaimed{RESET}        Show only specs with no current leader
     {GREEN}forge rounds{RESET}                   List competition rounds and their spec sets
     {GREEN}forge leaderboard{RESET}              Overall contributor rankings + unclaimed spec summary
     {GREEN}forge leaderboard --spec <id>{RESET}  Per-spec ranking and SOTA for one spec
@@ -872,6 +911,7 @@ def main() -> None:
 
     p_specs = sub.add_parser("specs", help="List available problem specs")
     p_specs.add_argument("--round", metavar="ID", help="Filter to specs in one round (e.g. round_001)")
+    p_specs.add_argument("--unclaimed", action="store_true", help="Show only specs with no current SOTA")
     p_specs.set_defaults(func=cmd_specs)
 
     p_rounds = sub.add_parser("rounds", help="List competition rounds and spec sets")
