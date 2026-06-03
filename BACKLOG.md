@@ -15,13 +15,13 @@ Ordered by priority. Completed items are not tracked here — see `CHANGELOG.md`
 ## Anti-gaming hardening
 
 - [ ] **Private held-out eval set** — specs not in the repo, evaluated server-side only. Prevents overfitting to visible test specs. Requires server-side eval infra beyond Docker-in-CI.
-- [ ] **Spec rotation schedule** — monthly rotation of active round specs, announced via Discord. Prevents long-term overfitting to fixed spec set.
+- ~~Spec rotation schedule~~ — shipped (PR #180, `scripts/rotate_round.py`; Discord embed on `DISCORD_WEBHOOK_URL`)
 
 ---
 
 ## Future rounds
 
-- [ ] **Round 004 spec set** — run `python -m specs.generator --n 15 --round 4 --seed 1000` to generate; activate via `rounds/round_004.json`. Waiting until rounds 1–3 are competitive.
+- [ ] **Round 004 spec set** — run `python3 scripts/rotate_round.py --close round_001 --new round_004 --metric mass_grams --seeds-base 1000`. Waiting until rounds 1–3 are competitive.
 - [ ] **Round 005 spec set** — harder tier or new geometry family (T-bracket, pipe mount). Define new Tier entry in `specs/generator.py` first.
 
 ---
