@@ -39,6 +39,21 @@ def _fetch_json(path: str, timeout: int = 6) -> dict | list | None:
         return None
 
 
+def _fetch_json_with_status(path: str, timeout: int = 6) -> tuple[dict | list | None, int | None]:
+    """Like _fetch_json but also returns the HTTP status code.
+
+    Returns (data, status) where status is None if the API is unreachable.
+    Useful for distinguishing 404 (resource not found) from network failure.
+    """
+    try:
+        with urllib.request.urlopen(f"{API_BASE}{path}", timeout=timeout) as r:
+            return json.loads(r.read()), r.status
+    except urllib.error.HTTPError as exc:
+        return None, exc.code
+    except (urllib.error.URLError, json.JSONDecodeError, OSError):
+        return None, None
+
+
 def _ok(msg: str) -> None:
     print(f"  {GREEN}PASS{RESET}  {msg}")
 
@@ -691,7 +706,7 @@ def cmd_eval(args: argparse.Namespace) -> int:
             spec_id = r["spec"]
             score = r["score"]
             metric = r.get("score_metric", "mass_grams")
-            sota = _fetch_json(f"/sota/{spec_id}")
+            sota, sota_status = _fetch_json_with_status(f"/sota/{spec_id}")
             if sota and isinstance(sota, dict):
                 sota_score = sota.get("score") or sota.get("mass_grams")
                 sota_dir = sota.get("score_direction", "minimize")
@@ -712,7 +727,8 @@ def cmd_eval(args: argparse.Namespace) -> int:
                             else:
                                 print(f"  {YELLOW}Does not beat SOTA ({_fmt_score(sota_score, sota_metric)}).{RESET}")
                     print()
-            elif sota is None:
+            elif sota_status == 404:
+                # Spec exists but no submissions yet — any passing entry sets the record.
                 print(f"  {'─' * 62}")
                 print(f"  {GREEN}No SOTA yet — this submission would set the record!{RESET}")
                 print()
