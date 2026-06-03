@@ -1,0 +1,63 @@
+{
+  "id": "th_3923735",
+  "version": "1.0",
+  "name": "Free Download: Reaching Wall Hands - Thumbtack Mountable [medium]",
+  "description": "A medium-difficulty cantilever bracket in Aluminum 6061-T6. Mounts flush to a vertical wall and cantilevers a 49.5 kg load 81 mm from the wall face. Minimize mass while surviving the load.",
+  "material": "aluminum_6061",
+  "constraints": {
+    "load_newtons": 486.0,
+    "load_point_mm": [
+      81.3,
+      47.4,
+      37.8
+    ],
+    "safety_factor": 2.0,
+    "bolt_pattern_mm": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        41.1,
+        0.0
+      ],
+      [
+        82.2,
+        0.0
+      ],
+      [
+        0.0,
+        41.1
+      ],
+      [
+        41.1,
+        41.1
+      ],
+      [
+        82.2,
+        41.1
+      ]
+    ],
+    "bolt_diameter_clearance_mm": 5.5,
+    "mount_face_x_mm": 0.0,
+    "build_volume_mm": [
+      158.8,
+      94.8,
+      75.5
+    ],
+    "max_overhang_deg": 45.0,
+    "min_wall_thickness_mm": 1.2
+  },
+  "scoring": {
+    "metric": "mass_grams",
+    "direction": "minimize",
+    "baseline_mass_grams": 431.6
+  },
+  "source": {
+    "platform": "thingiverse",
+    "thing_id": 3923735,
+    "url": "https://www.thingiverse.com/thing:3923735",
+    "thumbnail": "https://cdn.thingiverse.com/assets/dc/8f/d6/a4/05/910803c6-fd16-4ae5-9c46-3fa0de323fa1.jpg",
+    "original_name": "Free Download: Reaching Wall Hands - Thumbtack Mountable"
+  }
+}
