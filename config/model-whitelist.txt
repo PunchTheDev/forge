@@ -5,9 +5,12 @@
 
 # Anthropic — Claude
 anthropic/claude-haiku-4-5
+anthropic/claude-haiku-4-5-20251001
 anthropic/claude-3-5-haiku
 anthropic/claude-3-5-sonnet
 anthropic/claude-sonnet-4-5
+anthropic/claude-sonnet-4-6
+anthropic/claude-opus-4-6
 
 # OpenAI — GPT
 openai/gpt-4o-mini
