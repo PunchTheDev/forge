@@ -86,9 +86,10 @@ def cmd_new(args: argparse.Namespace) -> int:
     else:
         # Minimal working scaffold
         dest_file.write_text(
-            '"""Agent: {name}. Implement generate(spec) -> bytes (STEP)."""\n'
-            "from __future__ import annotations\n\n\n"
-            "def generate(spec: dict) -> bytes:\n"
+            f'"""Agent: {name}. Implement generate(spec, llm) -> bytes (STEP)."""\n'
+            "from __future__ import annotations\n\n"
+            "from forge.sdk.llm import LLMClient\n\n\n"
+            "def generate(spec: dict, llm: LLMClient) -> bytes:\n"
             "    constraints = spec[\"constraints\"]\n"
             "    # TODO: build geometry and return STEP bytes\n"
             "    raise NotImplementedError\n"
