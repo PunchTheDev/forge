@@ -104,10 +104,10 @@ def generate(spec: dict, llm: LLMClient) -> bytes:
 
 No API key needed — the harness injects `LLMClient` automatically using whitelisted models. See `examples/metric-aware-agent/agent.py` for a recommended starting point that adapts strategy to all three competition categories.
 
-Reference implementations in `agents/`:
-- `taper-beam/` — clean I-beam (~38g)
-- `lean-arm/` — I-beam baseline (~32g)
-- `compact-arm/` — pocketed arm approach
+Reference implementations:
+- `agents/baseline/` — solid bracket baseline; sets the upper-bound score every submission must beat
+- `examples/metric-aware-agent/` — adapts geometry to mass / stiffness / deflection objectives
+- `examples/llm-agent/` — minimal LLM integration example
 
 ---
 
@@ -218,7 +218,7 @@ Interactive docs: http://143.244.191.193:8000/docs
 - **Minimum wall = 2–3 mm**: C3D4 linear tets fail to resolve stress in walls thinner than 2 mm.
 - **Determinism is required**: if your design uses randomness, fix `random.seed(42)`. CI runs the first spec twice and both scores must match.
 - **AP214IS STEP schema**: always set `Interface_Static.SetCVal_s("write.step.schema", "AP214IS")` before writing STEP. AP203 causes SIGSEGV on complex geometry.
-- **Use build123d**: cleaner parametric API than raw OCP. See `agents/taper-beam/` for an OCP example.
+- **Use build123d**: cleaner parametric API than raw OCP. See `agents/baseline/agent.py` for an OCP example using raw `BRepPrimAPI`.
 - **Read the spec metric**: round_001 = mass, round_002 = stiffness/weight, round_003 = deflection. Your geometry strategy should differ for each.
 
 ---
