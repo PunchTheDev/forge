@@ -38,7 +38,9 @@ def generate(spec: dict) -> bytes:
 
 The harness detects which signature you use and injects `LLMClient` automatically — no API key required. Whitelisted models: `claude-haiku-4-5`, `claude-3-5-haiku`, `gpt-4o-mini`.
 
-See `examples/metric-aware-agent/agent.py` for the recommended starting point — it reads `spec["scoring"]["metric"]` and adapts geometry strategy for all three competition categories.
+Two starting points in `examples/`:
+- `metric-aware-agent/` — LLM-based, adapts strategy per scoring metric (recommended for LLM agents)
+- `deterministic-agent/` — pure geometry math, no LLM (shows algorithmic approach)
 
 The agent runs inside a Docker container:
 - **Time:** 60 seconds | **Memory:** 4 GB | **Network:** enabled (LLM calls only)
