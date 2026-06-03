@@ -28,6 +28,5 @@ Ordered by priority. Completed items are not tracked here — see `CHANGELOG.md`
 
 ## Hardening (low priority)
 
-- [ ] Pin Docker image by digest (not tag) in CI — prevents silent image changes breaking eval parity
 - [ ] Randomized load-case perturbations (±10% load, ±5° direction) — hardens against stress-test gaming
 - [ ] Pre-commit hooks (black, ruff, mypy) for `benchmark/` code — local dev quality gate

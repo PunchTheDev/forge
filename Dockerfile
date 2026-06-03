@@ -1,8 +1,10 @@
 # Forge evaluation container
 # Provides: Python 3.12, build123d (OCP), gmsh, CalculiX (ccx)
 # All CPU-only. No GPU required.
-
-FROM ubuntu:24.04
+#
+# Base image pinned by digest to guarantee eval parity across runs.
+# To update: docker pull ubuntu:24.04 && docker inspect --format '{{index .RepoDigests 0}}'
+FROM ubuntu:24.04@sha256:023f8a753c22258c9fe2d0005a7d28258038da7d620e9f93e9ad78aa266f9f11
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONDONTWRITEBYTECODE=1
