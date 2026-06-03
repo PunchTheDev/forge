@@ -102,7 +102,7 @@ def generate(spec: dict, llm: LLMClient) -> bytes:
     ...
 ```
 
-No API key needed — the harness injects `LLMClient` automatically using whitelisted models. See `examples/llm-agent/agent.py` for a complete working example.
+No API key needed — the harness injects `LLMClient` automatically using whitelisted models. See `examples/metric-aware-agent/agent.py` for a recommended starting point that adapts strategy to all three competition categories.
 
 Reference implementations in `agents/`:
 - `taper-beam/` — clean I-beam (~38g)
