@@ -7,6 +7,11 @@ Format: newest entries first.
 
 ## [Unreleased]
 
+## 2026-06-03 (step 233)
+
+### Added
+- **`forge validate --docker`** (PR #281, `cli.py`, `QUICKSTART.md`): geometry-only check now runs inside the forge-eval Docker container when `--docker` is passed. Previously Docker-only miners had no fast feedback path — `forge validate` required local OCP, and `forge eval --docker` ran the full FEA pipeline (30-90s). The new path runs the agent + geometry check in Docker in ~5-10s with no native toolchain. `_run_evaluate_docker` accepts `geometry_only=True`, appending `--geometry-only` to the container command. QUICKSTART Step 3 updated to document both paths.
+
 ## 2026-06-03 (step 232)
 
 ### Docs
