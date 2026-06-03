@@ -7,6 +7,16 @@ Format: newest entries first.
 
 ## [Unreleased]
 
+## 2026-06-03 (session 9)
+
+### Security
+- **Block eval-code injection via workspace volume mount** (PR #233, `.github/workflows/eval.yml`): a miner could open a PR modifying both `agents/alice/agent.py` and `benchmark/evaluate.py`; since the entire workspace is volume-mounted into the Docker container, their modified eval code would run, enabling arbitrary score fabrication. Added `infra_guard` CI step that rejects any agent PR touching `benchmark/`, `scripts/`, `Dockerfile`, or `.github/` paths.
+
+### Fixed
+- **`_parse_frd_stress` fixed-width column parsing** (PR #232, `benchmark/fea.py`): CalculiX `.frd` uses fixed-width E12.5 format; adjacent negative values can concatenate without whitespace, causing `line.split()` to merge tokens. Shear components S12/S13/S23 could be silently dropped, underestimating von Mises stress. Switched to column-offset parsing (matching `_parse_frd_displacement`), with split-based fallback.
+- **Eval preview container zombie on timeout** (forge-api PR #45, `app/routes/eval_preview.py`): `proc.kill()` sends SIGKILL to the docker client subprocess, but the container continues running. Added named container + explicit `docker kill <name>` on `asyncio.TimeoutError`.
+- **Preview container missing security flags** (forge-api PR #45): `--cap-drop ALL` and `--pids-limit 256` were present in CI eval sandbox but absent from the live preview endpoint.
+
 ## 2026-06-03 (session 8)
 
 ### Added
