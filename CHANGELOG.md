@@ -5,6 +5,14 @@ Format: newest entries first.
 
 ---
 
+## 2026-06-03 (step 245)
+
+### Fixed
+- **`mass_grams` recorded for all passing evals** (PR #303, `benchmark/evaluate.py`, `scripts/record_submissions.py`): stiffness/weight and deflection submissions previously stored `mass_grams=0.0` because the field was only set for mass-metric specs. `EvalResult` now carries `mass_grams` populated from `geo.mass_grams` on every successful evaluation; `record_submissions.py` reads it directly, falling back to the old logic only when absent.
+
+### Changed
+- **`forge specs` defaults to active rounds** (PR #303, `cli.py`): the default `forge specs` output now filters to the 45 active-round specs instead of showing all 119 (including legacy Thingiverse specs). New `--all` flag restores the full listing. A footer hint is shown when active-only mode is active.
+
 ## 2026-06-03 (step 244)
 
 ### Added
