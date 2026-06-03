@@ -490,6 +490,11 @@ def cmd_eval(args: argparse.Namespace) -> int:
         print(f"{RED}error:{RESET} agent not found: {agent_path}", file=sys.stderr)
         return 1
 
+    use_docker = getattr(args, "docker", False)
+    if use_docker and shutil.which("docker") is None:
+        print(f"{RED}error:{RESET} docker not found — install Docker Desktop or Engine first", file=sys.stderr)
+        return 1
+
     if getattr(args, "round", None):
         spec_files = _specs_for_round(args.round)
         if not spec_files:
@@ -513,6 +518,11 @@ def cmd_eval(args: argparse.Namespace) -> int:
         print(f"{RED}error:{RESET} no specs found in specs/", file=sys.stderr)
         return 1
 
+    if use_docker:
+        rc = _ensure_docker_image()
+        if rc != 0:
+            return rc
+
     overall_pass = True
     results = []
 
@@ -525,7 +535,10 @@ def cmd_eval(args: argparse.Namespace) -> int:
         print(f"  agent: {agent_path}")
         print(f"{'─' * 64}")
 
-        result = _run_evaluate(str(agent_path), str(spec_file), verbose=not args.json)
+        if use_docker:
+            result = _run_evaluate_docker(str(agent_path), str(spec_file), verbose=not args.json)
+        else:
+            result = _run_evaluate(str(agent_path), str(spec_file), verbose=not args.json)
         results.append({"spec": spec_id, **result})
 
         if not result["passed"]:
@@ -783,6 +796,118 @@ def _run_evaluate(agent_path: str, spec_path: str, verbose: bool) -> dict:
     return result
 
 
+DOCKER_IMAGE = "forge-eval:latest"
+DOCKER_TIMEOUT = 25 * 60  # 25 minutes — same cap as CI
+
+
+def _ensure_docker_image() -> int:
+    """Build forge-eval:latest if it does not already exist locally."""
+    check = subprocess.run(
+        ["docker", "image", "inspect", DOCKER_IMAGE],
+        capture_output=True,
+    )
+    if check.returncode == 0:
+        return 0  # image already present
+
+    print(f"  {CYAN}building forge-eval image (first run — takes ~5 min)…{RESET}")
+    build = subprocess.run(
+        ["docker", "build", "-t", DOCKER_IMAGE, str(ROOT)],
+    )
+    if build.returncode != 0:
+        print(f"{RED}error:{RESET} docker build failed (see output above)", file=sys.stderr)
+        return 1
+    return 0
+
+
+def _run_evaluate_docker(agent_path: str, spec_path: str, verbose: bool) -> dict:
+    """Run the eval inside the forge-eval Docker container (mirrors CI behaviour)."""
+    import uuid
+
+    workspace = str(ROOT)
+    agent_rel = str(Path(agent_path).resolve().relative_to(ROOT))
+    spec_rel = str(Path(spec_path).resolve().relative_to(ROOT))
+
+    wl_path = ROOT / "config" / "model-whitelist.txt"
+    if wl_path.exists():
+        wl = ",".join(
+            l.strip() for l in wl_path.read_text().splitlines()
+            if l.strip() and not l.strip().startswith("#")
+        )
+    else:
+        wl = "anthropic/claude-haiku-4-5,anthropic/claude-3-5-haiku,openai/gpt-4o-mini"
+
+    llm_key = os.environ.get("FORGE_LLM_KEY", os.environ.get("OPENROUTER_KEY", ""))
+    model = os.environ.get("FORGE_MODEL", "anthropic/claude-haiku-4-5")
+
+    container_name = f"forge-eval-local-{uuid.uuid4().hex[:8]}"
+    cmd = [
+        "docker", "run", "--rm",
+        "--name", container_name,
+        "--security-opt", "no-new-privileges",
+        "--cap-drop", "ALL",
+        "--pids-limit", "256",
+        "--memory", "4g",
+        "--cpus", "2",
+        "-e", f"FORGE_LLM_KEY={llm_key}",
+        "-e", f"FORGE_MODEL={model}",
+        "-e", f"FORGE_MODEL_WHITELIST={wl}",
+        "-v", f"{workspace}:/forge",
+        DOCKER_IMAGE,
+        "--agent", f"/forge/{agent_rel}",
+        "--spec", f"/forge/{spec_rel}",
+        "--json",
+    ]
+
+    try:
+        proc = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=DOCKER_TIMEOUT
+        )
+    except subprocess.TimeoutExpired:
+        subprocess.run(["docker", "kill", container_name], capture_output=True)
+        return {"passed": False, "stage": "error", "reason": f"eval timed out after {DOCKER_TIMEOUT // 60} minutes"}
+
+    stdout = proc.stdout.strip()
+    result: dict = {}
+    for line in stdout.splitlines():
+        line = line.strip()
+        if line.startswith("{"):
+            try:
+                result = json.loads(line)
+                break
+            except json.JSONDecodeError:
+                pass
+
+    if not result and stdout:
+        try:
+            result = json.loads(stdout)
+        except json.JSONDecodeError:
+            stderr_tail = proc.stderr.strip()[-300:] if proc.stderr.strip() else ""
+            hint = f" | stderr: {stderr_tail}" if stderr_tail else ""
+            result = {"passed": False, "stage": "error", "reason": f"{stdout[:120]}{hint}"}
+
+    if not result:
+        stderr_tail = proc.stderr.strip()[-300:] if proc.stderr.strip() else ""
+        result = {"passed": False, "stage": "error", "reason": stderr_tail or "no output from container"}
+
+    if verbose:
+        if result.get("passed"):
+            score = result.get("score", "?")
+            stress = result.get("fea_stress_mpa", "?")
+            allowable = result.get("fea_allowable_mpa", "?")
+            elapsed = result.get("elapsed_seconds", "?")
+            metric = result.get("score_metric", "mass_grams")
+            score_str = _fmt_score(score, metric) if isinstance(score, (int, float)) else str(score)
+            elapsed_str = f"{elapsed:.1f}s" if isinstance(elapsed, (int, float)) else str(elapsed)
+            _ok(f"score={score_str}  stress={stress}/{allowable} MPa  t={elapsed_str}")
+        else:
+            stage = result.get("stage", "?")
+            reason = result.get("reason", "unknown error")
+            _fail(f"stage={stage}")
+            print(f"         reason: {reason}")
+
+    return result
+
+
 def _print_summary_table(results: list[dict]) -> None:
     print(f"\n{'─' * 64}")
     print(f"  {'SPEC':<20} {'STATUS':<8} {'SCORE':>8}  NOTES")
@@ -856,6 +981,7 @@ HELP_TEXT = f"""{BOLD}{CYAN}  forge — Parametric CAD Benchmark CLI{RESET}
     --spec ID      Run against one spec (partial match: 001, bracket, ...)
     --round ID     Run against all specs in a competition round
     --all          Run against all specs including round subdirectories
+    --docker       Run inside Docker container (mirrors CI; no local OCP/ccx needed)
     --json         Output raw JSON
 
   {BOLD}Environment:{RESET}
@@ -907,6 +1033,7 @@ def main() -> None:
     p_eval.add_argument("--spec", metavar="ID", help="Spec ID or partial name")
     p_eval.add_argument("--round", metavar="ID", help="Run all specs in a competition round")
     p_eval.add_argument("--all", action="store_true", help="Run against all specs including round subdirs")
+    p_eval.add_argument("--docker", action="store_true", help="Run inside Docker (mirrors CI; builds image on first use)")
     p_eval.add_argument("--json", action="store_true", help="Output JSON")
     p_eval.set_defaults(func=cmd_eval)
 
