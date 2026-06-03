@@ -72,9 +72,19 @@ jobs:
             echo "cached=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Set up Docker Buildx
+        if: steps.agent.outputs.found == 'true' && steps.similarity.outcome == 'success' && steps.dedup.outputs.cached != 'true'
+        uses: docker/setup-buildx-action@v3
+
       - name: Build eval image
         if: steps.agent.outputs.found == 'true' && steps.similarity.outcome == 'success' && steps.dedup.outputs.cached != 'true'
-        run: docker build -t forge-eval .
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          load: true
+          tags: forge-eval:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Verify OCP in subprocess
         if: steps.agent.outputs.found == 'true' && steps.similarity.outcome == 'success' && steps.dedup.outputs.cached != 'true'
