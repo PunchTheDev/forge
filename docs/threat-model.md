@@ -131,6 +131,19 @@ This document describes the attack surface of the Forge benchmark and the mitiga
 
 ---
 
+## Threat 8 — Load-case overfitting
+
+**Attack:** Tune a design exactly to the published nominal load (magnitude and direction). For example, a miner could orient internal ribs precisely along the known force direction, producing a design that excels at exactly 500 N downward but would fail or underperform at 490 N or 5° off-axis.
+
+**Mitigations:**
+- **Implemented: Load-case perturbation** (`benchmark/fea.py: _perturb_load`). The actual load applied in FEA is seeded by `spec_id` (not published in spec JSON). Perturbation: ±10% magnitude, ±5° polar deviation from nominal -Z direction. Miners see only `load_newtons` in the spec file; the actual load is deterministic per spec but opaque without reading the source.
+- All submissions for the same spec face the same perturbed load — leaderboard scores remain comparable.
+- `applied_load_n` is returned in eval JSON for transparency.
+
+**Residual risk:** Low-medium. A miner who reads `fea.py` can compute the exact perturbation from `spec_id`. The cost of doing so is non-trivial and provides at most ±10%/±5° intelligence — not a meaningful exploit for well-engineered designs.
+
+---
+
 ## Summary table
 
 | Threat | Severity | Status |
@@ -142,3 +155,4 @@ This document describes the attack surface of the Forge benchmark and the mitiga
 | Code injection | High | Partially mitigated (`--cap-drop ALL`, `--pids-limit`) |
 | Sybil submissions | Low | Mitigated (credibility + min PR requirement) |
 | Eval overfitting | Medium | Partially mitigated (rotation) |
+| Load-case overfitting | Low | Mitigated (seeded load perturbation in FEA) |

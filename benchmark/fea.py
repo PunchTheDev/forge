@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import math
 import os
+import random
 import re
 import subprocess
 import tempfile
@@ -34,6 +35,8 @@ class FEAResult:
     convergence_deviation: float | None = None
     # Max absolute Z-displacement at any node (mm). Populated on successful solve.
     max_displacement_mm: float | None = None
+    # Actual load magnitude applied (N). May differ from spec due to perturbation.
+    applied_load_n: float | None = None
 
 
 MESH_SIZE_MM = 4.0        # coarse element length — fast; used for first pass
@@ -156,7 +159,9 @@ def _run_at_mesh_size(
                 load_node_count=len(load_nodes),
             )
 
-        _write_inp(inp_path, nodes, elements, bolt_nodes, load_nodes, spec, mat)
+        load_vector = _perturb_load(spec)
+        applied_magnitude = math.sqrt(sum(c ** 2 for c in load_vector))
+        _write_inp(inp_path, nodes, elements, bolt_nodes, load_nodes, load_vector, mat)
 
         try:
             _run_ccx(tmpdir, "job")
@@ -197,6 +202,7 @@ def _run_at_mesh_size(
             element_count=len(elements),
             load_node_count=len(load_nodes),
             max_displacement_mm=max_disp,
+            applied_load_n=applied_magnitude,
         )
 
 
@@ -296,21 +302,46 @@ def _find_load_nodes(nodes: dict, spec: dict, tol: float = 15.0) -> list[int]:
     return result
 
 
+def _perturb_load(spec: dict) -> tuple[float, float, float]:
+    """
+    Return a perturbed load vector (Fx, Fy, Fz) in Newtons, seeded by spec id.
+
+    Nominal load is applied in -Z only. Perturbation:
+      - Magnitude: ±10% (uniform, seeded by spec id)
+      - Direction: ±5° polar deviation from -Z axis, random azimuth
+
+    Seeded deterministically by spec id so every submission for the same spec
+    faces identical loading — scores remain comparable across miners.
+    Miners see only the nominal load_newtons in the spec JSON.
+    """
+    rng = random.Random(spec["id"])
+    load_n = spec["constraints"]["load_newtons"]
+
+    magnitude = load_n * (1.0 + rng.uniform(-0.10, 0.10))
+    theta = math.radians(rng.uniform(0.0, 5.0))   # polar angle from -Z
+    phi = math.radians(rng.uniform(0.0, 360.0))   # azimuth
+
+    fx = magnitude * math.sin(theta) * math.cos(phi)
+    fy = magnitude * math.sin(theta) * math.sin(phi)
+    fz = -magnitude * math.cos(theta)
+    return fx, fy, fz
+
+
 def _write_inp(
     inp_path: str,
     nodes: dict,
     elements: list,
     bolt_nodes: list[int],
     load_nodes: list[int],
-    spec: dict,
+    load_vector: tuple[float, float, float],
     mat: dict,
 ) -> None:
-    """Write CalculiX .inp file."""
+    """Write CalculiX .inp file with load vector (Fx, Fy, Fz) applied at load nodes."""
     E = mat["youngs_modulus_mpa"]
     nu = mat["poisson_ratio"]
     rho = mat["density_kg_m3"] * 1e-12  # kg/m³ → t/mm³ (CalculiX units: t, mm, s)
-    load_n = spec["constraints"]["load_newtons"]
-    load_per_node = load_n / len(load_nodes) if load_nodes else load_n
+    n = len(load_nodes) if load_nodes else 1
+    fx_per, fy_per, fz_per = (c / n for c in load_vector)
 
     with open(inp_path, "w") as f:
         f.write("*HEADING\n")
@@ -350,9 +381,10 @@ def _write_inp(
 
         if load_nodes:
             f.write("*CLOAD\n")
-            # Apply load in -Z direction (gravity-like downward)
             for nid in load_nodes:
-                f.write(f"{nid}, 3, {-load_per_node:.6f}\n")
+                f.write(f"{nid}, 1, {fx_per:.6f}\n")
+                f.write(f"{nid}, 2, {fy_per:.6f}\n")
+                f.write(f"{nid}, 3, {fz_per:.6f}\n")
 
         f.write("*NODE FILE\n")
         f.write("U\n")

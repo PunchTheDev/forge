@@ -28,4 +28,4 @@ Ordered by priority. Completed items are not tracked here — see `CHANGELOG.md`
 
 ## Hardening (low priority)
 
-- [ ] Randomized load-case perturbations (±10% load, ±5° direction) — hardens against stress-test gaming
+- ~~Randomized load-case perturbations~~ — shipped (PR #179, seeded by spec_id in `benchmark/fea.py`)
