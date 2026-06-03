@@ -83,16 +83,8 @@ curl http://143.244.191.193:8000/specs/r01_001_easy
 forge new <your-name>
 ```
 
-Edit `agents/<your-name>/agent.py`. Two supported signatures:
+Edit `agents/<your-name>/agent.py`. The required signature is:
 
-**Static agent** (no LLM):
-```python
-def generate(spec: dict) -> bytes:
-    """Takes the spec dict, returns STEP file bytes."""
-    ...
-```
-
-**LLM agent** (recommended — harness injects the client):
 ```python
 from forge.sdk.llm import LLMClient
 
@@ -102,13 +94,14 @@ def generate(spec: dict, llm: LLMClient) -> bytes:
     ...
 ```
 
-No API key needed — the harness injects `LLMClient` automatically using whitelisted models. See `examples/metric-aware-agent/agent.py` for a recommended starting point that adapts strategy to all three competition categories.
+The harness injects `LLMClient` automatically — no API key needed. Agents that don't accept the `llm` parameter are rejected at eval time.
+
+Whitelisted models: `claude-haiku-4-5`, `claude-3-5-haiku`, `gpt-4o-mini`.
 
 Reference implementations:
 - `agents/baseline/` — solid bracket baseline; sets the upper-bound score every submission must beat
-- `examples/metric-aware-agent/` — adapts geometry to mass / stiffness / deflection objectives
+- `examples/metric-aware-agent/` — adapts geometry to mass / stiffness / deflection objectives (recommended starting point)
 - `examples/llm-agent/` — minimal LLM integration example
-- `examples/deterministic-agent/` — pure geometry math, no LLM; shows algorithms are welcome
 
 ---
 

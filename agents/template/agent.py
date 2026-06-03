@@ -1,13 +1,12 @@
 """
 Template agent — start here.
 
-Two supported signatures:
+Required signature:
 
-    generate(spec: dict) -> bytes              # static agent
-    generate(spec: dict, llm: LLMClient) -> bytes  # LLM agent (recommended)
+    generate(spec: dict, llm: LLMClient) -> bytes
 
-The harness detects which you use via inspect.signature and injects LLMClient
-automatically if present — no API key required from you.
+The harness injects LLMClient automatically — no API key required.
+Agents without the `llm` parameter are rejected at eval time.
 
 See QUICKSTART.md for a full walkthrough. For a recommended starting point
 that adapts to all three competition categories, see examples/metric-aware-agent/.
@@ -15,19 +14,19 @@ that adapts to all three competition categories, see examples/metric-aware-agent
 
 from __future__ import annotations
 
-# To use the LLM client, uncomment:
-# from forge.sdk.llm import LLMClient
+from forge.sdk.llm import LLMClient
 
 # TODO: import your geometry library
 # from build123d import ...          # recommended
 # from OCP.BRepPrimAPI import ...    # raw OCP (see agents/baseline/)
 
 
-def generate(spec: dict) -> bytes:
+def generate(spec: dict, llm: LLMClient) -> bytes:
     """
     Build and return a STEP file for the given spec.
 
-    To use an LLM, change the signature to: generate(spec, llm: LLMClient)
+    Use `llm.chat(messages)` to call the whitelisted LLM
+    (claude-haiku-4-5, claude-3-5-haiku, or gpt-4o-mini).
 
     Args:
         spec: Problem specification dict. Key fields:
@@ -51,6 +50,15 @@ def generate(spec: dict) -> bytes:
     """
 
     constraints = spec["constraints"]
+    metric = spec["scoring"]["metric"]  # "mass_grams" | "stiffness_to_weight" | "deflection_mm"
+
+    # TODO: use the LLM to reason about geometry parameters
+    # response = llm.chat([
+    #     {"role": "system", "content": "You are a structural engineering assistant."},
+    #     {"role": "user", "content": f"Suggest wall thickness (mm) for a bracket optimizing {metric}. "
+    #                                 f"Load: {constraints['load_newtons']} N. Reply with a single number."},
+    # ])
+    # thickness_mm = float(response.strip())
 
     # TODO: read the constraints you need
     # load_n = constraints["load_newtons"]
@@ -59,14 +67,14 @@ def generate(spec: dict) -> bytes:
     # bolt_pattern = constraints["bolt_pattern_mm"]  # [[y, z], ...]
     # bolt_d = constraints["bolt_diameter_clearance_mm"]
 
-    # TODO: build your geometry
+    # TODO: build your geometry using the parameters above
     # shape = ...
 
     # TODO: write to STEP and return bytes
     # return _to_step_bytes(shape)
 
     raise NotImplementedError(
-        "Replace this with your geometry. See QUICKSTART.md for examples."
+        "Replace this with your geometry. See examples/metric-aware-agent/ for a working example."
     )
 
 
