@@ -1222,7 +1222,10 @@ def _run_evaluate_docker(agent_path: str, spec_path: str, verbose: bool, geometr
     import uuid
 
     workspace = str(ROOT)
-    agent_rel = str(Path(agent_path).resolve().relative_to(ROOT))
+    resolved_agent = Path(agent_path).resolve()
+    if resolved_agent.is_dir():
+        resolved_agent = resolved_agent / "agent.py"
+    agent_rel = str(resolved_agent.relative_to(ROOT))
     spec_rel = str(Path(spec_path).resolve().relative_to(ROOT))
 
     wl_path = ROOT / "config" / "model-whitelist.txt"
