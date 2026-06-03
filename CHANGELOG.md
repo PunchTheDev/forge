@@ -7,6 +7,16 @@ Format: newest entries first.
 
 ## [Unreleased]
 
+## 2026-06-03 (step 212)
+
+### Fixed
+- **`forge check-deps` Docker-aware output** (PR #267, `cli.py`): previously only checked the native toolchain (ccx/gmsh/OCP), giving false failure for miners using `--docker`. Now reports two paths — Option A (Docker: checks `docker` binary + whether `forge-eval:latest` is cached) and Option B (native: existing checks unchanged). Exit code succeeds if either path is ready; summary line directs to the appropriate eval invocation.
+
+## 2026-06-03 (step 211)
+
+### Fixed
+- **`--json` mode polluted output** (PRs #265, #266, `cli.py`): `forge eval --json` and `forge validate --json` were printing ANSI-colored spec/agent divider headers before the JSON payload, breaking `| jq .` and any programmatic consumer. Guarded the per-spec header block with `if not args.json:` in both `cmd_eval` and `cmd_validate`.
+
 ## 2026-06-03 (step 210)
 
 ### Added
