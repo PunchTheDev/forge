@@ -1,0 +1,63 @@
+{
+  "id": "th_603982",
+  "version": "1.0",
+  "name": "Wall Flower Mount (CLICK) [medium]",
+  "description": "A medium-difficulty cantilever bracket in PETG (FDM). Mounts flush to a vertical wall and cantilevers a 40.7 kg load 93 mm from the wall face. Minimize mass while surviving the load.",
+  "material": "petg",
+  "constraints": {
+    "load_newtons": 399.75,
+    "load_point_mm": [
+      93.4,
+      48.3,
+      37.1
+    ],
+    "safety_factor": 2.0,
+    "bolt_pattern_mm": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        56.5,
+        0.0
+      ],
+      [
+        113.0,
+        0.0
+      ],
+      [
+        0.0,
+        56.5
+      ],
+      [
+        56.5,
+        56.5
+      ],
+      [
+        113.0,
+        56.5
+      ]
+    ],
+    "bolt_diameter_clearance_mm": 5.5,
+    "mount_face_x_mm": 0.0,
+    "build_volume_mm": [
+      153.1,
+      96.6,
+      74.2
+    ],
+    "max_overhang_deg": 45.0,
+    "min_wall_thickness_mm": 1.2
+  },
+  "scoring": {
+    "metric": "mass_grams",
+    "direction": "minimize",
+    "baseline_mass_grams": 204.5
+  },
+  "source": {
+    "platform": "thingiverse",
+    "thing_id": 603982,
+    "url": "https://www.thingiverse.com/thing:603982",
+    "thumbnail": "https://cdn.thingiverse.com/assets/33/57/79/cf/27/wall_flower_mount_preview_featured.jpg",
+    "original_name": "Wall Flower Mount (CLICK)"
+  }
+}
