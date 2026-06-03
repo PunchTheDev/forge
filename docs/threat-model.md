@@ -156,6 +156,31 @@ This document describes the attack surface of the Forge benchmark and the mitiga
 
 ---
 
+## Threat 10 — Predictable spec selection
+
+**Attack:** CI previously selected one easy spec per round using `PR_NUMBER % len(easy_specs)`. PR numbers are sequential and publicly visible. A miner can predict exactly which spec they'll face before opening the PR (by counting existing PRs), then optimize their agent specifically for that spec to maximize the chance of beating SOTA and earning the `optimization` Gittensor label (2× reward multiplier).
+
+**Mitigations:**
+- **Implemented (PR #222):** Spec selection now uses SHA-256(`GITHUB_RUN_ID:COMMIT_SHA`) as the index seed. `GITHUB_RUN_ID` is assigned by GitHub Actions at workflow trigger time — after the PR is opened — making it impossible to predict at commit time. Falls back to PR number only for local testing.
+
+**Residual risk:** Very low. A determined miner could mine commits (like PoW) to influence `COMMIT_SHA`, but the additional `GITHUB_RUN_ID` entropy negates this.
+
+---
+
+## Threat 11 — CI queue saturation at scale
+
+**Attack:** With 100+ miners each submitting multiple PRs per day, the eval queue could back up severely. Each eval takes ~15–45 minutes (3 Docker containers, FEA + mesh convergence). 100 concurrent PRs × 45 min = 75 hours queue depth for late arrivals.
+
+**Mitigations:**
+- `concurrency: cancel-in-progress: true` in eval.yml — only one eval runs at a time per PR branch.
+- Commit-hash dedup — same commit never re-evaluated.
+- GitHub Actions queuing naturally throttles burst load.
+- Gittensor `max_open_pr_threshold: 10` and `excessive_pr_penalty_base_threshold: 3` discourage PR spam at the reward layer.
+
+**Residual risk:** Medium at 100+ miners. CI eval capacity is bounded by GitHub Actions concurrent runner availability. Migration to on-demand ephemeral compute (Daytona or self-hosted) is the long-term fix. For launch, GitHub-hosted runners are sufficient at <50 concurrent miners.
+
+---
+
 ## Summary table
 
 | Threat | Severity | Status |
@@ -170,3 +195,5 @@ This document describes the attack surface of the Forge benchmark and the mitiga
 | Load-case overfitting | Low | Mitigated (seeded load perturbation in FEA) |
 | Specialist gaming | Medium | Mitigated (breadth-normalized overall_score) |
 | Determinism check coverage | Low | Partial — only spec 0 runs 2× (gap: stochastic agents may vary on later specs) |
+| Predictable spec selection | Medium | Mitigated (run_id entropy — PR #222) |
+| CI queue saturation | Medium | Partial — bounded by GitHub Actions capacity; Daytona migration needed at 100+ miners |
