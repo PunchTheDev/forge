@@ -2,14 +2,14 @@
   "id": "th_3338467",
   "version": "1.0",
   "name": "Universal Auto-Rewind Spool Holder [medium]",
-  "description": "A medium-difficulty cantilever bracket in PETG (FDM). Mounts flush to a vertical wall and cantilevers a 50.5 kg load 119 mm from the wall face. Minimize mass while surviving the load.",
-  "material": "petg",
+  "description": "A medium-difficulty cantilever bracket in PLA (FDM). Mounts flush to a vertical wall and cantilevers a 38.6 kg load 120 mm from the wall face. Minimize tip deflection under load \u2014 maximize absolute stiffness regardless of mass.",
+  "material": "pla",
   "constraints": {
-    "load_newtons": 495.46,
+    "load_newtons": 378.61,
     "load_point_mm": [
-      118.9,
-      47.6,
-      52.9
+      120.1,
+      50.0,
+      51.2
     ],
     "safety_factor": 2.0,
     "bolt_pattern_mm": [
@@ -18,40 +18,40 @@
         0.0
       ],
       [
-        54.5,
+        45.3,
         0.0
       ],
       [
-        109.0,
+        90.6,
         0.0
       ],
       [
         0.0,
-        54.5
+        45.3
       ],
       [
-        54.5,
-        54.5
+        45.3,
+        45.3
       ],
       [
-        109.0,
-        54.5
+        90.6,
+        45.3
       ]
     ],
-    "bolt_diameter_clearance_mm": 6.5,
+    "bolt_diameter_clearance_mm": 5.5,
     "mount_face_x_mm": 0.0,
     "build_volume_mm": [
-      156.6,
-      95.2,
-      105.8
+      124.2,
+      100.0,
+      102.5
     ],
     "max_overhang_deg": 45.0,
     "min_wall_thickness_mm": 1.2
   },
   "scoring": {
-    "metric": "mass_grams",
+    "metric": "deflection_mm",
     "direction": "minimize",
-    "baseline_mass_grams": 319.4
+    "baseline_deflection_mm": 0.006961
   },
   "source": {
     "platform": "thingiverse",

@@ -2,14 +2,14 @@
   "id": "th_2394947",
   "version": "1.0",
   "name": "Shelf Holder Set [easy]",
-  "description": "A easy-difficulty cantilever bracket in PETG (FDM). Mounts flush to a vertical wall and cantilevers a 22.7 kg load 92 mm from the wall face. Minimize mass while surviving the load.",
+  "description": "A easy-difficulty cantilever bracket in PETG (FDM). Mounts flush to a vertical wall and cantilevers a 11.8 kg load 72 mm from the wall face. Minimize tip deflection under load \u2014 maximize absolute stiffness regardless of mass.",
   "material": "petg",
   "constraints": {
-    "load_newtons": 222.7,
+    "load_newtons": 115.54,
     "load_point_mm": [
-      91.7,
-      43.6,
-      55.9
+      72.0,
+      45.5,
+      57.1
     ],
     "safety_factor": 1.5,
     "bolt_pattern_mm": [
@@ -18,32 +18,40 @@
         0.0
       ],
       [
-        63.1,
+        50.9,
+        0.0
+      ],
+      [
+        101.8,
         0.0
       ],
       [
         0.0,
-        63.1
+        50.9
       ],
       [
-        63.1,
-        63.1
+        50.9,
+        50.9
+      ],
+      [
+        101.8,
+        50.9
       ]
     ],
-    "bolt_diameter_clearance_mm": 5.5,
+    "bolt_diameter_clearance_mm": 7.0,
     "mount_face_x_mm": 0.0,
     "build_volume_mm": [
-      188.7,
-      87.2,
-      111.8
+      144.7,
+      91.0,
+      114.3
     ],
     "max_overhang_deg": 50.0,
     "min_wall_thickness_mm": 1.0
   },
   "scoring": {
-    "metric": "mass_grams",
+    "metric": "deflection_mm",
     "direction": "minimize",
-    "baseline_mass_grams": 340.8
+    "baseline_deflection_mm": 0.000604
   },
   "source": {
     "platform": "thingiverse",

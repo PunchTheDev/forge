@@ -2,14 +2,14 @@
   "id": "th_3052488",
   "version": "1.0",
   "name": "Ender 3 Filament Roller Guide [medium]",
-  "description": "A medium-difficulty cantilever bracket in PETG (FDM). Mounts flush to a vertical wall and cantilevers a 35.9 kg load 128 mm from the wall face. Minimize mass while surviving the load.",
+  "description": "A medium-difficulty cantilever bracket in PETG (FDM). Mounts flush to a vertical wall and cantilevers a 34.2 kg load 105 mm from the wall face. Minimize tip deflection under load \u2014 maximize absolute stiffness regardless of mass.",
   "material": "petg",
   "constraints": {
-    "load_newtons": 352.35,
+    "load_newtons": 335.58,
     "load_point_mm": [
-      128.4,
-      46.5,
-      42.1
+      104.6,
+      47.9,
+      50.2
     ],
     "safety_factor": 2.0,
     "bolt_pattern_mm": [
@@ -18,40 +18,40 @@
         0.0
       ],
       [
-        40.9,
+        56.2,
         0.0
       ],
       [
-        81.8,
+        112.4,
         0.0
       ],
       [
         0.0,
-        40.9
+        56.2
       ],
       [
-        40.9,
-        40.9
+        56.2,
+        56.2
       ],
       [
-        81.8,
-        40.9
+        112.4,
+        56.2
       ]
     ],
-    "bolt_diameter_clearance_mm": 6.5,
+    "bolt_diameter_clearance_mm": 5.5,
     "mount_face_x_mm": 0.0,
     "build_volume_mm": [
-      150.5,
-      92.9,
-      84.3
+      132.3,
+      95.7,
+      100.4
     ],
     "max_overhang_deg": 45.0,
     "min_wall_thickness_mm": 1.2
   },
   "scoring": {
-    "metric": "mass_grams",
+    "metric": "deflection_mm",
     "direction": "minimize",
-    "baseline_mass_grams": 245.8
+    "baseline_deflection_mm": 0.007553
   },
   "source": {
     "platform": "thingiverse",

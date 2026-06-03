@@ -2,14 +2,14 @@
   "id": "th_1182945",
   "version": "1.0",
   "name": "Cable Corners... keep cables in corners! [easy]",
-  "description": "A easy-difficulty cantilever bracket in PLA (FDM). Mounts flush to a vertical wall and cantilevers a 15.3 kg load 65 mm from the wall face. Minimize mass while surviving the load.",
+  "description": "A easy-difficulty cantilever bracket in PLA (FDM). Mounts flush to a vertical wall and cantilevers a 14.9 kg load 61 mm from the wall face. Minimize tip deflection under load \u2014 maximize absolute stiffness regardless of mass.",
   "material": "pla",
   "constraints": {
-    "load_newtons": 150.3,
+    "load_newtons": 146.25,
     "load_point_mm": [
-      64.7,
-      44.5,
-      50.2
+      61.4,
+      51.2,
+      57.4
     ],
     "safety_factor": 1.5,
     "bolt_pattern_mm": [
@@ -18,32 +18,40 @@
         0.0
       ],
       [
-        52.3,
+        41.3,
+        0.0
+      ],
+      [
+        82.6,
         0.0
       ],
       [
         0.0,
-        52.3
+        41.3
       ],
       [
-        52.3,
-        52.3
+        41.3,
+        41.3
+      ],
+      [
+        82.6,
+        41.3
       ]
     ],
     "bolt_diameter_clearance_mm": 6.5,
     "mount_face_x_mm": 0.0,
     "build_volume_mm": [
-      181.4,
-      89.1,
-      100.5
+      185.4,
+      102.5,
+      114.8
     ],
     "max_overhang_deg": 50.0,
     "min_wall_thickness_mm": 1.0
   },
   "scoring": {
-    "metric": "mass_grams",
+    "metric": "deflection_mm",
     "direction": "minimize",
-    "baseline_mass_grams": 266.6
+    "baseline_deflection_mm": 0.000249
   },
   "source": {
     "platform": "thingiverse",
