@@ -169,9 +169,10 @@ jobs:
               compositeNorm += norm;
               compositeCount++;
 
-              const vsBaseline = dir === 'maximize'
-                ? `+${((score / baseline - 1) * 100).toFixed(1)}%`
-                : `-${((1 - score / baseline) * 100).toFixed(1)}%`;
+              const pct = dir === 'maximize'
+                ? (score / baseline - 1) * 100
+                : (baseline - score) / baseline * 100;
+              const vsBaseline = (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%';
 
               let sotaCell = '\u2014';
               if (sota === null && res.passed) {
