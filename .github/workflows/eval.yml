@@ -140,6 +140,13 @@ jobs:
             forge-eval \
             /forge/scripts/test_ocp_subprocess.py
 
+      - name: Load model whitelist
+        id: whitelist
+        if: steps.agent.outputs.found == 'true' && steps.similarity.outcome == 'success' && steps.dedup.outputs.cached != 'true'
+        run: |
+          WL=$(grep -v '^#' config/model-whitelist.txt | grep -v '^[[:space:]]*$' | paste -sd,)
+          echo "value=$WL" >> "$GITHUB_OUTPUT"
+
       - name: Run pool evaluation (3 specs, 2x determinism on first)
         id: eval
         if: steps.agent.outputs.found == 'true' && steps.similarity.outcome == 'success' && steps.dedup.outputs.cached != 'true'
@@ -148,7 +155,7 @@ jobs:
           AGENT_PATH: ${{ steps.agent.outputs.path }}
           FORGE_LLM_KEY: ${{ secrets.FORGE_LLM_KEY || secrets.OPENROUTER_KEY }}
           FORGE_MODEL: ${{ secrets.FORGE_MODEL || 'anthropic/claude-haiku-4-5' }}
-          FORGE_MODEL_WHITELIST: ${{ vars.FORGE_MODEL_WHITELIST || 'anthropic/claude-haiku-4-5,anthropic/claude-3-5-haiku,openai/gpt-4o-mini' }}
+          FORGE_MODEL_WHITELIST: ${{ steps.whitelist.outputs.value }}
         run: python3 scripts/run_eval_pool.py
 
       - name: Post cross-category score comment

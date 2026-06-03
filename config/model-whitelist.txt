@@ -1,0 +1,31 @@
+# Whitelisted models for Forge agent eval.
+# One model ID per line. Blank lines and lines starting with # are ignored.
+# Update this file to add or remove models — CI reads it directly.
+# Operator: delete the FORGE_MODEL_WHITELIST GitHub Actions variable (no longer used).
+
+# Anthropic — Claude
+anthropic/claude-haiku-4-5
+anthropic/claude-3-5-haiku
+anthropic/claude-3-5-sonnet
+anthropic/claude-sonnet-4-5
+
+# OpenAI — GPT
+openai/gpt-4o-mini
+openai/gpt-4o
+
+# DeepSeek
+deepseek/deepseek-r1
+deepseek/deepseek-r1-distill-llama-70b
+deepseek/deepseek-chat-v3-0324
+
+# Meta — Llama
+meta-llama/llama-3.1-70b-instruct
+meta-llama/llama-3.1-405b-instruct
+
+# Google — Gemini
+google/gemini-2.0-flash-001
+google/gemini-flash-1.5
+
+# Mistral / Qwen
+mistralai/mixtral-8x7b-instruct
+qwen/qwen-2.5-72b-instruct
