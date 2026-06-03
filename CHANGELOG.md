@@ -7,6 +7,11 @@ Format: newest entries first.
 
 ## [Unreleased]
 
+## 2026-06-03 (step 217)
+
+### Fixed
+- **`forge check-deps` returncode fix** (PR #275, `cli.py`): native toolchain checks now verify `proc.returncode == 0` before reporting PASS. Previously a tool found by `shutil.which` but broken at runtime (e.g. `gmsh` on systems without `python` in PATH) showed a false PASS with an error string as the version. Now shows FAIL with the actual error message and marks Option B incomplete.
+
 ## 2026-06-03 (step 216)
 
 ### Docs
