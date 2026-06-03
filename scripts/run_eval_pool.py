@@ -10,6 +10,12 @@ import os
 import subprocess
 import sys
 
+# Per-run wall-clock limit. A single docker run should never take more than
+# 25 minutes (FEA on complex meshes + LLM latency). The overall job cap is
+# 90 minutes; with 4 runs (3 specs + 1 determinism re-run) this gives ~22 min
+# per run, leaving headroom for image build and overhead.
+DOCKER_RUN_TIMEOUT_SECS = 25 * 60
+
 specs = json.loads(os.environ["SPECS_JSON"])
 agent = os.environ["AGENT_PATH"]
 llm_key = os.environ.get("FORGE_LLM_KEY", "")
@@ -66,7 +72,28 @@ for idx, spec in enumerate(specs):
             "--json-compact",
         ] + step_flag + ref_flag
 
-        proc = subprocess.run(cmd, capture_output=True, text=True)
+        try:
+            proc = subprocess.run(
+                cmd, capture_output=True, text=True, timeout=DOCKER_RUN_TIMEOUT_SECS
+            )
+        except subprocess.TimeoutExpired:
+            # Kill the container that was left running, best-effort.
+            subprocess.run(
+                ["docker", "ps", "-q", "--filter", f"ancestor=forge-eval"],
+                capture_output=True,
+                text=True,
+            )
+            print(
+                f"[{spec_id}] run {run_i + 1}/{runs}: TIMEOUT after {DOCKER_RUN_TIMEOUT_SECS}s",
+                flush=True,
+            )
+            result_data = {
+                "passed": False,
+                "reason": f"Eval timed out after {DOCKER_RUN_TIMEOUT_SECS // 60} minutes",
+            }
+            final_result = result_data
+            break
+
         out = proc.stdout.strip()
         print(f"[{spec_id}] run {run_i + 1}/{runs}: {out}", flush=True)
         if proc.stderr.strip():
