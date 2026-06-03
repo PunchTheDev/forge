@@ -1,0 +1,63 @@
+{
+  "id": "th_5904534_deflection",
+  "version": "1.0",
+  "name": "Cat key hook [medium]",
+  "description": "A medium-difficulty cantilever bracket in Aluminum 6061-T6. Mounts flush to a vertical wall and cantilevers a 55.1 kg load 100 mm from the wall face. Minimize tip deflection under load \u2014 maximize absolute stiffness regardless of mass.",
+  "material": "aluminum_6061",
+  "constraints": {
+    "load_newtons": 540.54,
+    "load_point_mm": [
+      99.7,
+      50.3,
+      54.6
+    ],
+    "safety_factor": 2.0,
+    "bolt_pattern_mm": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        52.1,
+        0.0
+      ],
+      [
+        104.2,
+        0.0
+      ],
+      [
+        0.0,
+        52.1
+      ],
+      [
+        52.1,
+        52.1
+      ],
+      [
+        104.2,
+        52.1
+      ]
+    ],
+    "bolt_diameter_clearance_mm": 7.0,
+    "mount_face_x_mm": 0.0,
+    "build_volume_mm": [
+      151.8,
+      100.6,
+      109.2
+    ],
+    "max_overhang_deg": 45.0,
+    "min_wall_thickness_mm": 1.2
+  },
+  "scoring": {
+    "metric": "deflection_mm",
+    "direction": "minimize",
+    "baseline_deflection_mm": 0.000237
+  },
+  "source": {
+    "platform": "thingiverse",
+    "thing_id": 5904534,
+    "url": "https://www.thingiverse.com/thing:5904534",
+    "thumbnail": "https://cdn.thingiverse.com/assets/54/1d/4d/11/b1/69eaabc8-dcdf-4657-aac6-7bb5693d8724.png",
+    "original_name": "Cat key hook"
+  }
+}
