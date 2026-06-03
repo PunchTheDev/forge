@@ -7,6 +7,11 @@ Format: newest entries first.
 
 ## [Unreleased]
 
+## 2026-06-03 (step 209)
+
+### Added
+- **`forge validate` command** (PR #261, `cli.py`, `benchmark/evaluate.py`): geometry-only fast check — runs the agent and validates STEP geometry (build volume, bolt holes, overhang, wall thickness) without running FEA. Returns pass/fail + mass estimate in seconds vs 30-90s for full FEA. Add `--geometry-only` flag to `benchmark.evaluate` for the same path. Usage: `forge validate agents/my-agent/agent.py --spec r01_001_easy`.
+
 ## 2026-06-03 (step 206)
 
 ### Fixed
