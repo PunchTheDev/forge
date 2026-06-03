@@ -1,0 +1,55 @@
+{
+  "id": "th_2759439_deflection",
+  "version": "1.0",
+  "name": "Petsfang Duct for CR10 MicroSwiss/Stock/E3D/Volcano/TevoTorn [hard]",
+  "description": "A hard-difficulty cantilever bracket in PETG (FDM). Mounts flush to a vertical wall and cantilevers a 87.7 kg load 159 mm from the wall face. Minimize tip deflection under load \u2014 maximize absolute stiffness regardless of mass.",
+  "material": "petg",
+  "constraints": {
+    "load_newtons": 860.05,
+    "load_point_mm": [
+      159.2,
+      30.3,
+      46.8
+    ],
+    "safety_factor": 2.5,
+    "bolt_pattern_mm": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        40.6,
+        0.0
+      ],
+      [
+        0.0,
+        40.6
+      ],
+      [
+        40.6,
+        40.6
+      ]
+    ],
+    "bolt_diameter_clearance_mm": 5.5,
+    "mount_face_x_mm": 0.0,
+    "build_volume_mm": [
+      120.8,
+      60.6,
+      93.6
+    ],
+    "max_overhang_deg": 40.0,
+    "min_wall_thickness_mm": 1.5
+  },
+  "scoring": {
+    "metric": "deflection_mm",
+    "direction": "minimize",
+    "baseline_deflection_mm": 0.133013
+  },
+  "source": {
+    "platform": "thingiverse",
+    "thing_id": 2759439,
+    "url": "https://www.thingiverse.com/thing:2759439",
+    "thumbnail": "https://cdn.thingiverse.com/assets/9b/3b/73/82/f7/Petsfang_splash_page_2.2021.jpg",
+    "original_name": "Petsfang Duct for CR10 MicroSwiss/Stock/E3Dv6/Volcano/TevoTornado /Tarantula Hot End/E3Dv6 CNC Mount & 5015 fan Bullseye Blokhead"
+  }
+}

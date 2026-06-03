@@ -1,0 +1,55 @@
+{
+  "id": "th_2448971_deflection",
+  "version": "1.0",
+  "name": "Articulating, Wall-Mounted, Magnetic Phone Mount [medium]",
+  "description": "A medium-difficulty cantilever bracket in Aluminum 6061-T6. Mounts flush to a vertical wall and cantilevers a 58.8 kg load 111 mm from the wall face. Minimize tip deflection under load \u2014 maximize absolute stiffness regardless of mass.",
+  "material": "aluminum_6061",
+  "constraints": {
+    "load_newtons": 576.86,
+    "load_point_mm": [
+      111.2,
+      38.6,
+      43.6
+    ],
+    "safety_factor": 2.0,
+    "bolt_pattern_mm": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        53.6,
+        0.0
+      ],
+      [
+        0.0,
+        53.6
+      ],
+      [
+        53.6,
+        53.6
+      ]
+    ],
+    "bolt_diameter_clearance_mm": 7.0,
+    "mount_face_x_mm": 0.0,
+    "build_volume_mm": [
+      132.6,
+      77.3,
+      87.3
+    ],
+    "max_overhang_deg": 45.0,
+    "min_wall_thickness_mm": 1.2
+  },
+  "scoring": {
+    "metric": "deflection_mm",
+    "direction": "minimize",
+    "baseline_deflection_mm": 0.000895
+  },
+  "source": {
+    "platform": "thingiverse",
+    "thing_id": 2448971,
+    "url": "https://www.thingiverse.com/thing:2448971",
+    "thumbnail": "https://cdn.thingiverse.com/assets/66/9f/a9/64/89/IMG_0163.jpg",
+    "original_name": "Articulating, Wall-Mounted, Magnetic Phone Mount"
+  }
+}

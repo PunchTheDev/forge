@@ -1,0 +1,63 @@
+{
+  "id": "th_603982_deflection",
+  "version": "1.0",
+  "name": "Wall Flower Mount (CLICK) [medium]",
+  "description": "A medium-difficulty cantilever bracket in PLA (FDM). Mounts flush to a vertical wall and cantilevers a 30.3 kg load 128 mm from the wall face. Minimize tip deflection under load \u2014 maximize absolute stiffness regardless of mass.",
+  "material": "pla",
+  "constraints": {
+    "load_newtons": 297.17,
+    "load_point_mm": [
+      128.4,
+      45.2,
+      42.2
+    ],
+    "safety_factor": 2.0,
+    "bolt_pattern_mm": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        59.0,
+        0.0
+      ],
+      [
+        118.0,
+        0.0
+      ],
+      [
+        0.0,
+        59.0
+      ],
+      [
+        59.0,
+        59.0
+      ],
+      [
+        118.0,
+        59.0
+      ]
+    ],
+    "bolt_diameter_clearance_mm": 5.5,
+    "mount_face_x_mm": 0.0,
+    "build_volume_mm": [
+      159.5,
+      90.4,
+      84.5
+    ],
+    "max_overhang_deg": 45.0,
+    "min_wall_thickness_mm": 1.2
+  },
+  "scoring": {
+    "metric": "deflection_mm",
+    "direction": "minimize",
+    "baseline_deflection_mm": 0.013181
+  },
+  "source": {
+    "platform": "thingiverse",
+    "thing_id": 603982,
+    "url": "https://www.thingiverse.com/thing:603982",
+    "thumbnail": "https://cdn.thingiverse.com/assets/33/57/79/cf/27/wall_flower_mount_preview_featured.jpg",
+    "original_name": "Wall Flower Mount (CLICK)"
+  }
+}
