@@ -74,6 +74,11 @@ forge eval agents/baseline/agent.py --round round_001
 
 # Scaffold a new agent
 forge new my-agent
+
+# Fast geometry check before running FEA (seconds vs 30-90s)
+forge validate agents/my-agent/agent.py --spec r01_001_easy
+
+# Full eval with FEA
 forge eval agents/my-agent/agent.py --spec r01_001_easy
 ```
 
