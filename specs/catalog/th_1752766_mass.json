@@ -1,0 +1,63 @@
+{
+  "id": "th_1752766_mass",
+  "version": "1.0",
+  "name": "HyperCube 3D Printer/CNC [medium]",
+  "description": "A medium-difficulty cantilever bracket in PETG (FDM). Mounts flush to a vertical wall and cantilevers a 32.3 kg load 91 mm from the wall face. Minimize mass while surviving the load.",
+  "material": "petg",
+  "constraints": {
+    "load_newtons": 316.7,
+    "load_point_mm": [
+      90.8,
+      48.2,
+      41.2
+    ],
+    "safety_factor": 2.0,
+    "bolt_pattern_mm": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        40.8,
+        0.0
+      ],
+      [
+        81.6,
+        0.0
+      ],
+      [
+        0.0,
+        40.8
+      ],
+      [
+        40.8,
+        40.8
+      ],
+      [
+        81.6,
+        40.8
+      ]
+    ],
+    "bolt_diameter_clearance_mm": 5.5,
+    "mount_face_x_mm": 0.0,
+    "build_volume_mm": [
+      146.1,
+      96.4,
+      82.4
+    ],
+    "max_overhang_deg": 45.0,
+    "min_wall_thickness_mm": 1.2
+  },
+  "scoring": {
+    "metric": "mass_grams",
+    "direction": "minimize",
+    "baseline_mass_grams": 214.3
+  },
+  "source": {
+    "platform": "thingiverse",
+    "thing_id": 1752766,
+    "url": "https://www.thingiverse.com/thing:1752766",
+    "thumbnail": "https://cdn.thingiverse.com/assets/a5/b9/25/15/2c/vlcsnap-2016-08-26-20h36m51s134.jpg",
+    "original_name": "HyperCube 3D Printer/CNC"
+  }
+}

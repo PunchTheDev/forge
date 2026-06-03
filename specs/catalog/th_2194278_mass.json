@@ -1,0 +1,63 @@
+{
+  "id": "th_2194278_mass",
+  "version": "1.0",
+  "name": "Modular Mounting System [medium]",
+  "description": "A medium-difficulty cantilever bracket in PETG (FDM). Mounts flush to a vertical wall and cantilevers a 38.2 kg load 99 mm from the wall face. Minimize mass while surviving the load.",
+  "material": "petg",
+  "constraints": {
+    "load_newtons": 375.08,
+    "load_point_mm": [
+      99.0,
+      49.5,
+      42.5
+    ],
+    "safety_factor": 2.0,
+    "bolt_pattern_mm": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        50.5,
+        0.0
+      ],
+      [
+        101.0,
+        0.0
+      ],
+      [
+        0.0,
+        50.5
+      ],
+      [
+        50.5,
+        50.5
+      ],
+      [
+        101.0,
+        50.5
+      ]
+    ],
+    "bolt_diameter_clearance_mm": 5.5,
+    "mount_face_x_mm": 0.0,
+    "build_volume_mm": [
+      121.1,
+      99.0,
+      84.9
+    ],
+    "max_overhang_deg": 45.0,
+    "min_wall_thickness_mm": 1.2
+  },
+  "scoring": {
+    "metric": "mass_grams",
+    "direction": "minimize",
+    "baseline_mass_grams": 193.3
+  },
+  "source": {
+    "platform": "thingiverse",
+    "thing_id": 2194278,
+    "url": "https://www.thingiverse.com/thing:2194278",
+    "thumbnail": "https://cdn.thingiverse.com/assets/ea/57/7f/8b/d6/APC_0010a.jpg",
+    "original_name": "Modular Mounting System"
+  }
+}

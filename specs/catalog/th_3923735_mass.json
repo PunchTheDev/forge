@@ -1,0 +1,63 @@
+{
+  "id": "th_3923735_mass",
+  "version": "1.0",
+  "name": "Free Download: Reaching Wall Hands - Thumbtack Mountable [medium]",
+  "description": "A medium-difficulty cantilever bracket in PLA (FDM). Mounts flush to a vertical wall and cantilevers a 42.2 kg load 121 mm from the wall face. Minimize mass while surviving the load.",
+  "material": "pla",
+  "constraints": {
+    "load_newtons": 414.1,
+    "load_point_mm": [
+      121.2,
+      53.0,
+      36.0
+    ],
+    "safety_factor": 2.0,
+    "bolt_pattern_mm": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        61.8,
+        0.0
+      ],
+      [
+        123.6,
+        0.0
+      ],
+      [
+        0.0,
+        61.8
+      ],
+      [
+        61.8,
+        61.8
+      ],
+      [
+        123.6,
+        61.8
+      ]
+    ],
+    "bolt_diameter_clearance_mm": 5.5,
+    "mount_face_x_mm": 0.0,
+    "build_volume_mm": [
+      143.6,
+      105.9,
+      72.1
+    ],
+    "max_overhang_deg": 45.0,
+    "min_wall_thickness_mm": 1.2
+  },
+  "scoring": {
+    "metric": "mass_grams",
+    "direction": "minimize",
+    "baseline_mass_grams": 218.3
+  },
+  "source": {
+    "platform": "thingiverse",
+    "thing_id": 3923735,
+    "url": "https://www.thingiverse.com/thing:3923735",
+    "thumbnail": "https://cdn.thingiverse.com/assets/dc/8f/d6/a4/05/910803c6-fd16-4ae5-9c46-3fa0de323fa1.jpg",
+    "original_name": "Free Download: Reaching Wall Hands - Thumbtack Mountable"
+  }
+}

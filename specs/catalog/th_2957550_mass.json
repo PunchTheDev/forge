@@ -1,0 +1,55 @@
+{
+  "id": "th_2957550_mass",
+  "version": "1.0",
+  "name": "Corner Brackets For System20 2020 / 2040 Extrusion [medium]",
+  "description": "A medium-difficulty cantilever bracket in PETG (FDM). Mounts flush to a vertical wall and cantilevers a 52.7 kg load 95 mm from the wall face. Minimize mass while surviving the load.",
+  "material": "petg",
+  "constraints": {
+    "load_newtons": 517.37,
+    "load_point_mm": [
+      95.0,
+      40.8,
+      46.6
+    ],
+    "safety_factor": 2.0,
+    "bolt_pattern_mm": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        47.3,
+        0.0
+      ],
+      [
+        0.0,
+        47.3
+      ],
+      [
+        47.3,
+        47.3
+      ]
+    ],
+    "bolt_diameter_clearance_mm": 7.0,
+    "mount_face_x_mm": 0.0,
+    "build_volume_mm": [
+      157.7,
+      81.5,
+      93.3
+    ],
+    "max_overhang_deg": 45.0,
+    "min_wall_thickness_mm": 1.2
+  },
+  "scoring": {
+    "metric": "mass_grams",
+    "direction": "minimize",
+    "baseline_mass_grams": 224.6
+  },
+  "source": {
+    "platform": "thingiverse",
+    "thing_id": 2957550,
+    "url": "https://www.thingiverse.com/thing:2957550",
+    "thumbnail": "https://cdn.thingiverse.com/assets/1e/93/ce/ea/30/thingiverse_brackets.png",
+    "original_name": "Corner Brackets For System20 2020 / 2040 Extrusion"
+  }
+}

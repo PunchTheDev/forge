@@ -1,0 +1,63 @@
+{
+  "id": "th_603982_mass",
+  "version": "1.0",
+  "name": "Wall Flower Mount (CLICK) [medium]",
+  "description": "A medium-difficulty cantilever bracket in Aluminum 6061-T6. Mounts flush to a vertical wall and cantilevers a 48.7 kg load 111 mm from the wall face. Minimize mass while surviving the load.",
+  "material": "aluminum_6061",
+  "constraints": {
+    "load_newtons": 477.97,
+    "load_point_mm": [
+      110.6,
+      53.2,
+      54.8
+    ],
+    "safety_factor": 2.0,
+    "bolt_pattern_mm": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        50.7,
+        0.0
+      ],
+      [
+        101.4,
+        0.0
+      ],
+      [
+        0.0,
+        50.7
+      ],
+      [
+        50.7,
+        50.7
+      ],
+      [
+        101.4,
+        50.7
+      ]
+    ],
+    "bolt_diameter_clearance_mm": 7.0,
+    "mount_face_x_mm": 0.0,
+    "build_volume_mm": [
+      136.0,
+      106.5,
+      109.5
+    ],
+    "max_overhang_deg": 45.0,
+    "min_wall_thickness_mm": 1.2
+  },
+  "scoring": {
+    "metric": "mass_grams",
+    "direction": "minimize",
+    "baseline_mass_grams": 665.0
+  },
+  "source": {
+    "platform": "thingiverse",
+    "thing_id": 603982,
+    "url": "https://www.thingiverse.com/thing:603982",
+    "thumbnail": "https://cdn.thingiverse.com/assets/33/57/79/cf/27/wall_flower_mount_preview_featured.jpg",
+    "original_name": "Wall Flower Mount (CLICK)"
+  }
+}
