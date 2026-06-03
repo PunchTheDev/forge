@@ -7,6 +7,11 @@ Format: newest entries first.
 
 ## [Unreleased]
 
+## 2026-06-03 (step 215)
+
+### Fixed
+- **`pytest` testpaths set to `tests/`** (PR #271, `pyproject.toml`): bare `python -m pytest` was auto-discovering `scripts/test_ocp_subprocess.py`, which runs Docker-only subprocess code at module level with `cwd="/forge"`. This caused an immediate collection error on any machine without the Docker container mounted. Added `[tool.pytest.ini_options] testpaths = ["tests"]` so bare `pytest` behaves identically to the CI invocation (`python -m pytest tests/`).
+
 ## 2026-06-03 (step 214)
 
 ### Changed
