@@ -4,6 +4,10 @@ Baseline agent: naive parametric L-bracket via raw OCP.
 Score: ~165g. Miners beat this by removing material where stress is low.
 The bracket has a vertical mounting plate (bolt holes), a horizontal shelf
 (reaches the load point), and no topology optimization whatsoever.
+
+This agent accepts the LLMClient parameter but does not use it — it is
+purely deterministic geometry. This is permitted; the harness requires
+the parameter to be present in the signature, not necessarily used.
 """
 
 from __future__ import annotations
@@ -11,8 +15,10 @@ from __future__ import annotations
 import os
 import tempfile
 
+from forge.sdk.llm import LLMClient
 
-def generate(spec: dict) -> bytes:
+
+def generate(spec: dict, llm: LLMClient) -> bytes:  # noqa: ARG001
     """Build a parametric L-bracket and return STEP bytes."""
     from OCP.BRepAlgoAPI import BRepAlgoAPI_Cut, BRepAlgoAPI_Fuse
     from OCP.BRepPrimAPI import BRepPrimAPI_MakeBox, BRepPrimAPI_MakeCylinder
