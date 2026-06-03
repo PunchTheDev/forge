@@ -7,6 +7,19 @@ Format: newest entries first.
 
 ## [Unreleased]
 
+## 2026-06-03
+
+### Added
+- **Metric-aware example** (`examples/metric-aware-agent/`): reads `spec["scoring"]["metric"]` and sends a tailored geometry strategy to the LLM per category — recommended starting point for new agents.
+- **`forge leaderboard --history <spec_id>`**: prints chronological SOTA progression for a spec — date, contributor, score, % improvement per step. Fetches from `/sota/{spec_id}/history`.
+- **Multi-spec pool eval in CI** (`scripts/select_eval_specs.py`, `run_eval_pool.py`, `record_submissions.py`): each PR is evaluated on one randomly-sampled easy spec from each of the 3 active rounds (not just round_001). PR comment shows cross-category table + composite score.
+- **Per-spec SOTA reference STEPs** (`sota/{spec_id}/reference.step`): geometric similarity check is now per-spec first, falling back to the global reference.
+
+### Fixed
+- **CLI metric units in eval output**: `forge eval` verbose output and summary table now use `_fmt_score(score, metric)` instead of hardcoded `g` — round_002 shows `N/(mm·g)`, round_003 shows `mm`.
+- **Template agent field names**: docstring corrected — `load_n` → `load_newtons`, `spec["safety_factor"]` → `spec["constraints"]["safety_factor"]`.
+- **Unclaimed spec SOTA label**: CI now correctly applies the `optimization` label (2× Gittensor multiplier) when the first miner claims an unclaimed spec. Previously the label was only applied when beating an existing SOTA.
+
 ## 2026-06-02
 
 ### Added

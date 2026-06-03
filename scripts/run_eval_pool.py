@@ -69,13 +69,18 @@ for idx, spec in enumerate(specs):
         proc = subprocess.run(cmd, capture_output=True, text=True)
         out = proc.stdout.strip()
         print(f"[{spec_id}] run {run_i + 1}/{runs}: {out}", flush=True)
+        if proc.stderr.strip():
+            print(f"[{spec_id}] stderr:\n{proc.stderr.strip()}", flush=True)
 
         try:
             result_data = json.loads(out)
         except (json.JSONDecodeError, ValueError):
+            # Surface the tail of stderr so miners can debug crashes.
+            stderr_tail = proc.stderr.strip()[-400:] if proc.stderr.strip() else ""
+            hint = f" | stderr: {stderr_tail}" if stderr_tail else ""
             result_data = {
                 "passed": False,
-                "reason": f"Invalid JSON output: {out[:120]}",
+                "reason": f"Invalid JSON output: {out[:120]}{hint}",
             }
 
         # Check determinism on first spec
