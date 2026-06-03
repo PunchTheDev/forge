@@ -122,6 +122,7 @@ def cmd_new(args: argparse.Namespace) -> int:
 def cmd_specs(args: argparse.Namespace) -> int:
     round_filter: str | None = getattr(args, "round", None)
     unclaimed_only: bool = getattr(args, "unclaimed", False)
+    tier_filter: str | None = getattr(args, "tier", None)
 
     # Resolve allowed spec IDs from round manifest if --round given
     allowed_ids: set[str] | None = None
@@ -139,6 +140,9 @@ def cmd_specs(args: argparse.Namespace) -> int:
         if allowed_ids is not None:
             data = [s for s in data if s.get("id") in allowed_ids]
 
+        if tier_filter:
+            data = [s for s in data if s.get("id", "").rsplit("_", 1)[-1] == tier_filter]
+
         # Fetch all SOTA records in one call and index by spec_id.
         sota_list = _fetch_json("/sota") or []
         sota_by_id: dict[str, dict] = {r["spec_id"]: r for r in sota_list if isinstance(r, dict) and "spec_id" in r}
@@ -149,6 +153,8 @@ def cmd_specs(args: argparse.Namespace) -> int:
         label_parts = []
         if round_filter:
             label_parts.append(round_filter)
+        if tier_filter:
+            label_parts.append(tier_filter)
         if unclaimed_only:
             label_parts.append("unclaimed only")
         label = "Specs — " + ", ".join(label_parts) + "  (live)" if label_parts else "Specs  (live)"
@@ -977,16 +983,20 @@ def cmd_rounds(args: argparse.Namespace) -> int:
         metric = round_data.get("scoring_metric", "?")
         specs = round_data.get("specs", [])
 
-        status_color = GREEN if status == "active" else YELLOW
-        print(f"\n  {BOLD}{rid}{RESET}  {status_color}[{status}]{RESET}")
-        print(f"  {name}")
-        print(f"  Period: {starts} → {ends}  |  Metric: {metric}  |  Specs: {len(specs)}")
-        print()
-
         tiers: dict[str, list[str]] = {}
         for s in specs:
             tier = s.get("tier", "unknown")
             tiers.setdefault(tier, []).append(s["id"])
+        tier_counts = "  ".join(
+            f"{len(tiers[t])} {t}" for t in ("easy", "medium", "hard") if t in tiers
+        )
+        specs_label = f"{len(specs)} ({tier_counts})" if tier_counts else str(len(specs))
+
+        status_color = GREEN if status == "active" else YELLOW
+        print(f"\n  {BOLD}{rid}{RESET}  {status_color}[{status}]{RESET}")
+        print(f"  {name}")
+        print(f"  Period: {starts} → {ends}  |  Metric: {metric}  |  Specs: {specs_label}")
+        print()
 
         for tier in ("easy", "medium", "hard", "unknown"):
             ids = tiers.get(tier)
@@ -1449,6 +1459,7 @@ def main() -> None:
     p_specs = sub.add_parser("specs", help="List available problem specs")
     p_specs.add_argument("--round", metavar="ID", help="Filter to specs in one round (e.g. round_001)")
     p_specs.add_argument("--unclaimed", action="store_true", help="Show only specs with no current SOTA")
+    p_specs.add_argument("--tier", choices=["easy", "medium", "hard"], help="Filter to one difficulty tier")
     p_specs.set_defaults(func=cmd_specs)
 
     p_rounds = sub.add_parser("rounds", help="List competition rounds and spec sets")
