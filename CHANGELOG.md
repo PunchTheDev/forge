@@ -7,6 +7,15 @@ Format: newest entries first.
 
 ## [Unreleased]
 
+## 2026-06-03 (session 10)
+
+### Added
+- **Thingiverse catalog expansion** (PRs #235, #236, #239, #241): 40 new catalog specs across all three metrics (mass, stiffness, deflection) seeded from Thingiverse via `gh workflow run ingest.yml`. Catalog now holds 65 specs covering easy/medium/hard tiers and four materials.
+- **Metric-suffix IDs in catalog ingest** (PR #238, `catalog/ingest.py`): spec IDs are now `th_{thing_id}_{metric_slug}` (e.g. `th_1182945_mass`) so the same Thingiverse thing can have specs for different metrics without filename collisions.
+
+### Fixed
+- **CLI leaderboard shows `overall_score` instead of `avg_rank`** (PR #240, `cli.py`): `forge leaderboard` table column updated to match the API and dashboard; `overall_score` (breadth-normalized percentile rank, lower is better) is the primary Gittensor reward metric.
+
 ## 2026-06-03 (session 9)
 
 ### Security
