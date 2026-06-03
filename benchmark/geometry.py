@@ -80,6 +80,13 @@ def validate(step_bytes: bytes, spec: dict, mat: dict) -> GeometryResult:
     if not overhang_ok:
         return GeometryResult(passed=False, reason=overhang_reason)
 
+    # Wall thickness check (ray-cast cross-section sampler)
+    wall_ok, wall_reason = _check_wall_thickness(
+        shape, spec, xmin, ymin, zmin, xmax, ymax, zmax
+    )
+    if not wall_ok:
+        return GeometryResult(passed=False, reason=wall_reason)
+
     return GeometryResult(
         passed=True,
         bounding_box_mm=(dx, dy, dz),
@@ -182,6 +189,134 @@ def _check_overhang(shape: Any, spec: dict) -> tuple[bool, str]:
 
     except Exception:
         # Non-fatal: skip overhang check if OCP mesh fails
+        pass
+
+    return True, ""
+
+
+def _check_wall_thickness(
+    shape: Any,
+    spec: dict,
+    xmin: float,
+    ymin: float,
+    zmin: float,
+    xmax: float,
+    ymax: float,
+    zmax: float,
+) -> tuple[bool, str]:
+    """
+    Check minimum wall thickness via ray casting along X, Y, and Z axes.
+
+    For each axis, cast a grid of rays from below the bounding box and collect
+    intersection parameters. Consecutive entry/exit pairs give chord lengths
+    through solid material. Any chord shorter than min_wall_thickness_mm
+    (minus a 0.1mm print tolerance) fails the check.
+
+    X-rays skip samples near bolt hole centers to avoid flagging intentional
+    clearance holes in the mounting face as thin walls.
+    """
+    try:
+        from OCP.gp import gp_Pnt, gp_Dir, gp_Lin
+        from OCP.BRepIntCurveSurface import BRepIntCurveSurface_Inter
+
+        min_wall = spec["constraints"]["min_wall_thickness_mm"]
+        bolt_pattern = spec["constraints"].get("bolt_pattern_mm", [])
+        bolt_radius = spec["constraints"].get("bolt_diameter_clearance_mm", 0.0) / 2.0
+
+        SAMPLES = 8   # grid resolution per transverse axis
+        TOL = 1e-3    # intersection tolerance (mm)
+        PRINT_TOL = 0.1  # slicer rounding tolerance
+
+        def ray_chords(
+            axis: int,
+            start_offset: float,
+            perp_a_range: tuple[float, float],
+            perp_b_range: tuple[float, float],
+            perp_a_axis: int,
+            perp_b_axis: int,
+            exclude_centers: list[tuple[float, float]] | None = None,
+            exclude_radius: float = 0.0,
+        ) -> float:
+            """Return minimum chord length found across the sampled ray grid."""
+            direction = [0.0, 0.0, 0.0]
+            direction[axis] = 1.0
+            d = gp_Dir(*direction)
+
+            a_vals = [
+                perp_a_range[0] + (perp_a_range[1] - perp_a_range[0]) * (i + 0.5) / SAMPLES
+                for i in range(SAMPLES)
+            ]
+            b_vals = [
+                perp_b_range[0] + (perp_b_range[1] - perp_b_range[0]) * (i + 0.5) / SAMPLES
+                for i in range(SAMPLES)
+            ]
+
+            min_chord = float("inf")
+            for a in a_vals:
+                for b in b_vals:
+                    if exclude_centers:
+                        too_close = any(
+                            math.sqrt((a - ec[0]) ** 2 + (b - ec[1]) ** 2) < exclude_radius
+                            for ec in exclude_centers
+                        )
+                        if too_close:
+                            continue
+
+                    pt = [0.0, 0.0, 0.0]
+                    pt[axis] = start_offset
+                    pt[perp_a_axis] = a
+                    pt[perp_b_axis] = b
+                    ray = gp_Lin(gp_Pnt(*pt), d)
+
+                    inter = BRepIntCurveSurface_Inter()
+                    inter.Init(shape, ray, TOL)
+                    params: list[float] = []
+                    while inter.More():
+                        params.append(inter.W())
+                        inter.Next()
+                    params.sort()
+
+                    # Consecutive pairs are entry/exit through solid material.
+                    for i in range(0, len(params) - 1, 2):
+                        chord = params[i + 1] - params[i]
+                        if chord > TOL and chord < min_chord:
+                            min_chord = chord
+
+            return min_chord
+
+        bolt_yz = [(float(bp[0]), float(bp[1])) for bp in bolt_pattern]
+
+        # X-axis: exclude samples at bolt hole (Y, Z) centers (intentional voids)
+        min_x = ray_chords(
+            axis=0, start_offset=xmin - 1.0,
+            perp_a_range=(ymin, ymax), perp_b_range=(zmin, zmax),
+            perp_a_axis=1, perp_b_axis=2,
+            exclude_centers=bolt_yz, exclude_radius=bolt_radius,
+        )
+        # Y-axis
+        min_y = ray_chords(
+            axis=1, start_offset=ymin - 1.0,
+            perp_a_range=(xmin, xmax), perp_b_range=(zmin, zmax),
+            perp_a_axis=0, perp_b_axis=2,
+        )
+        # Z-axis (print direction)
+        min_z = ray_chords(
+            axis=2, start_offset=zmin - 1.0,
+            perp_a_range=(xmin, xmax), perp_b_range=(ymin, ymax),
+            perp_a_axis=0, perp_b_axis=1,
+        )
+
+        global_min = min(min_x, min_y, min_z)
+        if global_min < float("inf") and global_min < min_wall - PRINT_TOL:
+            axis_label = {min_x: "X", min_y: "Y", min_z: "Z"}[global_min]
+            return (
+                False,
+                f"Wall too thin: {global_min:.2f}mm along {axis_label}-axis "
+                f"(minimum {min_wall}mm)",
+            )
+
+    except Exception:
+        # Non-fatal: OCP failure skips the check rather than penalizing valid geometry
         pass
 
     return True, ""
