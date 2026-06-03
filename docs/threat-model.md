@@ -127,7 +127,7 @@ This document describes the attack surface of the Forge benchmark and the mitiga
 
 **Residual risk:** Medium. A determined miner could build per-spec lookup tables. 
 
-**Planned:** Private held-out spec set (`specs/private/` not committed) for final scoring; public specs are for local dev only. Hash-commitment scheme: miner submits a proof-of-work hash before the spec is revealed (longer-term).
+**Mitigated:** Private held-out spec set implemented (PR #181). 15 hidden specs (5 per round, seeds 9000–9204) are stored in the forge-api database only — never committed to this repo. After a PR merges, `score.yml` fetches one random hidden spec per round via `GET /admin/hidden/specs/{round}/sample` (requires `FORGE_ADMIN_KEY`) and evaluates the merged agent against it. Results are stored in `hidden_submissions` for maintainer review. Operators seed hidden specs by running `scripts/generate_hidden_specs.py` and setting `HIDDEN_SPECS_JSON` on the forge-api server. Hash-commitment (miner submits hash before spec is revealed) remains a longer-term hardening option.
 
 ---
 

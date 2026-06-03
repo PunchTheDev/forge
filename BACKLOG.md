@@ -14,7 +14,7 @@ Ordered by priority. Completed items are not tracked here — see `CHANGELOG.md`
 
 ## Anti-gaming hardening
 
-- [ ] **Private held-out eval set** — specs not in the repo, evaluated server-side only. Prevents overfitting to visible test specs. Requires server-side eval infra beyond Docker-in-CI.
+- ~~**Private held-out eval set**~~ — shipped (PR #181). 15 hidden specs seeded via `HIDDEN_SPECS_JSON` env var in forge-api; post-merge `score.yml` evaluates one hidden spec per round. Operator must run `scripts/generate_hidden_specs.py` and set `HIDDEN_SPECS_JSON` + `FORGE_ADMIN_KEY` on server.
 - ~~Spec rotation schedule~~ — shipped (PR #180, `scripts/rotate_round.py`; Discord embed on `DISCORD_WEBHOOK_URL`)
 
 ---

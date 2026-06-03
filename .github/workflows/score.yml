@@ -92,3 +92,27 @@ jobs:
           PR_NUMBER: "0"
           SCORE_NOTES: "post-merge full eval — ${{ matrix.round_id }}"
         run: python3 scripts/record_submissions.py
+
+  hidden-eval:
+    needs: [find-agent, score-round]
+    if: needs.find-agent.outputs.found == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build eval image
+        run: docker build -t forge-eval .
+
+      - name: Run hidden spec eval (one spec per round)
+        env:
+          FORGE_API_URL: ${{ secrets.FORGE_API_URL }}
+          FORGE_ADMIN_KEY: ${{ secrets.FORGE_ADMIN_KEY }}
+          AGENT_PATH: ${{ needs.find-agent.outputs.agent }}
+          CONTRIBUTOR: ${{ needs.find-agent.outputs.contributor }}
+          COMMIT_HASH: ${{ github.sha }}
+          FORGE_LLM_KEY: ${{ secrets.FORGE_LLM_KEY || secrets.OPENROUTER_KEY }}
+          FORGE_MODEL: ${{ secrets.FORGE_MODEL || 'anthropic/claude-haiku-4-5' }}
+          FORGE_MODEL_WHITELIST: ${{ vars.FORGE_MODEL_WHITELIST || 'anthropic/claude-haiku-4-5,anthropic/claude-3-5-haiku,openai/gpt-4o-mini' }}
+        run: python3 scripts/run_hidden_eval.py
