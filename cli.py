@@ -850,8 +850,13 @@ def cmd_check_deps(args: argparse.Namespace) -> int:
         if found:
             try:
                 proc = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
-                version = (proc.stdout or proc.stderr).strip().splitlines()[0][:40]
-                _ok(f"  {name:<22} {version}")
+                if proc.returncode == 0:
+                    version = (proc.stdout or proc.stderr).strip().splitlines()[0][:40]
+                    _ok(f"  {name:<22} {version}")
+                else:
+                    err = (proc.stderr or proc.stdout).strip().splitlines()[0][:60]
+                    _fail(f"  {name:<22} found but broken — {err}")
+                    native_ok = False
             except Exception:
                 _ok(f"  {name:<22} (found at {found})")
         else:
