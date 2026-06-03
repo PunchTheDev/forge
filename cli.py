@@ -534,6 +534,11 @@ def cmd_status(args: argparse.Namespace) -> int:
         print(f"{RED}error:{RESET} agent not found: {agent_path}", file=sys.stderr)
         return 1
 
+    use_docker = getattr(args, "docker", False)
+    if use_docker and shutil.which("docker") is None:
+        print(f"{RED}error:{RESET} docker not found — install Docker Desktop or Engine first", file=sys.stderr)
+        return 1
+
     round_filter: str | None = getattr(args, "round", None)
     if round_filter:
         spec_files = _specs_for_round(round_filter)
@@ -547,6 +552,11 @@ def cmd_status(args: argparse.Namespace) -> int:
     if not spec_files:
         print(f"{RED}error:{RESET} no specs found", file=sys.stderr)
         return 1
+
+    if use_docker:
+        rc = _ensure_docker_image()
+        if rc != 0:
+            return rc
 
     sota_data = _fetch_json("/sota")
     sota_map: dict = {}
@@ -564,7 +574,10 @@ def cmd_status(args: argparse.Namespace) -> int:
         spec_id = spec.get("id", spec_file.stem)
         print(f"\n  {BOLD}{spec_id}{RESET}  {spec.get('name', '')}")
 
-        result = _run_evaluate(str(agent_path), str(spec_file), verbose=False)
+        if use_docker:
+            result = _run_evaluate_docker(str(agent_path), str(spec_file), verbose=False)
+        else:
+            result = _run_evaluate(str(agent_path), str(spec_file), verbose=False)
 
         if not result.get("passed"):
             _fail(f"stage={result.get('stage', '?')}  {result.get('reason', '')[:60]}")
@@ -1428,6 +1441,7 @@ def main() -> None:
     p_status.add_argument("agent", help="Path to agent.py")
     p_status.add_argument("--spec", metavar="ID", help="Limit to one spec")
     p_status.add_argument("--round", metavar="ID", help="Limit to specs in one round")
+    p_status.add_argument("--docker", action="store_true", help="Run eval in Docker (no local OCP/CalculiX needed)")
     p_status.set_defaults(func=cmd_status)
 
     p_specs = sub.add_parser("specs", help="List available problem specs")

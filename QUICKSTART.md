@@ -234,17 +234,24 @@ Interactive docs: http://143.244.191.193:8000/docs
 ## CLI reference
 
 ```
-forge new <name>                            # scaffold a new agent
-forge validate <agent.py> --spec r01_001_easy  # geometry-only check (fast, no FEA)
-forge eval <agent.py> --spec r01_001_easy   # full eval against one spec
-forge eval <agent.py> --round round_001     # eval across a round
-forge eval <agent.py> --json               # JSON output for scripting
-forge specs                                # list all specs with live SOTA state
-forge specs --unclaimed                    # show only specs with no current leader
-forge rounds                               # list competition rounds
-forge leaderboard                          # show overall rankings
-forge leaderboard --history r01_001_easy   # SOTA progression for a spec
-forge check-deps                           # verify local toolchain
+forge new <name>                                    # scaffold a new agent
+forge validate <agent.py> --spec r01_001_easy       # geometry check, no FEA (fast)
+forge validate --docker <agent.py> --spec r01_001_easy  # same, Docker-only (no local OCP)
+forge eval <agent.py> --spec r01_001_easy           # full eval against one spec
+forge eval --docker <agent.py> --spec r01_001_easy  # same, Docker-only (mirrors CI)
+forge eval <agent.py> --round round_001             # eval across a full round
+forge eval <agent.py> --all                         # eval against all 45 specs
+forge eval <agent.py> --json                        # JSON output for scripting
+forge status <agent.py>                             # eval all specs + compare to live SOTA
+forge status --docker <agent.py> --spec r01_001_easy # SOTA comparison via Docker
+forge specs                                         # list all specs with live SOTA state
+forge specs --unclaimed                             # show only specs with no current leader
+forge rounds                                        # list competition rounds
+forge leaderboard                                   # overall cross-spec rankings
+forge leaderboard --spec r01_001_easy               # per-spec rankings + SOTA info
+forge leaderboard --agent <contributor>             # all specs for one contributor
+forge leaderboard --history r01_001_easy            # SOTA progression for a spec
+forge check-deps                                    # verify local toolchain
 ```
 
 ---
