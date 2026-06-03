@@ -11,6 +11,7 @@ Format: newest entries first.
 
 ### Added
 - **`forge status --round <id>`** (`cli.py`): scope SOTA comparison to one round's 15 specs instead of all 54. Miners testing round_001 agents no longer trigger 54 Docker evals.
+- **Docker build caching** (`eval.yml`, `score.yml`): GitHub Actions GHA layer cache via `docker/build-push-action@v5`. Second and subsequent builds skip unchanged layers — significantly faster CI for miner PRs.
 
 ### Fixed
 - **`forge submit` NameError** (`cli.py`): `branch` was read before assignment if run outside a git repo (CalledProcessError left it uninitialized).

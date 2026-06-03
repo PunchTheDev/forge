@@ -64,9 +64,19 @@ jobs:
           ROUND_ID: ${{ matrix.round_id }}
         run: python3 scripts/select_full_round_specs.py
 
+      - name: Set up Docker Buildx
+        if: steps.specs.outputs.count != '0'
+        uses: docker/setup-buildx-action@v3
+
       - name: Build eval image
         if: steps.specs.outputs.count != '0'
-        run: docker build -t forge-eval .
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          load: true
+          tags: forge-eval:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Run full round evaluation
         id: eval
@@ -102,8 +112,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build eval image
-        run: docker build -t forge-eval .
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          load: true
+          tags: forge-eval:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Run hidden spec eval (one spec per round)
         env:
