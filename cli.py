@@ -140,8 +140,7 @@ def cmd_specs(args: argparse.Namespace) -> int:
                 or sc.get("baseline_deflection_mm")
                 or "?"
             )
-            unit = {"mass_grams": "g", "stiffness_to_weight": "N/(mm·g)", "deflection_mm": "mm"}.get(metric, "")
-            baseline_str = f"{baseline:.2f}{unit}" if isinstance(baseline, (int, float)) else "?"
+            baseline_str = _fmt_score(baseline, metric) if isinstance(baseline, (int, float)) else "?"
             print(f"  {sid:<20} {name:<28} {mat:<12} {load:>8}N  {bv_str:>18}  {baseline_str:>10}")
         print()
         return 0
