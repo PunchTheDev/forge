@@ -1,18 +1,32 @@
 """Select one easy spec per active round for CI pool evaluation.
 
-Reads PR_NUMBER from env, outputs a JSON list to GITHUB_OUTPUT.
+Spec selection uses RUN_ID (the GitHub Actions workflow run ID, assigned at
+trigger time) XOR-combined with the commit SHA. RUN_ID is not predictable
+before a PR is opened, so miners cannot pre-compute which spec they will be
+evaluated on and overfit accordingly. PR_NUMBER is kept as a fallback for
+local testing only.
+
 Each entry: {round_id, spec_id, spec_path, metric, direction, baseline}.
-Specs are chosen deterministically: index = PR_NUMBER % len(easy_specs).
-This means different PRs test different specs, making it hard to overfit
-to a single problem while keeping evaluation reproducible per PR.
 """
 
+import hashlib
 import json
 import os
 import pathlib
 import sys
 
+# Use run_id (unpredictable at PR-open time) as primary entropy source.
+# Fall back to pr_num for local runs where GITHUB_RUN_ID is not set.
+run_id = os.environ.get("GITHUB_RUN_ID", "")
+commit_sha = os.environ.get("COMMIT_SHA", "")
 pr_num = int(os.environ.get("PR_NUMBER", "0"))
+
+if run_id:
+    seed_str = f"{run_id}:{commit_sha}"
+    seed = int(hashlib.sha256(seed_str.encode()).hexdigest()[:8], 16)
+else:
+    seed = pr_num
+
 rounds = ["round_001", "round_002", "round_003"]
 specs = []
 
@@ -25,7 +39,7 @@ for round_id in rounds:
     if not easy:
         print(f"WARNING: no easy specs in {d} — skipping {round_id}", flush=True)
         continue
-    chosen = easy[pr_num % len(easy)]
+    chosen = easy[seed % len(easy)]
     data = json.loads(chosen.read_text())
     sc = data.get("scoring", {})
     baseline = (
@@ -49,7 +63,8 @@ if not specs:
     print("ERROR: no specs selected — cannot run pool eval", flush=True)
     sys.exit(1)
 
-print(f"Selected {len(specs)} specs: {[s['spec_id'] for s in specs]}", flush=True)
+entropy_source = f"run_id={run_id}" if run_id else f"pr_num={pr_num}"
+print(f"Spec selection seed from {entropy_source} → {[s['spec_id'] for s in specs]}", flush=True)
 
 gh_output = os.environ.get("GITHUB_OUTPUT", "")
 if gh_output:
