@@ -9,6 +9,7 @@ import base64
 import json
 import os
 import sys
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -63,8 +64,17 @@ for entry in results:
     req = urllib.request.Request(
         url, data=body, headers={"Content-Type": "application/json"}, method="POST"
     )
-    try:
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            print(f"[{spec_id}] recorded: {resp.read().decode()[:80]}")
-    except urllib.error.URLError as e:
-        print(f"[{spec_id}] forge-api POST failed (non-blocking): {e}", flush=True)
+    # Retry with exponential backoff (1s → 2s → 4s) so transient API hiccups
+    # don't silently drop leaderboard submissions.
+    last_exc: Exception | None = None
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                print(f"[{spec_id}] recorded: {resp.read().decode()[:80]}")
+                break
+        except urllib.error.URLError as e:
+            last_exc = e
+            if attempt < 2:
+                time.sleep(2 ** attempt)
+    else:
+        print(f"[{spec_id}] forge-api POST failed after 3 attempts (non-blocking): {last_exc}", flush=True)

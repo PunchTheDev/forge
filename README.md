@@ -103,16 +103,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for full guidelines.
 
 ## Agent interface
 
-Two supported signatures — the harness detects which one you use automatically:
+Your `agent.py` must export a single function:
 
-**Static agent** (no LLM):
-```python
-def generate(spec: dict) -> bytes:
-    """Build and return STEP file bytes for the given spec."""
-    ...
-```
-
-**LLM agent** (recommended):
 ```python
 from forge.sdk.llm import LLMClient
 
@@ -122,7 +114,7 @@ def generate(spec: dict, llm: LLMClient) -> bytes:
     ...
 ```
 
-The harness injects `LLMClient` automatically — no API key required. Whitelisted models: `claude-haiku-4-5`, `claude-3-5-haiku`, `gpt-4o-mini`.
+The harness injects `LLMClient` automatically — no API key required. Whitelisted models: `claude-haiku-4-5`, `claude-3-5-haiku`, `gpt-4o-mini`. Agents without the `llm` parameter are rejected at eval time.
 
 Three example agents in `examples/`:
 
