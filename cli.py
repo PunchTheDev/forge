@@ -683,6 +683,40 @@ def cmd_eval(args: argparse.Namespace) -> int:
     elif len(results) > 1:
         _print_summary_table(results)
 
+    # For single-spec runs, show SOTA comparison inline so the miner
+    # immediately sees whether their score is competitive.
+    if not args.json and len(results) == 1:
+        r = results[0]
+        if r.get("passed") and r.get("score") is not None:
+            spec_id = r["spec"]
+            score = r["score"]
+            metric = r.get("score_metric", "mass_grams")
+            sota = _fetch_json(f"/sota/{spec_id}")
+            if sota and isinstance(sota, dict):
+                sota_score = sota.get("score") or sota.get("mass_grams")
+                sota_dir = sota.get("score_direction", "minimize")
+                sota_metric = sota.get("score_metric", metric)
+                if sota_score is not None:
+                    print(f"  {'─' * 62}")
+                    print(f"  Current SOTA: {_fmt_score(sota_score, sota_metric)}  by {sota.get('contributor', '?')}")
+                    elig = _fetch_json(f"/sota/{spec_id}/eligibility?score={score}")
+                    if isinstance(elig, dict):
+                        if elig.get("eligible"):
+                            req = elig.get("required_improvement_pct", 0)
+                            print(f"  {GREEN}Beats SOTA and meets ≥{req:.1f}% margin — eligible to claim!{RESET}")
+                        else:
+                            req = elig.get("required_improvement_pct", 0)
+                            beats_raw = (sota_dir == "maximize" and score > sota_score) or (sota_dir != "maximize" and score < sota_score)
+                            if beats_raw:
+                                print(f"  {YELLOW}Beats SOTA raw but margin too small — need ≥{req:.1f}% improvement.{RESET}")
+                            else:
+                                print(f"  {YELLOW}Does not beat SOTA ({_fmt_score(sota_score, sota_metric)}).{RESET}")
+                    print()
+            elif sota is None:
+                print(f"  {'─' * 62}")
+                print(f"  {GREEN}No SOTA yet — this submission would set the record!{RESET}")
+                print()
+
     return 0 if overall_pass else 1
 
 

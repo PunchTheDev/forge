@@ -13,6 +13,7 @@ Format: newest entries first.
 - **`forge status` margin check** (`cli.py`): when a local eval score beats the current SOTA, `forge status` now also calls `GET /sota/{spec_id}/eligibility` and reports whether the margin requirement is satisfied. Green "margin ok (≥X% required)" or red "margin too small (≥X% required — won't claim SOTA)". Prevents the failure mode where a miner sees "beats SOTA" in status but then fails the eligibility check in CI.
 - **`forge leaderboard --spec` margin hint** (`cli.py`): the SOTA line in `forge leaderboard --spec <id>` now appends "(beat by ≥X% to claim)" based on the live decay schedule. Miners see the required improvement margin before committing to a run.
 - **`forge leaderboard --agent` current SOTA** (`cli.py`): unentered specs table now shows the current SOTA score (or "unclaimed") for each missing spec so the miner knows exactly what score to beat before starting a run.
+- **`forge eval` single-spec SOTA comparison** (`cli.py`): when running against a single spec and the eval passes, SOTA is fetched and displayed inline with eligibility status — green "eligible to claim", yellow "beats raw but margin too small", or yellow "does not beat SOTA". Miners get immediate competitive context without running a separate `forge leaderboard` command.
 
 ## 2026-06-03 (step 236)
 
