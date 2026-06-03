@@ -7,6 +7,15 @@ Format: newest entries first.
 
 ## [Unreleased]
 
+## 2026-06-03 (session 7)
+
+### Fixed
+- **FEA convergence trigger lowered from 70% → 40%** (PR #226, `benchmark/fea.py`): the 4mm coarse mesh can underestimate stress in thin cross-sections by 30–50%. A miner could submit a thin-wall design sitting at ~65% of allowable on the coarse mesh and skip the fine-mesh check entirely. Lowering the threshold to 40% ensures these designs get the convergence gate.
+- **Sandbox tests used old single-param signature** (PR #227, `tests/test_evaluate.py`): four sandbox tests were still using `generate(spec)` instead of `generate(spec, llm)`. The timeout test was failing outright; the other three passed only because the rejection message accidentally satisfied their error-string assertions.
+
+### Documentation
+- **Threat model accuracy** (PR #226, `docs/threat-model.md`): corrected convergence trigger from 70% → 40%; removed false claim about a geometric wall-thickness sampler (not implemented); added known-gap note for `min_wall_thickness_mm`.
+
 ## 2026-06-03 (session 2)
 
 ### Fixed
