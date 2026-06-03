@@ -20,6 +20,7 @@ SOTA_DIR = ROOT / "sota"
 AGENTS_DIR = ROOT / "agents"
 
 API_BASE = os.environ.get("FORGE_API_URL", "http://143.244.191.193:8000").rstrip("/")
+DASHBOARD_URL = os.environ.get("FORGE_DASHBOARD_URL", "http://143.244.191.193:8080")
 
 # ANSI color codes
 GREEN = "\033[32m"
@@ -562,7 +563,7 @@ def cmd_submit(args: argparse.Namespace) -> int:
     print("    4. A maintainer will review and merge if it passes FEA.")
     print()
     print(f"  API:  {API_BASE}")
-    print(f"  Leaderboard:  {API_BASE}/leaderboard/overall")
+    print(f"  Leaderboard:  {DASHBOARD_URL}")
     print()
     return 0 if not issues else 1
 
@@ -812,7 +813,8 @@ HELP_TEXT = f"""{BOLD}{CYAN}  forge — Parametric CAD Benchmark CLI{RESET}
     --json         Output raw JSON
 
   {BOLD}Environment:{RESET}
-    FORGE_API_URL  Override API base (default: {API_BASE})
+    FORGE_API_URL       Override API base (default: {API_BASE})
+    FORGE_DASHBOARD_URL Override dashboard URL (default: {DASHBOARD_URL})
 
   {BOLD}Examples:{RESET}
     forge new my-agent
