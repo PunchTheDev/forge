@@ -9,50 +9,26 @@ Format: newest entries first.
 
 ## 2026-06-03
 
-### Changed
-- **`forge specs` now shows live SOTA state** (`cli.py`): fetches `/sota` in one call and adds a SOTA column to the spec table — unclaimed specs shown as `OPEN` in green, claimed specs show the current score and contributor. `--unclaimed` flag filters to only show specs with no current leader.
-
-## 2026-06-05
-
 ### Added
+- **`forge specs` live SOTA state** (PR #204, `cli.py`): fetches `/sota` in one call and adds a SOTA column to the spec table — unclaimed specs shown as `OPEN` in green, claimed specs show the current score and contributor. `--unclaimed` flag filters to only show specs with no current leader.
 - **Deterministic example agent** (PR #199, `examples/deterministic-agent/`): no-LLM agent using pure geometric rules — minimal arm for `mass_grams`, tall cross-section (h³ stiffness principle) for `stiffness_to_weight`, full build-volume fill for `deflection_mm`. README updated with examples table showing all three agent paradigms.
-
-### Fixed
-- **Stale `python cli.py` references in CLI output** (PR #196, `cli.py`): `forge new`, `forge rounds`, and help text printed `python cli.py ...` instead of `forge ...`. All updated to current `forge` commands with accurate spec IDs.
-- **`forge submit` leaderboard URL** (PR #197, `cli.py`): was linking to raw API JSON endpoint; now links to the dashboard UI (port 8080). Added `FORGE_DASHBOARD_URL` env var for overriding.
-
-## 2026-06-04
-
-### Added
-- **`forge status --round <id>`** (`cli.py`): scope SOTA comparison to one round's 15 specs instead of all 54. Miners testing round_001 agents no longer trigger 54 Docker evals.
-- **Docker build caching** (`eval.yml`, `score.yml`): GitHub Actions GHA layer cache via `docker/build-push-action@v5`. Second and subsequent builds skip unchanged layers — significantly faster CI for miner PRs.
-
-### Fixed
-- **`forge submit` NameError** (`cli.py`): `branch` was read before assignment if run outside a git repo (CalledProcessError left it uninitialized).
-- **`forge submit` leaderboard URL** (`cli.py`): link updated from legacy `/leaderboard` to `/leaderboard/overall`.
-- **QUICKSTART `--spec` example** (`QUICKSTART.md`): "Train locally" section showed a file path (`specs/round_001/r01_001_easy.json`) for `--spec` instead of a spec ID (`r01_001_easy`); file paths are not valid for this flag.
-
-## 2026-06-03
-
-### Added
-- **Private held-out eval set** (`scripts/generate_hidden_specs.py`, `scripts/run_hidden_eval.py`): 15 hidden specs (5 per round, seeds 9000–9204). Post-merge `score.yml` runs one hidden spec per round via forge-api admin endpoints. Threat 7 (eval overfitting) mitigated.
-- **Spec rotation script** (`scripts/rotate_round.py`): closes a round, generates 15 fresh specs across easy/medium/hard tiers, posts Discord embed if `DISCORD_WEBHOOK_URL` is set. `--dry-run` for safe preview.
-- **Seeded load-case perturbation** (`benchmark/fea.py: _perturb_load`): ±10% magnitude, ±5° direction deviation, seeded by `spec["id"]`. Miners see only nominal `load_newtons`; actual FEA load is opaque. Scores remain comparable (same perturbation per spec for all submissions). Threat 8 (load-case overfitting) documented.
-- **Source similarity check** (`benchmark/agent_similarity.py`, `scripts/check_source_similarity.py`): CI rejects agents with token similarity ≥ 0.95 vs any reference agent. Catches verbatim copies and rename-only clones.
-- **Post-merge full-round eval** (`.github/workflows/score.yml`): after a miner PR merges, fans out to 3 parallel matrix jobs scoring all 15 specs per round; records to forge-api.
-- **Pre-commit hooks** (`.pre-commit-config.yaml`): black + ruff + mypy for `benchmark/`, `scripts/`, `specs/`, `catalog/`. Install: `pip install pre-commit && pre-commit install`.
-- **Metric-aware example** (`examples/metric-aware-agent/`): reads `spec["scoring"]["metric"]` and sends a tailored geometry strategy to the LLM per category — recommended starting point for new agents.
-- **`forge leaderboard --history <spec_id>`**: prints chronological SOTA progression for a spec — date, contributor, score, % improvement per step. Fetches from `/sota/{spec_id}/history`.
-- **Multi-spec pool eval in CI** (`scripts/select_eval_specs.py`, `run_eval_pool.py`, `record_submissions.py`): each PR is evaluated on one randomly-sampled easy spec from each of the 3 active rounds (not just round_001). PR comment shows cross-category table + composite score.
-- **Per-spec SOTA reference STEPs** (`sota/{spec_id}/reference.step`): geometric similarity check is now per-spec first, falling back to the global reference.
+- **`forge status --round <id>`** (PR #195, `cli.py`): scope SOTA comparison to one round's 15 specs instead of all 54.
+- **Docker build caching** (PR #195, `eval.yml`, `score.yml`): GitHub Actions GHA layer cache via `docker/build-push-action@v5`. Second and subsequent builds skip unchanged layers — significantly faster CI for miner PRs.
+- **Thingiverse catalog specs** (PRs #206–#208, `specs/catalog/`): 30 catalog specs (10 each for mass_grams, stiffness_to_weight, deflection_mm). Inactive until added to a round JSON.
 
 ### Changed
-- **Dockerfile base pinned by digest** (`ubuntu:24.04@sha256:023f...`): prevents silent base-image changes from breaking eval parity across CI runs.
+- **Threat model accuracy** (PR #201, `docs/threat-model.md`): Threats 2/3/4/7 marked Implemented — plagiarism check, rate limiting, mesh convergence, and hidden eval set were all shipped but still listed as Planned.
 
 ### Fixed
-- **CLI metric units in eval output**: `forge eval` verbose output and summary table now use `_fmt_score(score, metric)` instead of hardcoded `g` — round_002 shows `N/(mm·g)`, round_003 shows `mm`.
-- **Template agent field names**: docstring corrected — `load_n` → `load_newtons`, `spec["safety_factor"]` → `spec["constraints"]["safety_factor"]`.
-- **Unclaimed spec SOTA label**: CI now correctly applies the `optimization` label (2× Gittensor multiplier) when the first miner claims an unclaimed spec. Previously the label was only applied when beating an existing SOTA.
+- **`httpx.utils.quote` → `urllib.parse.quote`** (PR #205, `catalog/`): `httpx.utils` was removed in modern httpx; all ingest workflow runs were crashing on this.
+- **Ingest workflow PR creation** (PR #209, `.github/workflows/ingest.yml`): replaced `peter-evans/create-pull-request@v7` (blocked by repo policy) with plain `git push` + compare URL.
+- **Null-score crash in PR eval comment** (PR #200, `scripts/`): `evaluate.py` returns `score: null` on FEA failure; PR comment script was calling `.toFixed(2)` on null → TypeError → full comment step crashed. Failed rows now show `—` with failure reason; composite shows `—` when any category fails.
+- **QUICKSTART reference implementations** (PR #200, `QUICKSTART.md`): `examples/deterministic-agent/` was missing from the reference list.
+- **Stale `python cli.py` references in CLI output** (PR #196, `cli.py`): `forge new`, `forge rounds`, and help text printed `python cli.py ...` instead of `forge ...`.
+- **`forge submit` leaderboard URL** (PR #197, `cli.py`): was linking to raw API JSON endpoint; now links to the dashboard UI (port 8080). Added `FORGE_DASHBOARD_URL` env var for overriding.
+- **`forge submit` NameError** (PR #195, `cli.py`): `branch` was read before assignment if run outside a git repo.
+- **QUICKSTART `--spec` example** (PR #195, `QUICKSTART.md`): showed a file path instead of a spec ID for `--spec`.
+- **API version string** (forge-api PR #36, `main.py`): was `0.1.0` since initial scaffold; updated to `0.13.1`.
 
 ## 2026-06-02
 
@@ -61,6 +37,16 @@ Format: newest entries first.
 - `deflection_mm` metric: `evaluate.py`, `generator.py`, CLI `--metric deflection_mm`, `METRIC_CONFIG` in API/dashboard.
 - Eval PR comment now shows correct label, unit, and 4-decimal delta for `deflection_mm`; suppresses redundant FEA displacement row.
 - **Round 002 — Stiffness-to-weight**: 15 specs (seeds 400/500/600). Objective: maximize `stiffness_to_weight`.
+- **Private held-out eval set** (`scripts/generate_hidden_specs.py`, `scripts/run_hidden_eval.py`): 15 hidden specs (5 per round, seeds 9000–9204). Post-merge `score.yml` runs one hidden spec per round via forge-api admin endpoints. Threat 7 (eval overfitting) mitigated.
+- **Spec rotation script** (`scripts/rotate_round.py`): closes a round, generates 15 fresh specs across easy/medium/hard tiers, posts Discord embed if `DISCORD_WEBHOOK_URL` is set. `--dry-run` for safe preview.
+- **Seeded load-case perturbation** (`benchmark/fea.py: _perturb_load`): ±10% magnitude, ±5° direction deviation, seeded by `spec["id"]`. Miners see only nominal `load_newtons`; actual FEA load is opaque. Threat 8 (load-case overfitting) documented.
+- **Source similarity check** (`benchmark/agent_similarity.py`, `scripts/check_source_similarity.py`): CI rejects agents with token similarity ≥ 0.95 vs any reference agent. Catches verbatim copies and rename-only clones.
+- **Post-merge full-round eval** (`.github/workflows/score.yml`): after a miner PR merges, fans out to 3 parallel matrix jobs scoring all 15 specs per round; records to forge-api.
+- **Pre-commit hooks** (`.pre-commit-config.yaml`): black + ruff + mypy for `benchmark/`, `scripts/`, `specs/`, `catalog/`. Install: `pip install pre-commit && pre-commit install`.
+- **Metric-aware example** (`examples/metric-aware-agent/`): reads `spec["scoring"]["metric"]` and sends a tailored geometry strategy to the LLM per category.
+- **`forge leaderboard --history <spec_id>`**: prints chronological SOTA progression for a spec. Fetches from `/sota/{spec_id}/history`.
+- **Multi-spec pool eval in CI** (`scripts/select_eval_specs.py`, `run_eval_pool.py`, `record_submissions.py`): each PR is evaluated on one randomly-sampled easy spec from each of the 3 active rounds. PR comment shows cross-category table + composite score.
+- **Per-spec SOTA reference STEPs** (`sota/{spec_id}/reference.step`): geometric similarity check is now per-spec first, falling back to the global reference.
 - Gittensor label pipeline: CI applies `optimization`/`passed` labels with marginal-gain eligibility check.
 - Threat model doc (`docs/threat-model.md`): 7 attack classes with mitigations and residual risks.
 - Thingiverse catalog module (`catalog/`): fetch/theme/ingest pipeline, `forge catalog` CLI command.
@@ -75,7 +61,13 @@ Format: newest entries first.
 - `QUICKSTART.md`, `.github/ISSUE_TEMPLATE/` (bug report + feature request), `CONTRIBUTING.md`, `VISION.md`.
 - `forge` CLI: `forge eval`, `forge spec`, `forge sota`, `forge catalog`.
 
+### Changed
+- **Dockerfile base pinned by digest** (`ubuntu:24.04@sha256:023f...`): prevents silent base-image changes from breaking eval parity across CI runs.
+
 ### Fixed
+- **CLI metric units in eval output**: `forge eval` verbose output and summary table now use `_fmt_score(score, metric)` — round_002 shows `N/(mm·g)`, round_003 shows `mm`.
+- **Template agent field names**: docstring corrected — `load_n` → `load_newtons`, `spec["safety_factor"]` → `spec["constraints"]["safety_factor"]`.
+- **Unclaimed spec SOTA label**: CI now correctly applies the `optimization` label (2× Gittensor multiplier) when the first miner claims an unclaimed spec.
 - Spec path resolution across round subdirectories in CI.
 - Flat glob for `cmd_specs`/`status`.
 - `spec.txt` routing: each agent dir declares its target spec.
