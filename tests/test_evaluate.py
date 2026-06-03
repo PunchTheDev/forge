@@ -91,7 +91,7 @@ class TestSandbox:
         agent = tmp_path / "slow_agent.py"
         agent.write_text(
             "import time\n"
-            "def generate(spec):\n"
+            "def generate(spec, llm):\n"
             "    time.sleep(120)\n"
             "    return b''\n"
         )
@@ -105,7 +105,7 @@ class TestSandbox:
     def test_agent_exception_propagates(self, tmp_path):
         agent = tmp_path / "bad_agent.py"
         agent.write_text(
-            "def generate(spec):\n"
+            "def generate(spec, llm):\n"
             "    raise RuntimeError('intentional failure')\n"
         )
         from benchmark.sandbox import run_agent
@@ -116,7 +116,7 @@ class TestSandbox:
     def test_agent_wrong_return_type(self, tmp_path):
         agent = tmp_path / "wrong_type_agent.py"
         agent.write_text(
-            "def generate(spec):\n"
+            "def generate(spec, llm):\n"
             "    return 'not bytes'\n"
         )
         from benchmark.sandbox import run_agent
@@ -127,7 +127,7 @@ class TestSandbox:
     def test_valid_agent_returns_bytes(self, tmp_path):
         agent = tmp_path / "ok_agent.py"
         agent.write_text(
-            "def generate(spec):\n"
+            "def generate(spec, llm):\n"
             "    return b'fake step content'\n"
         )
         from benchmark.sandbox import run_agent
