@@ -80,7 +80,7 @@ curl http://143.244.191.193:8000/specs/r01_001_easy
 ## Step 2 — Create your agent
 
 ```bash
-cp -r agents/template agents/<your-name>
+forge new <your-name>
 ```
 
 Edit `agents/<your-name>/agent.py`. Two supported signatures:
@@ -140,23 +140,18 @@ forge rounds --list-specs
 ## Step 3 — Test locally
 
 ```bash
-forge eval agents/<your-name>/agent.py
+# Eval on one spec
+forge eval agents/<your-name>/agent.py --spec r01_001_easy
+
+# Eval on an entire round
+forge eval agents/<your-name>/agent.py --round round_001
 ```
 
-Output:
-```
- spec:    001_bracket — Wall Mounting Bracket
- passed:  True
- mass:    28.40 g   (SOTA: 29.15 g)
- stress:  22.1 / 25.0 MPa
- beats:   True  ← you're in the lead
-```
-
-Iterate until `beats: True`. Design constraints:
-- Fits inside the build volume (150 × 100 × 100 mm)
+Your agent must pass all geometry and FEA checks. Design constraints:
+- Fits inside the build volume (per-spec `build_volume_mm`)
 - All bolt holes clear by `bolt_diameter_clearance_mm`
-- Wall thickness ≥ `min_wall_thickness_mm` throughout (1.2mm for bracket spec)
-- Overhang ≤ 45° (printable without supports)
+- Wall thickness ≥ `min_wall_thickness_mm` throughout
+- Overhang ≤ `max_overhang_deg` (printable without supports)
 - FEA von Mises stress < material yield / safety factor
 
 See [docs/scoring.md](docs/scoring.md) for full details.
@@ -216,7 +211,6 @@ Interactive docs: http://143.244.191.193:8000/docs
 - **Generalists win**: specialists who hardcode one metric fail two of three categories. CI evaluates your agent across all three rounds.
 - **The hard constraint is FEA**: geometry checks are easy to satisfy; passing FEA with acceptable mesh convergence is the real challenge.
 - **Minimum wall = 2–3 mm**: C3D4 linear tets fail to resolve stress in walls thinner than 2 mm.
-- **Determinism is required**: if your design uses randomness, fix `random.seed(42)`. CI runs the first spec twice and both scores must match.
 - **AP214IS STEP schema**: always set `Interface_Static.SetCVal_s("write.step.schema", "AP214IS")` before writing STEP. AP203 causes SIGSEGV on complex geometry.
 - **Use build123d**: cleaner parametric API than raw OCP. See `agents/baseline/agent.py` for an OCP example using raw `BRepPrimAPI`.
 - **Read the spec metric**: round_001 = mass, round_002 = stiffness/weight, round_003 = deflection. Your geometry strategy should differ for each.
@@ -226,13 +220,15 @@ Interactive docs: http://143.244.191.193:8000/docs
 ## CLI reference
 
 ```
-forge eval <agent.py>              # benchmark an agent
-forge eval <agent.py> --spec 001   # against a specific spec
-forge eval <agent.py> --all        # against all public specs
-forge eval <agent.py> --json       # JSON output for scripting
-forge specs                        # list all available specs
-forge leaderboard                  # show current SOTA
-forge check-deps                   # verify local toolchain
+forge new <name>                            # scaffold a new agent
+forge eval <agent.py> --spec r01_001_easy   # eval against one spec
+forge eval <agent.py> --round round_001     # eval across a round
+forge eval <agent.py> --json               # JSON output for scripting
+forge specs                                # list all available specs
+forge rounds                               # list competition rounds
+forge leaderboard                          # show overall rankings
+forge leaderboard --history r01_001_easy   # SOTA progression for a spec
+forge check-deps                           # verify local toolchain
 ```
 
 ---
