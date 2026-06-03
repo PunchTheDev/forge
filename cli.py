@@ -123,6 +123,7 @@ def cmd_specs(args: argparse.Namespace) -> int:
     round_filter: str | None = getattr(args, "round", None)
     unclaimed_only: bool = getattr(args, "unclaimed", False)
     tier_filter: str | None = getattr(args, "tier", None)
+    material_filter: str | None = getattr(args, "material", None)
 
     # Resolve allowed spec IDs from round manifest if --round given
     allowed_ids: set[str] | None = None
@@ -143,6 +144,9 @@ def cmd_specs(args: argparse.Namespace) -> int:
         if tier_filter:
             data = [s for s in data if s.get("id", "").rsplit("_", 1)[-1] == tier_filter]
 
+        if material_filter:
+            data = [s for s in data if s.get("material", "") == material_filter]
+
         # Fetch all SOTA records in one call and index by spec_id.
         sota_list = _fetch_json("/sota") or []
         sota_by_id: dict[str, dict] = {r["spec_id"]: r for r in sota_list if isinstance(r, dict) and "spec_id" in r}
@@ -155,6 +159,8 @@ def cmd_specs(args: argparse.Namespace) -> int:
             label_parts.append(round_filter)
         if tier_filter:
             label_parts.append(tier_filter)
+        if material_filter:
+            label_parts.append(f"material={material_filter}")
         if unclaimed_only:
             label_parts.append("unclaimed only")
         label = "Specs — " + ", ".join(label_parts) + "  (live)" if label_parts else "Specs  (live)"
@@ -1463,6 +1469,7 @@ def main() -> None:
     p_specs.add_argument("--round", metavar="ID", help="Filter to specs in one round (e.g. round_001)")
     p_specs.add_argument("--unclaimed", action="store_true", help="Show only specs with no current SOTA")
     p_specs.add_argument("--tier", choices=["easy", "medium", "hard"], help="Filter to one difficulty tier")
+    p_specs.add_argument("--material", metavar="MAT", help="Filter by material (e.g. pla, petg, aluminum_6061, stainless_316)")
     p_specs.set_defaults(func=cmd_specs)
 
     p_rounds = sub.add_parser("rounds", help="List competition rounds and spec sets")
