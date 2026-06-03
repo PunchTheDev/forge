@@ -7,6 +7,14 @@ Format: newest entries first.
 
 ## [Unreleased]
 
+## 2026-06-03 (session 15)
+
+### Added
+- **`forge eval --docker` flag** (PR #253, `cli.py`): runs the eval pipeline inside the `forge-eval` Docker container — same flags as CI (`--cap-drop ALL`, `--pids-limit 256`, `4g/2cpu`, workspace volume-mount). Builds the image automatically on first use. No local OCP/CalculiX/gmsh installation needed. `_ensure_docker_image()` checks for the image before each run; `_run_evaluate_docker()` implements the Docker path.
+
+### Fixed
+- **QUICKSTART.md "Option A" accuracy** (PR #253): previously claimed `forge eval` ran inside Docker, but the CLI used Python directly. Updated to show `forge eval --docker` and correct image-build timing (once, ~5 min).
+
 ## 2026-06-03 (session 14)
 
 ### Fixed
