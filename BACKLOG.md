@@ -14,7 +14,6 @@ Ordered by priority. Completed items are not tracked here — see `CHANGELOG.md`
 
 ## Anti-gaming hardening
 
-- [ ] **AST/source similarity check** — compare submitted `agent.py` against all prior merged agents; reject if token similarity > threshold. STEP geometric similarity is live; source-code clones are a residual risk.
 - [ ] **Private held-out eval set** — specs not in the repo, evaluated server-side only. Prevents overfitting to visible test specs. Requires server-side eval infra beyond Docker-in-CI.
 - [ ] **Spec rotation schedule** — monthly rotation of active round specs, announced via Discord. Prevents long-term overfitting to fixed spec set.
 

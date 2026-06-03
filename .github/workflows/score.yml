@@ -1,0 +1,94 @@
+name: Score merged agent
+
+# Runs after a PR merges to main and evaluates the agent on all specs
+# in every active round. The PR eval (eval.yml) only tests one easy spec
+# per round — this fills in the full picture for the leaderboard.
+
+on:
+  push:
+    branches: [main]
+    paths: ['agents/**']
+
+jobs:
+  find-agent:
+    runs-on: ubuntu-latest
+    outputs:
+      agent: ${{ steps.find.outputs.path }}
+      found: ${{ steps.find.outputs.found }}
+      contributor: ${{ steps.find.outputs.contributor }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Find merged agent
+        id: find
+        run: |
+          AGENT=$(git diff --name-only HEAD~1 HEAD \
+            | grep '^agents/.*/agent\.py$' \
+            | grep -v '^agents/template/' \
+            | head -1)
+          if [ -z "$AGENT" ]; then
+            echo "No agent.py in this push — skipping."
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "path=$AGENT" >> "$GITHUB_OUTPUT"
+            echo "found=true" >> "$GITHUB_OUTPUT"
+            # Extract contributor from merge commit message:
+            # "Merge pull request #N from username/branch"
+            MSG=$(git log -1 --format='%s')
+            CONTRIB=$(echo "$MSG" | sed -n 's/Merge pull request #[0-9]* from \([^/]*\).*/\1/p')
+            if [ -z "$CONTRIB" ]; then
+              CONTRIB="${{ github.actor }}"
+            fi
+            echo "contributor=$CONTRIB" >> "$GITHUB_OUTPUT"
+            echo "Agent: $AGENT  Contributor: $CONTRIB"
+          fi
+
+  score-round:
+    needs: find-agent
+    if: needs.find-agent.outputs.found == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        round_id: [round_001, round_002, round_003]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select all specs in round
+        id: specs
+        env:
+          ROUND_ID: ${{ matrix.round_id }}
+        run: python3 scripts/select_full_round_specs.py
+
+      - name: Build eval image
+        if: steps.specs.outputs.count != '0'
+        run: docker build -t forge-eval .
+
+      - name: Run full round evaluation
+        id: eval
+        if: steps.specs.outputs.count != '0'
+        env:
+          SPECS_JSON: ${{ steps.specs.outputs.json }}
+          AGENT_PATH: ${{ needs.find-agent.outputs.agent }}
+          FORGE_LLM_KEY: ${{ secrets.FORGE_LLM_KEY || secrets.OPENROUTER_KEY }}
+          FORGE_MODEL: ${{ secrets.FORGE_MODEL || 'anthropic/claude-haiku-4-5' }}
+          FORGE_MODEL_WHITELIST: ${{ vars.FORGE_MODEL_WHITELIST || 'anthropic/claude-haiku-4-5,anthropic/claude-3-5-haiku,openai/gpt-4o-mini' }}
+        # continue-on-error so that failed specs don't block score recording.
+        continue-on-error: true
+        run: python3 scripts/run_eval_pool.py
+
+      - name: Record scores to forge-api
+        if: steps.specs.outputs.count != '0' && steps.eval.outputs.results != ''
+        env:
+          FORGE_API_URL: ${{ secrets.FORGE_API_URL }}
+          EVAL_RESULTS: ${{ steps.eval.outputs.results }}
+          AGENT_PATH: ${{ needs.find-agent.outputs.agent }}
+          CONTRIBUTOR: ${{ needs.find-agent.outputs.contributor }}
+          COMMIT_HASH: ${{ github.sha }}
+          PR_NUMBER: "0"
+          SCORE_NOTES: "post-merge full eval — ${{ matrix.round_id }}"
+        run: python3 scripts/record_submissions.py

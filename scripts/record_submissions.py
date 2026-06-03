@@ -22,7 +22,8 @@ results = json.loads(os.environ["EVAL_RESULTS"])
 agent_path = os.environ["AGENT_PATH"]
 contributor = os.environ["CONTRIBUTOR"]
 commit_hash = os.environ["COMMIT_HASH"]
-pr_number = int(os.environ["PR_NUMBER"])
+pr_number = int(os.environ.get("PR_NUMBER", "0"))
+notes_override = os.environ.get("SCORE_NOTES", "").strip()
 
 url = url_base.rstrip("/") + "/submissions"
 
@@ -54,7 +55,7 @@ for entry in results:
         "fea_allowable_mpa": result.get("fea_allowable_mpa") or 0.0,
         "passed": bool(result.get("passed", False)),
         "pr_number": pr_number,
-        "notes": f"CI pool eval — PR #{pr_number}",
+        "notes": notes_override or f"CI pool eval — PR #{pr_number}",
         "step_b64": step_b64,
     }
 
