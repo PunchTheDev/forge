@@ -1,0 +1,96 @@
+name: Thingiverse Ingest
+
+# Run manually to pull fresh specs from Thingiverse into specs/catalog/.
+# Generates a PR so the maintainer can review before merging.
+#
+# Required secret: THINGIVERSE_KEY
+# Optional: adjust --n and --metric via workflow inputs
+
+on:
+  workflow_dispatch:
+    inputs:
+      n:
+        description: "Number of specs to generate"
+        default: "15"
+        required: false
+      metric:
+        description: "Scoring metric"
+        type: choice
+        options:
+          - mass_grams
+          - stiffness_to_weight
+          - deflection_mm
+        default: mass_grams
+      seed:
+        description: "Master random seed (integer)"
+        default: "0"
+        required: false
+      out_dir:
+        description: "Output directory (relative to repo root)"
+        default: "specs/catalog/"
+        required: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install forge (catalog + specs packages)
+        run: pip install -e ".[local]" --quiet || pip install -e . --quiet
+
+      - name: Run Thingiverse ingest
+        env:
+          THINGIVERSE_KEY: ${{ secrets.THINGIVERSE_KEY }}
+        run: |
+          forge ingest \
+            --n "${{ github.event.inputs.n }}" \
+            --metric "${{ github.event.inputs.metric }}" \
+            --seed "${{ github.event.inputs.seed }}" \
+            --out-dir "${{ github.event.inputs.out_dir }}"
+
+      - name: Check for new specs
+        id: check
+        run: |
+          COUNT=$(find "${{ github.event.inputs.out_dir }}" -name "th_*.json" 2>/dev/null | wc -l)
+          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+          echo "Generated $COUNT catalog specs."
+
+      - name: Create pull request
+        if: steps.check.outputs.count != '0'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: punch/ingest-${{ github.event.inputs.metric }}-seed${{ github.event.inputs.seed }}
+          commit-message: "Add ${{ steps.check.outputs.count }} Thingiverse catalog specs (${{ github.event.inputs.metric }})"
+          title: "Catalog ingest: ${{ steps.check.outputs.count }} specs (${{ github.event.inputs.metric }}, seed ${{ github.event.inputs.seed }})"
+          body: |
+            ## Summary
+
+            Thingiverse catalog ingest run. ${{ steps.check.outputs.count }} specs generated into `${{ github.event.inputs.out_dir }}`.
+
+            **Parameters:**
+            - Metric: `${{ github.event.inputs.metric }}`
+            - Seed: `${{ github.event.inputs.seed }}`
+            - n: `${{ github.event.inputs.n }}`
+
+            ## Review checklist
+
+            - [ ] Spot-check 2–3 spec JSON files: load, build volume, bolt pattern look reasonable
+            - [ ] Confirm `scoring.metric` matches the intended round metric
+            - [ ] If adding to a round: add spec IDs to `rounds/round_00N.json` and restart API
+
+            Specs in `specs/catalog/` are **not active** until added to a round JSON.
+          labels: maintenance

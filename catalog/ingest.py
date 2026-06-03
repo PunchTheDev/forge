@@ -29,6 +29,7 @@ def ingest(
     out_dir: Path,
     seed: int = 0,
     api_key: str | None = None,
+    scoring_metric: str = "mass_grams",
     dry_run: bool = False,
 ) -> list[dict]:
     """Fetch n things from Thingiverse and write specs to out_dir.
@@ -66,6 +67,7 @@ def ingest(
                 spec_id=spec_id,
                 tier=theme.tier,
                 seed=spec_seed,
+                scoring_metric=scoring_metric,
             )
 
             # Annotate with Thingiverse attribution
@@ -104,6 +106,7 @@ def main() -> None:
     parser.add_argument("--n", type=int, default=50, help="Number of specs to generate")
     parser.add_argument("--out-dir", type=Path, default=Path("specs/catalog/"), help="Output directory")
     parser.add_argument("--seed", type=int, default=0, help="Master random seed")
+    parser.add_argument("--metric", choices=["mass_grams", "stiffness_to_weight", "deflection_mm"], default="mass_grams")
     parser.add_argument("--api-key", default=None, help="Thingiverse API key (or set THINGIVERSE_KEY)")
     parser.add_argument("--dry-run", action="store_true", help="Preview without writing files")
     args = parser.parse_args()
@@ -112,6 +115,7 @@ def main() -> None:
         n=args.n,
         out_dir=args.out_dir,
         seed=args.seed,
+        scoring_metric=args.metric,
         api_key=args.api_key,
         dry_run=args.dry_run,
     )
