@@ -730,10 +730,15 @@ def _run_evaluate(agent_path: str, spec_path: str, verbose: bool) -> dict:
     # Inherit environment; supply defaults so LLM agents work without extra setup.
     env = os.environ.copy()
     env.setdefault("FORGE_MODEL", "anthropic/claude-haiku-4-5")
-    env.setdefault(
-        "FORGE_MODEL_WHITELIST",
-        "anthropic/claude-haiku-4-5,anthropic/claude-3-5-haiku,openai/gpt-4o-mini",
-    )
+    wl_path = ROOT / "config" / "model-whitelist.txt"
+    if wl_path.exists():
+        wl = ",".join(
+            l.strip() for l in wl_path.read_text().splitlines()
+            if l.strip() and not l.strip().startswith("#")
+        )
+    else:
+        wl = "anthropic/claude-haiku-4-5,anthropic/claude-3-5-haiku,openai/gpt-4o-mini"
+    env.setdefault("FORGE_MODEL_WHITELIST", wl)
     try:
         proc = subprocess.run(cmd, capture_output=True, text=True, cwd=str(ROOT), env=env)
     except FileNotFoundError:

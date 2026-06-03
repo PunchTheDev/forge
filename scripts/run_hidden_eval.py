@@ -37,10 +37,18 @@ CONTRIBUTOR = os.environ.get("CONTRIBUTOR", "unknown")
 COMMIT_HASH = os.environ.get("COMMIT_HASH", "unknown")
 LLM_KEY = os.environ.get("FORGE_LLM_KEY", "")
 MODEL = os.environ.get("FORGE_MODEL", "anthropic/claude-haiku-4-5")
-WHITELIST = os.environ.get(
-    "FORGE_MODEL_WHITELIST",
-    "anthropic/claude-haiku-4-5,anthropic/claude-3-5-haiku,openai/gpt-4o-mini",
-)
+
+
+def _load_whitelist_default() -> str:
+    wl_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config", "model-whitelist.txt")
+    try:
+        lines = open(wl_path).read().splitlines()
+        return ",".join(l.strip() for l in lines if l.strip() and not l.strip().startswith("#"))
+    except OSError:
+        return "anthropic/claude-haiku-4-5,anthropic/claude-3-5-haiku,openai/gpt-4o-mini"
+
+
+WHITELIST = os.environ.get("FORGE_MODEL_WHITELIST") or _load_whitelist_default()
 PUBLIC_RESULTS_JSON = os.environ.get("PUBLIC_RESULTS_JSON", "")
 
 ROUNDS = ["round_001", "round_002", "round_003"]

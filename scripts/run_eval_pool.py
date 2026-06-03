@@ -21,10 +21,15 @@ specs = json.loads(os.environ["SPECS_JSON"])
 agent = os.environ["AGENT_PATH"]
 llm_key = os.environ.get("FORGE_LLM_KEY", "")
 model = os.environ.get("FORGE_MODEL", "anthropic/claude-haiku-4-5")
-whitelist = os.environ.get(
-    "FORGE_MODEL_WHITELIST",
-    "anthropic/claude-haiku-4-5,anthropic/claude-3-5-haiku,openai/gpt-4o-mini",
-)
+def _load_whitelist_default() -> str:
+    wl_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config", "model-whitelist.txt")
+    try:
+        lines = open(wl_path).read().splitlines()
+        return ",".join(l.strip() for l in lines if l.strip() and not l.strip().startswith("#"))
+    except OSError:
+        return "anthropic/claude-haiku-4-5,anthropic/claude-3-5-haiku,openai/gpt-4o-mini"
+
+whitelist = os.environ.get("FORGE_MODEL_WHITELIST") or _load_whitelist_default()
 workspace = os.getcwd()
 
 results = []
