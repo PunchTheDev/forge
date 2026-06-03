@@ -226,96 +226,131 @@ def cmd_leaderboard(args: argparse.Namespace) -> int:
     if spec_filter:
         return _cmd_leaderboard_history(spec_filter)
 
-    lb_data = _fetch_json("/leaderboard")
-    sota_data = _fetch_json("/sota")
+    spec_id = getattr(args, "spec", None)
+    if spec_id:
+        return _cmd_leaderboard_spec(spec_id)
 
-    if lb_data or sota_data:
+    # Default: overall cross-contributor ranking
+    lb_data = _fetch_json("/leaderboard/overall")
+    rounds_data = _fetch_json("/rounds/active")
+
+    if lb_data and isinstance(lb_data, dict):
         _header("Forge Leaderboard  (live)")
 
-        # Build sota lookup: spec_id -> record
-        sota_map: dict = {}
-        if isinstance(sota_data, list):
-            for r in sota_data:
-                sota_map[r["spec_id"]] = r
-        elif isinstance(sota_data, dict):
-            sota_map[sota_data.get("spec_id", "")] = sota_data
+        total_specs = lb_data.get("total_specs", 0)
+        entries = lb_data.get("entries", [])
 
-        # Per-spec leaderboards
-        if isinstance(lb_data, list):
-            for spec_entry in lb_data:
-                spec_id = spec_entry.get("spec_id", "?")
-                entries = spec_entry.get("entries", [])
-                sota = sota_map.get(spec_id, {})
-                sota_score = sota.get("score") or sota.get("score_grams") or sota.get("mass_grams")
-                sota_metric = sota.get("score_metric", "mass_grams")
-                baseline = None
+        # Overall contributor rankings
+        print(f"\n  {'RANK':<6} {'CONTRIBUTOR':<24} {'SPECS WON':>10}  {'SPECS ENTERED':>14}  {'AVG SCORE':>10}")
+        print(f"  {'─' * 68}")
+        for e in entries[:20]:
+            rank = e.get("rank", "?")
+            contrib = e.get("contributor", "?")[:22]
+            specs_entered = e.get("specs_entered", 0)
+            wins = e.get("total_wins", 0)
+            avg = e.get("avg_normalized_score", 0)
+            color = GREEN if rank == 1 else RESET
+            print(f"  {color}{rank:<6} {contrib:<24} {wins:>10}  {specs_entered:>14}  {avg:>10.3f}{RESET}")
 
-                print(f"\n  Spec: {BOLD}{spec_id}{RESET}")
-                if sota_score:
-                    print(f"  SOTA: {GREEN}{_fmt_score(sota_score, sota_metric)}{RESET}  ({sota.get('contributor', '?')})")
-                print(f"  {'RANK':<6} {'CONTRIBUTOR':<24} {'SCORE':>12}  {'VS SOTA':>10}")
-                print(f"  {'─' * 56}")
-                for e in entries[:10]:
-                    rank = e.get("rank", "?")
-                    contrib = e.get("contributor", "?")[:22]
-                    score = e.get("score") or e.get("mass_grams", 0)
-                    sm = e.get("score_metric", "mass_grams")
-                    score_str = _fmt_score(score, sm)
-                    if sota_score:
-                        direction = sota.get("score_direction", "minimize")
-                        if direction == "maximize":
-                            delta_pct = (score - sota_score) / sota_score * 100
-                            vs = f"{delta_pct:+.1f}%"
-                            color = GREEN if delta_pct >= 0 else YELLOW
-                        else:
-                            delta = score - sota_score
-                            vs = f"{delta:+.2f}"
-                            color = GREEN if delta <= 0 else YELLOW
-                    else:
-                        vs = "—"
-                        color = RESET
-                    print(f"  {rank:<6} {contrib:<24} {score_str:>12}  {color}{vs:>10}{RESET}")
-        elif isinstance(lb_data, dict) and "entries" in lb_data:
-            # Overall leaderboard format
-            print(f"\n  {'RANK':<6} {'CONTRIBUTOR':<24} {'SPECS':>6}  {'WINS':>6}  {'AVG SCORE':>10}")
-            print(f"  {'─' * 60}")
-            for e in lb_data.get("entries", [])[:20]:
-                rank = e.get("rank", "?")
-                contrib = e.get("contributor", "?")[:22]
-                specs = e.get("specs_entered", 0)
-                wins = e.get("total_wins", 0)
-                avg = e.get("avg_normalized_score", 0)
-                color = GREEN if rank == 1 else RESET
-                print(f"  {color}{rank:<6} {contrib:<24} {specs:>6}  {wins:>6}  {avg:>10.3f}{RESET}")
+        if not entries:
+            print(f"  {YELLOW}No submissions yet — be the first!{RESET}")
 
+        # Unclaimed specs summary from active rounds
+        if rounds_data and isinstance(rounds_data, list):
+            sota_data = _fetch_json("/sota")
+            claimed: set[str] = set()
+            if isinstance(sota_data, list):
+                for r in sota_data:
+                    claimed.add(r["spec_id"])
+
+            total_round_specs = sum(len(r.get("specs", [])) for r in rounds_data)
+            unclaimed_count = sum(
+                1 for r in rounds_data
+                for s in r.get("specs", [])
+                if s["id"] not in claimed
+            )
+
+            print(f"\n  {BOLD}Open Opportunities{RESET}")
+            print(f"  {YELLOW}{unclaimed_count}/{total_round_specs} specs unclaimed — any passing submission sets new SOTA{RESET}")
+            for r in rounds_data:
+                specs = r.get("specs", [])
+                round_claimed = sum(1 for s in specs if s["id"] in claimed)
+                unclaimed = len(specs) - round_claimed
+                metric = r.get("scoring_metric", "?")
+                direction = r.get("scoring_direction", "?")
+                bar_filled = round_claimed
+                bar_empty = len(specs) - round_claimed
+                bar = f"{GREEN}{'█' * bar_filled}{YELLOW}{'░' * bar_empty}{RESET}"
+                print(f"  {r['id']}  {bar}  {round_claimed}/{len(specs)} claimed  [{metric} {direction}]")
+
+        print()
+        print(f"  forge leaderboard --spec <spec_id>   per-spec rankings")
+        print(f"  forge leaderboard --history <spec>   SOTA progression")
         print()
         return 0
 
-    # Local fallback
-    sota_file = SOTA_DIR / "score.json"
-    if sota_file.exists():
-        _warn("API unreachable — showing local SOTA")
-        try:
-            sota = json.loads(sota_file.read_text())
-        except json.JSONDecodeError:
-            print(f"{RED}error:{RESET} sota/score.json is malformed", file=sys.stderr)
-            return 1
-
-        _header("Leaderboard  (local fallback)")
-        score = sota.get("score") or sota.get("score_grams") or sota.get("mass_grams", "?")
-        metric = sota.get("score_metric", "mass_grams")
-        score_str = _fmt_score(score, metric) if isinstance(score, (int, float)) else str(score)
-        print(f"  SOTA score:  {GREEN}{score_str}{RESET}")
-        print(f"  Agent:       {sota.get('agent', '?')}")
-        print(f"  Contributor: {sota.get('contributor', '?')}")
-        print(f"  FEA stress:  {sota.get('fea_stress_mpa', '?')} / {sota.get('fea_allowable_mpa', '?')} MPa")
-        print(f"  Verified:    {sota.get('verified', False)}")
-        print(f"  Timestamp:   {sota.get('timestamp', '?')}")
-        print()
-        return 0
-
-    print("No leaderboard data found — API unreachable and no local SOTA.")
+    print(f"{YELLOW}API unreachable — no leaderboard data available.{RESET}")
     return 1
+
+
+def _cmd_leaderboard_spec(spec_id: str) -> int:
+    """Show per-spec leaderboard and SOTA for a single spec."""
+    lb_data = _fetch_json(f"/leaderboard/{spec_id}")
+    sota = _fetch_json(f"/sota/{spec_id}")
+
+    if lb_data is None and sota is None:
+        print(f"{RED}error:{RESET} spec '{spec_id}' not found or API unreachable.", file=sys.stderr)
+        return 1
+
+    _header(f"Spec Leaderboard — {spec_id}")
+
+    if sota and isinstance(sota, dict):
+        metric = sota.get("score_metric", "mass_grams")
+        score = sota.get("score") or sota.get("mass_grams")
+        direction = sota.get("score_direction", "minimize")
+        if score is not None:
+            print(f"\n  SOTA: {GREEN}{_fmt_score(score, metric)}{RESET}  ({sota.get('contributor', '?')})  [{direction}]")
+        else:
+            print(f"\n  {YELLOW}SOTA: unclaimed — any passing submission wins{RESET}")
+    else:
+        print(f"\n  {YELLOW}SOTA: unclaimed — any passing submission wins{RESET}")
+
+    entries = []
+    if isinstance(lb_data, dict):
+        entries = lb_data.get("entries", [])
+    elif isinstance(lb_data, list):
+        entries = lb_data
+
+    if entries:
+        metric = entries[0].get("score_metric", "mass_grams")
+        print(f"\n  {'RANK':<6} {'CONTRIBUTOR':<24} {'SCORE':>14}  {'VS SOTA':>10}")
+        print(f"  {'─' * 58}")
+        sota_score = (sota or {}).get("score") or (sota or {}).get("mass_grams")
+        sota_dir = (sota or {}).get("score_direction", "minimize")
+        for e in entries[:10]:
+            rank = e.get("rank", "?")
+            contrib = e.get("contributor", "?")[:22]
+            score = e.get("score") or e.get("mass_grams", 0)
+            sm = e.get("score_metric", metric)
+            score_str = _fmt_score(score, sm)
+            if sota_score:
+                if sota_dir == "maximize":
+                    delta_pct = (score - sota_score) / sota_score * 100
+                    vs = f"{delta_pct:+.1f}%"
+                    color = GREEN if delta_pct >= 0 else YELLOW
+                else:
+                    delta = score - sota_score
+                    vs = f"{delta:+.3g}"
+                    color = GREEN if delta <= 0 else YELLOW
+            else:
+                vs = "first!"
+                color = GREEN
+            print(f"  {rank:<6} {contrib:<24} {score_str:>14}  {color}{vs:>10}{RESET}")
+    else:
+        print(f"  {YELLOW}No submissions yet — any passing agent claims SOTA.{RESET}")
+
+    print()
+    return 0
 
 
 # ---------------------------------------------------------------------------
@@ -757,7 +792,8 @@ HELP_TEXT = f"""{BOLD}{CYAN}  forge — Parametric CAD Benchmark CLI{RESET}
     {GREEN}forge status <agent>{RESET}           Eval and compare against live SOTA
     {GREEN}forge specs{RESET}                    List all problem specs (live API + local)
     {GREEN}forge rounds{RESET}                   List competition rounds and their spec sets
-    {GREEN}forge leaderboard{RESET}              Show current SOTA scores per spec
+    {GREEN}forge leaderboard{RESET}              Overall contributor rankings + unclaimed spec summary
+    {GREEN}forge leaderboard --spec <id>{RESET}  Per-spec ranking and SOTA for one spec
     {GREEN}forge submit{RESET}                   Validate git and print submission guide
     {GREEN}forge check-deps{RESET}               Verify CalculiX, gmsh, OCP are installed
 
@@ -832,6 +868,7 @@ def main() -> None:
     p_rounds.set_defaults(func=cmd_rounds)
 
     p_lb = sub.add_parser("leaderboard", help="Show current SOTA scores")
+    p_lb.add_argument("--spec", metavar="SPEC_ID", help="Per-spec leaderboard for one spec")
     p_lb.add_argument("--history", metavar="SPEC_ID", help="Show SOTA progression for a spec")
     p_lb.set_defaults(func=cmd_leaderboard)
 
