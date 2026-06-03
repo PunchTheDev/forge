@@ -280,16 +280,18 @@ def cmd_leaderboard(args: argparse.Namespace) -> int:
         entries = lb_data.get("entries", [])
 
         # Overall contributor rankings
-        print(f"\n  {'RANK':<6} {'CONTRIBUTOR':<24} {'SPECS WON':>10}  {'SPECS ENTERED':>14}  {'AVG RANK':>9}")
-        print(f"  {'─' * 68}")
+        # overall_score = breadth-normalized mean percentile rank across all active specs.
+        # Lower is better; 1.0 = baseline (unentered specs). Primary Gittensor reward metric.
+        print(f"\n  {'RANK':<6} {'CONTRIBUTOR':<24} {'SPECS WON':>10}  {'SPECS ENTERED':>14}  {'SCORE':>7}")
+        print(f"  {'─' * 66}")
         for e in entries[:20]:
             rank = e.get("rank", "?")
             contrib = e.get("contributor", "?")[:22]
             specs_entered = e.get("specs_entered", 0)
             wins = e.get("total_wins", 0)
-            avg = e.get("avg_rank", 0)
+            score = e.get("overall_score", 1.0)
             color = GREEN if rank == 1 else RESET
-            print(f"  {color}{rank:<6} {contrib:<24} {wins:>10}  {specs_entered:>14}  {avg:>9.2f}{RESET}")
+            print(f"  {color}{rank:<6} {contrib:<24} {wins:>10}  {specs_entered:>14}  {score:>7.4f}{RESET}")
 
         if not entries:
             print(f"  {YELLOW}No submissions yet — be the first!{RESET}")
