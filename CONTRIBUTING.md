@@ -84,7 +84,7 @@ def generate(spec: dict, llm: LLMClient) -> bytes:
     # ... export to STEP and return bytes
 ```
 
-See `examples/llm-agent/agent.py` for a complete working example.
+See `examples/metric-aware-agent/agent.py` for the recommended starting point — it reads `spec["scoring"]["metric"]` and adapts its geometry strategy for all three categories. `examples/llm-agent/agent.py` is a simpler single-category example.
 
 The agent runs inside a Docker container with these constraints:
 - **Time:** 60 seconds
