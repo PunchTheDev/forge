@@ -31,16 +31,22 @@ jobs:
             echo "found=true" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Check source similarity against reference agents
+        id: similarity
+        if: steps.agent.outputs.found == 'true'
+        run: |
+          python3 scripts/check_source_similarity.py --agent "${{ steps.agent.outputs.path }}"
+
       - name: Select eval specs (one easy spec per active round)
         id: specs
-        if: steps.agent.outputs.found == 'true'
+        if: steps.agent.outputs.found == 'true' && steps.similarity.outcome == 'success'
         env:
           PR_NUMBER: ${{ github.event.number }}
         run: python3 scripts/select_eval_specs.py
 
       - name: Check for duplicate submissions
         id: dedup
-        if: steps.agent.outputs.found == 'true'
+        if: steps.agent.outputs.found == 'true' && steps.similarity.outcome == 'success'
         env:
           FORGE_API_URL: ${{ secrets.FORGE_API_URL }}
           COMMIT_HASH: ${{ github.event.pull_request.head.sha }}
@@ -67,11 +73,11 @@ jobs:
           fi
 
       - name: Build eval image
-        if: steps.agent.outputs.found == 'true' && steps.dedup.outputs.cached != 'true'
+        if: steps.agent.outputs.found == 'true' && steps.similarity.outcome == 'success' && steps.dedup.outputs.cached != 'true'
         run: docker build -t forge-eval .
 
       - name: Verify OCP in subprocess
-        if: steps.agent.outputs.found == 'true' && steps.dedup.outputs.cached != 'true'
+        if: steps.agent.outputs.found == 'true' && steps.similarity.outcome == 'success' && steps.dedup.outputs.cached != 'true'
         run: |
           docker run --rm \
             --network none \
@@ -84,7 +90,7 @@ jobs:
 
       - name: Run pool evaluation (3 specs, 2x determinism on first)
         id: eval
-        if: steps.agent.outputs.found == 'true' && steps.dedup.outputs.cached != 'true'
+        if: steps.agent.outputs.found == 'true' && steps.similarity.outcome == 'success' && steps.dedup.outputs.cached != 'true'
         env:
           SPECS_JSON: ${{ steps.specs.outputs.json }}
           AGENT_PATH: ${{ steps.agent.outputs.path }}
@@ -95,7 +101,7 @@ jobs:
 
       - name: Post cross-category score comment
         id: post_comment
-        if: steps.agent.outputs.found == 'true' && steps.dedup.outputs.cached != 'true'
+        if: steps.agent.outputs.found == 'true' && steps.similarity.outcome == 'success' && steps.dedup.outputs.cached != 'true'
         env:
           EVAL_RESULTS: ${{ steps.eval.outputs.results }}
           AGENT_PATH: ${{ steps.agent.outputs.path }}
@@ -221,7 +227,7 @@ jobs:
             core.setOutput('passed', allPassed ? 'true' : 'false');
 
       - name: Apply Gittensor scoring label
-        if: steps.agent.outputs.found == 'true' && steps.dedup.outputs.cached != 'true'
+        if: steps.agent.outputs.found == 'true' && steps.similarity.outcome == 'success' && steps.dedup.outputs.cached != 'true'
         env:
           BEATS_SOTA: ${{ steps.post_comment.outputs.beats_sota }}
           PASSED: ${{ steps.post_comment.outputs.passed }}
@@ -256,7 +262,7 @@ jobs:
             }
 
       - name: Record submissions to forge-api
-        if: steps.agent.outputs.found == 'true' && steps.dedup.outputs.cached != 'true'
+        if: steps.agent.outputs.found == 'true' && steps.similarity.outcome == 'success' && steps.dedup.outputs.cached != 'true'
         env:
           FORGE_API_URL: ${{ secrets.FORGE_API_URL }}
           EVAL_RESULTS: ${{ steps.eval.outputs.results }}
