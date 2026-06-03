@@ -125,7 +125,7 @@ Three active rounds, each testing a different optimization axis:
 
 Train locally against any spec:
 ```bash
-forge eval agents/<your-name>/agent.py --spec specs/round_001/r01_001_easy.json
+forge eval agents/<your-name>/agent.py --spec r01_001_easy
 forge eval agents/<your-name>/agent.py --round round_001
 ```
 

@@ -499,6 +499,7 @@ def cmd_submit(args: argparse.Namespace) -> int:
     _header("Submit to Forge Leaderboard")
 
     issues = []
+    branch = ""
 
     # Check git
     try:
@@ -554,7 +555,7 @@ def cmd_submit(args: argparse.Namespace) -> int:
     print("    4. A maintainer will review and merge if it passes FEA.")
     print()
     print(f"  API:  {API_BASE}")
-    print(f"  Leaderboard:  {API_BASE}/leaderboard")
+    print(f"  Leaderboard:  {API_BASE}/leaderboard/overall")
     print()
     return 0 if not issues else 1
 
