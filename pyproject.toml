@@ -25,4 +25,4 @@ forge = "cli:main"
 
 [tool.setuptools]
 py-modules = ["cli"]
-packages = ["forge", "forge.sdk"]
+packages = ["forge", "forge.sdk", "catalog", "specs", "benchmark"]

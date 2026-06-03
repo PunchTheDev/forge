@@ -840,7 +840,7 @@ def cmd_ingest(args: argparse.Namespace) -> int:
         return 1
 
     _header(f"Thingiverse ingest — {args.n} specs → {args.out_dir}")
-    ingest(n=args.n, out_dir=args.out_dir, seed=args.seed, dry_run=args.dry_run)
+    ingest(n=args.n, out_dir=args.out_dir, seed=args.seed, scoring_metric=args.metric, dry_run=args.dry_run)
     return 0
 
 
@@ -893,6 +893,7 @@ def main() -> None:
     p_ingest.add_argument("--n", type=int, default=50, help="Number of specs to generate")
     p_ingest.add_argument("--out-dir", type=Path, default=Path("specs/catalog/"), metavar="DIR")
     p_ingest.add_argument("--seed", type=int, default=0)
+    p_ingest.add_argument("--metric", choices=["mass_grams", "stiffness_to_weight", "deflection_mm"], default="mass_grams")
     p_ingest.add_argument("--dry-run", action="store_true", help="Preview without writing")
     p_ingest.set_defaults(func=cmd_ingest)
 
