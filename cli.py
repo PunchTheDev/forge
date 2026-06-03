@@ -809,7 +809,36 @@ def cmd_rounds(args: argparse.Namespace) -> int:
 def cmd_check_deps(args: argparse.Namespace) -> int:
     _header("Dependency check")
 
-    ok = True
+    # --- Docker path ---
+    print(f"  {BOLD}Option A — Docker (recommended){RESET}")
+    docker_found = bool(shutil.which("docker"))
+    if docker_found:
+        try:
+            proc = subprocess.run(
+                ["docker", "--version"], capture_output=True, text=True, timeout=5
+            )
+            version = (proc.stdout or proc.stderr).strip().splitlines()[0][:40]
+            _ok(f"  {'docker':<22} {version}")
+        except Exception:
+            _ok(f"  {'docker':<22} found")
+
+        # Check whether the pre-built eval image is already present locally.
+        try:
+            proc = subprocess.run(
+                ["docker", "image", "inspect", "forge-eval:latest"],
+                capture_output=True, text=True, timeout=10,
+            )
+            if proc.returncode == 0:
+                _ok(f"  {'forge-eval image':<22} cached locally")
+            else:
+                _warn(f"  {'forge-eval image':<22} not pulled — first run will pull from GHCR (~1 min)")
+        except Exception:
+            _warn(f"  {'forge-eval image':<22} status unknown")
+    else:
+        _fail(f"  {'docker':<22} NOT FOUND — install Docker to use Option A")
+
+    print(f"\n  {BOLD}Option B — Native toolchain{RESET}")
+    native_ok = True
     checks = [
         ("python", ["python3", "--version"]),
         ("ccx (CalculiX)", ["ccx", "-v"]),
@@ -822,34 +851,38 @@ def cmd_check_deps(args: argparse.Namespace) -> int:
             try:
                 proc = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
                 version = (proc.stdout or proc.stderr).strip().splitlines()[0][:40]
-                _ok(f"{name:<24} {version}")
+                _ok(f"  {name:<22} {version}")
             except Exception:
-                _ok(f"{name:<24} (found at {found})")
+                _ok(f"  {name:<22} (found at {found})")
         else:
-            _fail(f"{name:<24} NOT FOUND")
-            ok = False
+            _fail(f"  {name:<22} NOT FOUND")
+            native_ok = False
 
-    print(f"  {'─' * 64}")
     try:
         subprocess.run(
             [sys.executable, "-c", "import OCC.Core.BRep; print('ok')"],
             check=True, capture_output=True, timeout=30, cwd=str(ROOT)
         )
-        _ok(f"{'OCP (build123d/OCC)':<24} importable")
+        _ok(f"  {'OCP (build123d/OCC)':<22} importable")
     except subprocess.CalledProcessError:
-        _fail(f"{'OCP (build123d/OCC)':<24} import failed — run: pip install build123d")
-        ok = False
+        _fail(f"  {'OCP (build123d/OCC)':<22} import failed — run: pip install build123d")
+        native_ok = False
     except subprocess.TimeoutExpired:
-        _warn(f"{'OCP (build123d/OCC)':<24} import timed out (slow cold start is normal)")
+        _warn(f"  {'OCP (build123d/OCC)':<22} import timed out (slow cold start is normal)")
 
     print()
-    if ok:
-        print(f"  {GREEN}All dependencies found. Ready to run evals locally.{RESET}")
+    if docker_found:
+        print(f"  {GREEN}Docker available — run evals with: forge eval --docker agents/<your-agent>/agent.py{RESET}")
+        if not native_ok:
+            print(f"  {YELLOW}(native toolchain incomplete — Option A only){RESET}")
+    elif native_ok:
+        print(f"  {GREEN}Native toolchain ready — run evals with: forge eval agents/<your-agent>/agent.py{RESET}")
     else:
-        print(f"  {RED}Some dependencies missing. See README.md for install instructions.{RESET}")
-        print("  Or run evals via Docker: see Dockerfile")
+        print(f"  {RED}Neither Docker nor native toolchain found.{RESET}")
+        print(f"  Install Docker (recommended): https://docs.docker.com/get-docker/")
+        print(f"  Or native toolchain: see README.md")
     print()
-    return 0 if ok else 1
+    return 0 if (docker_found or native_ok) else 1
 
 
 # ---------------------------------------------------------------------------
