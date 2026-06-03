@@ -9,8 +9,8 @@ Two supported signatures:
 The harness detects which you use via inspect.signature and injects LLMClient
 automatically if present — no API key required from you.
 
-See QUICKSTART.md for a full walkthrough and examples/llm-agent/ for an
-LLM agent example.
+See QUICKSTART.md for a full walkthrough. For a recommended starting point
+that adapts to all three competition categories, see examples/metric-aware-agent/.
 """
 
 from __future__ import annotations
