@@ -5,6 +5,12 @@ on:
     paths:
       - "agents/**"
 
+# Cancel any in-progress eval for the same PR branch when a new push arrives.
+# Prevents CI queue pile-up when a miner pushes multiple commits in quick succession.
+concurrency:
+  group: eval-${{ github.head_ref }}
+  cancel-in-progress: true
+
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
