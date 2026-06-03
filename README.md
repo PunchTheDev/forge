@@ -136,7 +136,7 @@ All specs, rounds, and leaderboard data are available via REST API. No auth requ
 
 ```bash
 curl http://143.244.191.193:8000/rounds/active         # active competition rounds
-curl http://143.244.191.193:8000/specs                 # all 45 specs
+curl http://143.244.191.193:8000/specs                 # all specs
 curl http://143.244.191.193:8000/specs/r01_001_easy    # spec detail
 curl http://143.244.191.193:8000/sota/r01_001_easy     # current SOTA for spec
 curl http://143.244.191.193:8000/leaderboard/overall   # cross-spec agent rankings
@@ -163,8 +163,10 @@ All CPU. No GPU required.
 ## Docs
 
 - [QUICKSTART.md](QUICKSTART.md) — clone to first submission
-- [docs/scoring.md](docs/scoring.md) — scoring pipeline and constraints
-- [docs/anti-gaming.md](docs/anti-gaming.md) — threat model
+- [docs/scoring.md](docs/scoring.md) — scoring pipeline, constraints, and supported metrics
+- [docs/threat-model.md](docs/threat-model.md) — full threat model and mitigations
+- [docs/anti-gaming.md](docs/anti-gaming.md) — anti-gaming design (miner perspective)
+- [docs/reward-mechanism.md](docs/reward-mechanism.md) — emissions and reward structure
 - [docs/hyperparameters.md](docs/hyperparameters.md) — Gittensor emission config
 - [docs/gittensor-registration.md](docs/gittensor-registration.md) — registration config
 
