@@ -327,24 +327,38 @@ def _cmd_leaderboard_agent(contributor: str) -> int:
         print()
 
     # Show unentered specs so the miner knows what's dragging their score down.
-    # Fetch active round specs and compare against entered set.
+    # Fetch active round specs and current SOTAs to show what score to beat.
     entered_ids = {b.get("spec_id") for b in bests}
     rounds_data = _fetch_json("/rounds/active")
+    sota_all = _fetch_json("/sota")
+    sota_map: dict[str, dict] = {}
+    if isinstance(sota_all, list):
+        for sr in sota_all:
+            if isinstance(sr, dict):
+                sota_map[sr.get("spec_id", "")] = sr
     if rounds_data and isinstance(rounds_data, list):
-        unentered: list[tuple[str, str]] = []  # (round_id, spec_id)
+        unentered: list[tuple[str, str, str]] = []  # (round_id, spec_id, metric)
+        round_metric: dict[str, str] = {}
         for r in rounds_data:
+            round_metric[r["id"]] = r.get("scoring_metric", "mass_grams")
             for s in r.get("specs", []):
                 if s["id"] not in entered_ids:
-                    unentered.append((r["id"], s["id"]))
+                    unentered.append((r["id"], s["id"], round_metric[r["id"]]))
 
         if unentered:
             print(f"  {BOLD}{YELLOW}Unentered specs — each scoring 1.0 (worst){RESET}")
-            print(f"  {'ROUND':<12} {'SPEC':<24}")
-            print(f"  {'─' * 40}")
-            for rid, sid in sorted(unentered):
+            print(f"  {'ROUND':<12} {'SPEC':<24} {'CURRENT SOTA':>16}")
+            print(f"  {'─' * 56}")
+            for rid, sid, metric in sorted(unentered):
                 rk = next((k for k, v in {"r01": "round_001", "r02": "round_002", "r03": "round_003"}.items()
                            if rid == v), rid[:5])
-                print(f"  {rk:<12} {sid}")
+                sota_rec = sota_map.get(sid)
+                if sota_rec:
+                    sota_score = sota_rec.get("score") or sota_rec.get("mass_grams", 0)
+                    sota_str = _fmt_score(sota_score, sota_rec.get("score_metric", metric))
+                else:
+                    sota_str = f"{YELLOW}unclaimed{RESET}"
+                print(f"  {rk:<12} {sid:<24} {sota_str:>16}")
             print()
 
     print(f"  forge leaderboard --spec <spec_id>   per-spec rankings")
