@@ -71,7 +71,7 @@ This document describes the attack surface of the Forge benchmark and the mitiga
 - FEA gate: CalculiX linear statics must pass; max stress ≤ allowable stress.
 - Geometry gate: `min_wall_thickness` constraint enforced via Shapely cross-section sampling.
 - Build volume, bolt pattern, overhang angle checked by `benchmark/geometry.py`.
-- 3× determinism check: eval runs three times with the same seed; non-deterministic outputs are rejected.
+- 2× determinism check on the first spec: CI runs spec 0 twice; if the score differs, the submission is flagged non-deterministic and rejected. Remaining specs run once to keep CI time manageable. (Note: stochastic agents that vary only on later specs could slip through — improving this is a known gap.)
 
 **Residual risk:** Low-medium. The wall-thickness sampler uses a finite grid; pathological thin bridges between grid sample points could still slip through.
 
@@ -144,6 +144,18 @@ This document describes the attack surface of the Forge benchmark and the mitiga
 
 ---
 
+## Threat 9 — Specialist gaming (leaderboard breadth gap)
+
+**Attack:** Enter only 3 easy specs (one per round) and achieve #1 on all three. Under an avg_rank model, this yields avg_rank = 1.0 — ranking above a well-rounded agent that competes on all 45 specs but averages rank 1.5.
+
+**Mitigations:**
+- **Implemented:** Overall leaderboard now sorts by `overall_score` — mean normalized performance across ALL active specs. Unentered specs count as 1.0 (baseline) in the mean. A miner who skips 42 specs cannot achieve overall_score < 1.0, so they rank below any agent that beats baseline across the full problem pool.
+- This directly rewards breadth: entering more specs and beating baseline on each one lowers your overall_score.
+
+**Residual risk:** Low. A miner who is genuinely #1 on every spec they enter still benefits from entering more specs — better coverage further reduces their overall_score.
+
+---
+
 ## Summary table
 
 | Threat | Severity | Status |
@@ -156,3 +168,5 @@ This document describes the attack surface of the Forge benchmark and the mitiga
 | Sybil submissions | Low | Mitigated (credibility + min PR requirement) |
 | Eval overfitting | Medium | Mitigated (hidden spec set + rotation) |
 | Load-case overfitting | Low | Mitigated (seeded load perturbation in FEA) |
+| Specialist gaming | Medium | Mitigated (breadth-normalized overall_score) |
+| Determinism check coverage | Low | Partial — only spec 0 runs 2× (gap: stochastic agents may vary on later specs) |
