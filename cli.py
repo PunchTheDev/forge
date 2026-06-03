@@ -94,7 +94,7 @@ def cmd_new(args: argparse.Namespace) -> int:
         )
         print(f"  Created agents/{name}/agent.py (minimal scaffold).")
 
-    print(f"  Run:  python cli.py eval agents/{name}/agent.py")
+    print(f"  Run:  forge eval agents/{name}/agent.py")
     return 0
 
 
@@ -619,7 +619,7 @@ def cmd_rounds(args: argparse.Namespace) -> int:
         if active:
             round_data = json.loads(active[0].read_text())
             print(f"  Active round: {round_data['id']} — {len(round_data.get('specs', []))} specs")
-            print(f"  Run: python cli.py eval agents/<your-agent>/agent.py --round {round_data['id']}")
+            print(f"  Run: forge eval agents/<your-agent>/agent.py --round {round_data['id']}")
             print()
 
     return 0
@@ -815,12 +815,12 @@ HELP_TEXT = f"""{BOLD}{CYAN}  forge — Parametric CAD Benchmark CLI{RESET}
     FORGE_API_URL  Override API base (default: {API_BASE})
 
   {BOLD}Examples:{RESET}
-    python cli.py new my-agent
-    python cli.py eval agents/my-agent/agent.py --spec 001
-    python cli.py eval agents/my-agent/agent.py --round round_001
-    python cli.py rounds
-    python cli.py status agents/my-agent/agent.py
-    python cli.py leaderboard
+    forge new my-agent
+    forge eval agents/my-agent/agent.py --spec r01_001_easy
+    forge eval agents/my-agent/agent.py --round round_001
+    forge rounds
+    forge status agents/my-agent/agent.py
+    forge leaderboard
 """
 
 
