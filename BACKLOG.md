@@ -8,7 +8,7 @@ Ordered by priority. Completed items are not tracked here — see `CHANGELOG.md`
 
 - [ ] **Gittensor registration** — submit `docs/gittensor-registration.md` config to entrius/gittensor team
 - [ ] **Discord SOTA alerts** — set `DISCORD_WEBHOOK_URL` on ventura-nanoclaw, then `pm2 restart forge-api`
-- [ ] **Thingiverse ingestion** — `THINGIVERSE_KEY` already set as GitHub Secret. Trigger: Actions → "Thingiverse Ingest" → Run workflow.
+- ~~**Thingiverse ingestion**~~ — done (session 10, PRs #235–241). 65 catalog specs seeded (mass_grams, stiffness_to_weight, deflection_mm).
 - [ ] **Hidden eval activation** — run `scripts/generate_hidden_specs.py` (payload generated, see STATE.md), set `HIDDEN_SPECS_JSON` + `FORGE_ADMIN_KEY` on ventura-nanoclaw, then `pm2 restart forge-api`.
 
 ---
