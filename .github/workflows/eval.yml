@@ -147,23 +147,37 @@ jobs:
               round_003: 'Absolute Stiffness \u2193',
             };
 
-            // Fetch live SOTA for each spec.
-            // Track apiReachable separately: if the API is down, null sota entries
-            // should NOT be treated as "unclaimed" — we just don't know their status.
+            // Fetch live SOTA + eligibility for each spec.
+            // sotaBySpec[id]: { score: number, eligible: boolean } | 'unclaimed' | null (API down)
+            // We check the eligibility endpoint with the actual eval score to enforce the
+            // marginal-gain rule (1% improvement required for 0–7 day old SOTAs, etc.).
             const sotaBySpec = {};
             let apiReachable = !apiUrl; // treat "no URL configured" as reachable-but-empty
             for (const r of results) {
               if (!apiUrl) break;
               try {
-                const resp = await fetch(`${apiUrl}/sota/${r.spec_id}`).catch(() => null);
-                if (resp && resp.ok) {
+                // Fetch current SOTA score
+                const sotaResp = await fetch(`${apiUrl}/sota/${r.spec_id}`).catch(() => null);
+                if (sotaResp && sotaResp.status === 404) {
                   apiReachable = true;
-                  const d = await resp.json();
-                  sotaBySpec[r.spec_id] = d.score ?? d.score_grams ?? null;
-                } else if (resp && resp.status === 404) {
-                  // Spec has no SOTA — genuinely unclaimed
+                  sotaBySpec[r.spec_id] = 'unclaimed';
+                } else if (sotaResp && sotaResp.ok) {
                   apiReachable = true;
-                  sotaBySpec[r.spec_id] = undefined; // use undefined to mark "unclaimed"
+                  const d = await sotaResp.json();
+                  const currentScore = d.score ?? d.score_grams ?? null;
+                  // Check marginal-gain eligibility with the eval score
+                  const evalScore = r.result?.score;
+                  let eligible = false;
+                  if (evalScore !== null && evalScore !== undefined) {
+                    const elResp = await fetch(
+                      `${apiUrl}/sota/${r.spec_id}/eligibility?score=${evalScore}`
+                    ).catch(() => null);
+                    if (elResp && elResp.ok) {
+                      const el = await elResp.json();
+                      eligible = el.eligible === true;
+                    }
+                  }
+                  sotaBySpec[r.spec_id] = { score: currentScore, eligible };
                 }
               } catch {}
             }
@@ -186,9 +200,9 @@ jobs:
               const rname = ROUND_NAME[r.round_id] || r.round_id;
               const score = res.score;  // null when eval failed
               const baseline = r.baseline;
-              // sotaBySpec[id] values: number = has SOTA, undefined = unclaimed, missing key = API was down
-              const sotaKnown = r.spec_id in sotaBySpec;
-              const sota = sotaBySpec[r.spec_id] ?? null; // null means unclaimed (if sotaKnown)
+              // sotaBySpec[id]: { score, eligible } | 'unclaimed' | undefined (API was down)
+              const sotaData = sotaBySpec[r.spec_id];
+              const sotaKnown = sotaData !== undefined;
               const dir = r.direction;
               const icon = res.passed ? '\u2705' : '\u274c';
 
@@ -217,17 +231,21 @@ jobs:
               if (!apiReachable || !sotaKnown) {
                 // API was down — can't determine SOTA status; don't guess
                 sotaCell = '\u2014 (API unreachable)';
-              } else if (sota === null || sota === undefined) {
-                // Unclaimed spec — any passing submission sets new SOTA
+              } else if (sotaData === 'unclaimed') {
+                // No existing SOTA — any passing submission sets it
                 anyBeatsSota = true;
                 sotaCell = '\u2b50 unclaimed \u2014 sets new SOTA';
-              } else {
-                const beats = dir === 'maximize' ? score > sota : score < sota;
+              } else if (sotaData && sotaData.eligible) {
+                // Beats current SOTA with sufficient margin (marginal-gain rule satisfied)
+                anyBeatsSota = true;
+                sotaCell = `\u2713 beats ${fmt(sotaData.score, r.metric)} ${unit} (margin ok)`;
+              } else if (sotaData && sotaData.score !== null) {
+                const beats = dir === 'maximize' ? score > sotaData.score : score < sotaData.score;
                 if (beats) {
-                  anyBeatsSota = true;
-                  sotaCell = `\u2713 beats ${fmt(sota, r.metric)} ${unit}`;
+                  // Beats raw score but margin threshold not met
+                  sotaCell = `\u26a0\ufe0f beats ${fmt(sotaData.score, r.metric)} ${unit} — margin too small`;
                 } else {
-                  sotaCell = `${fmt(sota, r.metric)} ${unit}`;
+                  sotaCell = `${fmt(sotaData.score, r.metric)} ${unit}`;
                 }
               }
 
