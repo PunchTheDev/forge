@@ -1,0 +1,63 @@
+{
+  "id": "th_3379068",
+  "version": "1.0",
+  "name": "Ender 3 Pro V-Slot covers [medium]",
+  "description": "A medium-difficulty cantilever bracket in PLA (FDM). Mounts flush to a vertical wall and cantilevers a 35.1 kg load 110 mm from the wall face. Minimize mass while surviving the load.",
+  "material": "pla",
+  "constraints": {
+    "load_newtons": 344.19,
+    "load_point_mm": [
+      110.4,
+      48.2,
+      48.2
+    ],
+    "safety_factor": 2.0,
+    "bolt_pattern_mm": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        54.2,
+        0.0
+      ],
+      [
+        108.4,
+        0.0
+      ],
+      [
+        0.0,
+        54.2
+      ],
+      [
+        54.2,
+        54.2
+      ],
+      [
+        108.4,
+        54.2
+      ]
+    ],
+    "bolt_diameter_clearance_mm": 5.5,
+    "mount_face_x_mm": 0.0,
+    "build_volume_mm": [
+      128.5,
+      96.4,
+      96.5
+    ],
+    "max_overhang_deg": 45.0,
+    "min_wall_thickness_mm": 1.2
+  },
+  "scoring": {
+    "metric": "mass_grams",
+    "direction": "minimize",
+    "baseline_mass_grams": 230.0
+  },
+  "source": {
+    "platform": "thingiverse",
+    "thing_id": 3379068,
+    "url": "https://www.thingiverse.com/thing:3379068",
+    "thumbnail": "https://cdn.thingiverse.com/assets/24/10/3f/89/78/photo_2019-01-24_23-07-08_2.jpg",
+    "original_name": "Ender 3 Pro V-Slot covers"
+  }
+}
