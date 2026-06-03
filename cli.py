@@ -531,10 +531,11 @@ def cmd_eval(args: argparse.Namespace) -> int:
         spec = json.loads(spec_file.read_text())
         spec_id = spec.get("id", spec_file.stem)
 
-        print(f"\n{'─' * 64}")
-        print(f"  spec: {spec_id}  ({spec.get('name', '')})")
-        print(f"  agent: {agent_path}")
-        print(f"{'─' * 64}")
+        if not args.json:
+            print(f"\n{'─' * 64}")
+            print(f"  spec: {spec_id}  ({spec.get('name', '')})")
+            print(f"  agent: {agent_path}")
+            print(f"{'─' * 64}")
 
         if use_docker:
             result = _run_evaluate_docker(str(agent_path), str(spec_file), verbose=not args.json)
@@ -723,10 +724,11 @@ def cmd_validate(args: argparse.Namespace) -> int:
         spec = json.loads(spec_file.read_text())
         spec_id = spec.get("id", spec_file.stem)
 
-        print(f"\n{'─' * 64}")
-        print(f"  spec: {spec_id}  ({spec.get('name', '')})")
-        print(f"  agent: {agent_path}  {CYAN}[geometry only — no FEA]{RESET}")
-        print(f"{'─' * 64}")
+        if not args.json:
+            print(f"\n{'─' * 64}")
+            print(f"  spec: {spec_id}  ({spec.get('name', '')})")
+            print(f"  agent: {agent_path}  {CYAN}[geometry only — no FEA]{RESET}")
+            print(f"{'─' * 64}")
 
         result = _run_validate(str(agent_path), str(spec_file), verbose=not args.json)
         results.append({"spec": spec_id, **result})
