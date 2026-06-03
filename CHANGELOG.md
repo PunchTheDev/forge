@@ -5,7 +5,11 @@ Format: newest entries first.
 
 ---
 
-## [Unreleased]
+## 2026-06-03 (step 244)
+
+### Added
+- **`forge specs --material <MAT>`** (PR #300, `cli.py`): filter flag scopes the spec list to one material (e.g. `pla`, `petg`, `aluminum_6061`, `stainless_316`). Composes with existing `--round`, `--tier`, and `--unclaimed` flags. Material label appended to the display header.
+- **README and QUICKSTART filter examples** (PR #301, `README.md`, `QUICKSTART.md`): added `--round`, `--material`, and combined-filter examples to both the README quick-start code block and the QUICKSTART reference block at the bottom.
 
 ## 2026-06-03 (step 241)
 
