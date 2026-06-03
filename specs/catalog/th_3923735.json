@@ -2,14 +2,14 @@
   "id": "th_3923735",
   "version": "1.0",
   "name": "Free Download: Reaching Wall Hands - Thumbtack Mountable [medium]",
-  "description": "A medium-difficulty cantilever bracket in Aluminum 6061-T6. Mounts flush to a vertical wall and cantilevers a 49.5 kg load 81 mm from the wall face. Minimize mass while surviving the load.",
-  "material": "aluminum_6061",
+  "description": "A medium-difficulty cantilever bracket in PETG (FDM). Mounts flush to a vertical wall and cantilevers a 32.5 kg load 84 mm from the wall face. Maximize stiffness-to-weight ratio while surviving the load.",
+  "material": "petg",
   "constraints": {
-    "load_newtons": 486.0,
+    "load_newtons": 318.68,
     "load_point_mm": [
-      81.3,
-      47.4,
-      37.8
+      83.9,
+      51.4,
+      46.8
     ],
     "safety_factor": 2.0,
     "bolt_pattern_mm": [
@@ -18,40 +18,40 @@
         0.0
       ],
       [
-        41.1,
+        54.3,
         0.0
       ],
       [
-        82.2,
+        108.6,
         0.0
       ],
       [
         0.0,
-        41.1
+        54.3
       ],
       [
-        41.1,
-        41.1
+        54.3,
+        54.3
       ],
       [
-        82.2,
-        41.1
+        108.6,
+        54.3
       ]
     ],
-    "bolt_diameter_clearance_mm": 5.5,
+    "bolt_diameter_clearance_mm": 6.5,
     "mount_face_x_mm": 0.0,
     "build_volume_mm": [
-      158.8,
-      94.8,
-      75.5
+      128.7,
+      102.8,
+      93.5
     ],
     "max_overhang_deg": 45.0,
     "min_wall_thickness_mm": 1.2
   },
   "scoring": {
-    "metric": "mass_grams",
-    "direction": "minimize",
-    "baseline_mass_grams": 431.6
+    "metric": "stiffness_to_weight",
+    "direction": "maximize",
+    "baseline_stiffness_to_weight": 334.962744
   },
   "source": {
     "platform": "thingiverse",

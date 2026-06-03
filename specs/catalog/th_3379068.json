@@ -2,14 +2,14 @@
   "id": "th_3379068",
   "version": "1.0",
   "name": "Ender 3 Pro V-Slot covers [medium]",
-  "description": "A medium-difficulty cantilever bracket in PLA (FDM). Mounts flush to a vertical wall and cantilevers a 35.1 kg load 110 mm from the wall face. Minimize mass while surviving the load.",
+  "description": "A medium-difficulty cantilever bracket in PLA (FDM). Mounts flush to a vertical wall and cantilevers a 30.8 kg load 120 mm from the wall face. Maximize stiffness-to-weight ratio while surviving the load.",
   "material": "pla",
   "constraints": {
-    "load_newtons": 344.19,
+    "load_newtons": 302.54,
     "load_point_mm": [
-      110.4,
-      48.2,
-      48.2
+      120.3,
+      37.5,
+      46.0
     ],
     "safety_factor": 2.0,
     "bolt_pattern_mm": [
@@ -18,40 +18,32 @@
         0.0
       ],
       [
-        54.2,
-        0.0
-      ],
-      [
-        108.4,
+        49.0,
         0.0
       ],
       [
         0.0,
-        54.2
+        49.0
       ],
       [
-        54.2,
-        54.2
-      ],
-      [
-        108.4,
-        54.2
+        49.0,
+        49.0
       ]
     ],
-    "bolt_diameter_clearance_mm": 5.5,
+    "bolt_diameter_clearance_mm": 6.5,
     "mount_face_x_mm": 0.0,
     "build_volume_mm": [
-      128.5,
-      96.4,
-      96.5
+      124.7,
+      75.1,
+      92.1
     ],
     "max_overhang_deg": 45.0,
     "min_wall_thickness_mm": 1.2
   },
   "scoring": {
-    "metric": "mass_grams",
-    "direction": "minimize",
-    "baseline_mass_grams": 230.0
+    "metric": "stiffness_to_weight",
+    "direction": "maximize",
+    "baseline_stiffness_to_weight": 172.136368
   },
   "source": {
     "platform": "thingiverse",
