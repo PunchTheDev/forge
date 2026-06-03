@@ -261,10 +261,85 @@ def _cmd_leaderboard_history(spec_id: str) -> int:
     return 0
 
 
+def _cmd_leaderboard_agent(contributor: str) -> int:
+    """Show a contributor's per-spec standings from the live leaderboard."""
+    lb_data = _fetch_json("/leaderboard/overall")
+    if not lb_data or not isinstance(lb_data, dict):
+        print(f"{YELLOW}API unreachable — no leaderboard data available.{RESET}")
+        return 1
+
+    entries = lb_data.get("entries", [])
+    # Case-insensitive substring match
+    matching = [e for e in entries if contributor.lower() in e.get("contributor", "").lower()]
+
+    if not matching:
+        known = [e.get("contributor", "") for e in entries]
+        print(f"{RED}error:{RESET} contributor '{contributor}' not found on leaderboard.")
+        if known:
+            print(f"  Known contributors: {', '.join(known[:8])}")
+        return 1
+
+    entry = matching[0]
+    contrib_name = entry.get("contributor", contributor)
+    overall = entry.get("overall_score", 1.0)
+    rank = entry.get("rank", "?")
+    wins = entry.get("total_wins", 0)
+    total_specs = lb_data.get("total_specs", 0)
+    bests: list[dict] = entry.get("best", [])
+
+    _header(f"Agent: {contrib_name}  (rank #{rank})")
+    print(f"\n  Overall score: {BOLD}{overall:.4f}{RESET}  ({wins} spec wins, {len(bests)}/{total_specs} entered)")
+
+    if not bests:
+        print(f"\n  {YELLOW}No submitted specs yet — open a PR to compete.{RESET}\n")
+        return 0
+
+    # Group by round prefix (r01_, r02_, r03_, or other)
+    def _round_prefix(spec_id: str) -> str:
+        for prefix in ("r01", "r02", "r03"):
+            if spec_id.startswith(prefix):
+                return prefix
+        return "other"
+
+    ROUND_LABEL = {"r01": "Round 001 — Mass", "r02": "Round 002 — Stiffness/Weight", "r03": "Round 003 — Deflection"}
+
+    from collections import defaultdict
+    by_round: dict[str, list[dict]] = defaultdict(list)
+    for b in sorted(bests, key=lambda x: x.get("spec_id", "")):
+        by_round[_round_prefix(b["spec_id"])].append(b)
+
+    print()
+    for rk in sorted(by_round):
+        label = ROUND_LABEL.get(rk, rk)
+        print(f"  {BOLD}{label}{RESET}")
+        print(f"  {'SPEC':<24} {'RANK':>6}  {'SCORE':>16}  {'PERCENTILE':>10}")
+        print(f"  {'─' * 62}")
+        for b in by_round[rk]:
+            sid = b.get("spec_id", "?")[:22]
+            brank = b.get("rank", "?")
+            score = b.get("score", 0.0)
+            metric = b.get("score_metric", "mass_grams")
+            norm = b.get("normalized_score", 1.0)
+            score_str = _fmt_score(score, metric)
+            pctile = f"{(1 - norm) * 100:.0f}th"
+            rank_color = GREEN if brank == 1 else (YELLOW if brank <= 3 else RESET)
+            print(f"  {sid:<24} {rank_color}{brank:>6}{RESET}  {score_str:>16}  {pctile:>10}")
+        print()
+
+    print(f"  forge leaderboard --spec <spec_id>   per-spec rankings")
+    print(f"  forge leaderboard --history <spec>   SOTA progression")
+    print()
+    return 0
+
+
 def cmd_leaderboard(args: argparse.Namespace) -> int:
     spec_filter = getattr(args, "history", None)
     if spec_filter:
         return _cmd_leaderboard_history(spec_filter)
+
+    agent_name = getattr(args, "agent", None)
+    if agent_name:
+        return _cmd_leaderboard_agent(agent_name)
 
     spec_id = getattr(args, "spec", None)
     if spec_id:
@@ -326,8 +401,9 @@ def cmd_leaderboard(args: argparse.Namespace) -> int:
                 print(f"  {r['id']}  {bar}  {round_claimed}/{len(specs)} claimed  [{metric} {direction}]")
 
         print()
-        print(f"  forge leaderboard --spec <spec_id>   per-spec rankings")
-        print(f"  forge leaderboard --history <spec>   SOTA progression")
+        print(f"  forge leaderboard --spec <spec_id>    per-spec rankings")
+        print(f"  forge leaderboard --history <spec>    SOTA progression")
+        print(f"  forge leaderboard --agent <name>      per-spec standings for one contributor")
         print()
         return 0
 
@@ -1168,6 +1244,7 @@ HELP_TEXT = f"""{BOLD}{CYAN}  forge — Parametric CAD Benchmark CLI{RESET}
     {GREEN}forge rounds{RESET}                   List competition rounds and their spec sets
     {GREEN}forge leaderboard{RESET}              Overall contributor rankings + unclaimed spec summary
     {GREEN}forge leaderboard --spec <id>{RESET}  Per-spec ranking and SOTA for one spec
+    {GREEN}forge leaderboard --agent <name>{RESET} Per-spec standings for a contributor
     {GREEN}forge submit{RESET}                   Validate git and print submission guide
     {GREEN}forge check-deps{RESET}               Verify CalculiX, gmsh, OCP are installed
 
@@ -1259,6 +1336,7 @@ def main() -> None:
     p_lb = sub.add_parser("leaderboard", help="Show current SOTA scores")
     p_lb.add_argument("--spec", metavar="SPEC_ID", help="Per-spec leaderboard for one spec")
     p_lb.add_argument("--history", metavar="SPEC_ID", help="Show SOTA progression for a spec")
+    p_lb.add_argument("--agent", metavar="NAME", help="Per-spec standings for a contributor")
     p_lb.set_defaults(func=cmd_leaderboard)
 
     p_submit = sub.add_parser("submit", help="Validate git setup and print submission guide")
