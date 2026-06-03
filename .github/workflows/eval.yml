@@ -5,6 +5,9 @@ on:
     paths:
       - "agents/**"
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   evaluate:
     runs-on: ubuntu-latest
