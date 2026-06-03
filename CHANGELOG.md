@@ -7,6 +7,11 @@ Format: newest entries first.
 
 ## [Unreleased]
 
+## 2026-06-03 (step 210)
+
+### Added
+- **`TestGeometryOnly` unit tests** (PR #263, `tests/test_evaluate.py`): 4 tests cover the `geometry_only=True` path in `evaluate()` shipped in PR #261. Verifies FEA is never called in geometry-only mode, score equals geometry mass on pass, geometry failure surfaces correctly, agent errors are reported before geometry. Test count: 58 → 62 passed.
+
 ## 2026-06-03 (step 209)
 
 ### Added
