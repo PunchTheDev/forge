@@ -25,10 +25,17 @@ jobs:
       agent: ${{ steps.find.outputs.path }}
       found: ${{ steps.find.outputs.found }}
       contributor: ${{ steps.find.outputs.contributor }}
+      whitelist: ${{ steps.whitelist.outputs.value }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
+
+      - name: Load model whitelist
+        id: whitelist
+        run: |
+          WL=$(grep -v '^#' config/model-whitelist.txt | grep -v '^[[:space:]]*$' | paste -sd,)
+          echo "value=$WL" >> "$GITHUB_OUTPUT"
 
       - name: Find merged agent
         id: find
@@ -95,7 +102,7 @@ jobs:
           AGENT_PATH: ${{ needs.find-agent.outputs.agent }}
           FORGE_LLM_KEY: ${{ secrets.FORGE_LLM_KEY || secrets.OPENROUTER_KEY }}
           FORGE_MODEL: ${{ secrets.FORGE_MODEL || 'anthropic/claude-haiku-4-5' }}
-          FORGE_MODEL_WHITELIST: ${{ vars.FORGE_MODEL_WHITELIST || 'anthropic/claude-haiku-4-5,anthropic/claude-3-5-haiku,openai/gpt-4o-mini' }}
+          FORGE_MODEL_WHITELIST: ${{ needs.find-agent.outputs.whitelist }}
         # continue-on-error so that failed specs don't block score recording.
         continue-on-error: true
         run: python3 scripts/run_eval_pool.py
@@ -142,5 +149,5 @@ jobs:
           COMMIT_HASH: ${{ github.sha }}
           FORGE_LLM_KEY: ${{ secrets.FORGE_LLM_KEY || secrets.OPENROUTER_KEY }}
           FORGE_MODEL: ${{ secrets.FORGE_MODEL || 'anthropic/claude-haiku-4-5' }}
-          FORGE_MODEL_WHITELIST: ${{ vars.FORGE_MODEL_WHITELIST || 'anthropic/claude-haiku-4-5,anthropic/claude-3-5-haiku,openai/gpt-4o-mini' }}
+          FORGE_MODEL_WHITELIST: ${{ needs.find-agent.outputs.whitelist }}
         run: python3 scripts/run_hidden_eval.py

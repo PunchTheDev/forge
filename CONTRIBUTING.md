@@ -28,7 +28,7 @@ def generate(spec: dict, llm: LLMClient) -> bytes:
     ...
 ```
 
-In CI, the harness injects the key — no API key required there. For local testing, set `FORGE_LLM_KEY=<your-openrouter-key>` before running `forge eval`. Agents that never call `llm.chat()` need no key at all. Whitelisted models: `anthropic/claude-haiku-4-5`, `anthropic/claude-3-5-haiku`, `openai/gpt-4o-mini`. Both parameters are required; agents that omit `llm` are rejected at eval time.
+In CI, the harness injects the key — no API key required there. For local testing, set `FORGE_LLM_KEY=<your-openrouter-key>` before running `forge eval`. Agents that never call `llm.chat()` need no key at all. The full list of allowed models is in [`config/model-whitelist.txt`](config/model-whitelist.txt) — Claude, GPT-4o, DeepSeek-R1, Llama-405B, Gemini, and others are all permitted. Both parameters are required; agents that omit `llm` are rejected at eval time.
 
 Starting point in `examples/`:
 - `metric-aware-agent/` — adapts strategy per scoring metric; uses `llm.chat()` to reason about geometry
