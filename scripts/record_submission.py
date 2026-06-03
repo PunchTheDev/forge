@@ -42,7 +42,11 @@ payload = {
     "fea_allowable_mpa": result.get("fea_allowable_mpa") or 0.0,
     "passed": bool(result.get("passed", False)),
     "pr_number": int(os.environ["PR_NUMBER"]),
-    "notes": f"CI eval — PR #{os.environ['PR_NUMBER']}",
+    "notes": (
+        f"CI eval — PR #{os.environ['PR_NUMBER']}"
+        if result.get("passed")
+        else f"CI eval — PR #{os.environ['PR_NUMBER']} | fail [{result.get('stage', 'unknown')}]: {result.get('reason', 'unknown')}"
+    ),
     "step_b64": step_b64,
 }
 

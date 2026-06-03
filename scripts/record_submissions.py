@@ -59,7 +59,15 @@ for entry in results:
         "fea_allowable_mpa": result.get("fea_allowable_mpa") or 0.0,
         "passed": bool(result.get("passed", False)),
         "pr_number": pr_number,
-        "notes": notes_override or f"CI pool eval — PR #{pr_number}",
+        "notes": (
+            notes_override
+            if notes_override
+            else (
+                f"CI pool eval — PR #{pr_number}"
+                if result.get("passed")
+                else f"CI pool eval — PR #{pr_number} | fail [{result.get('stage', 'unknown')}]: {result.get('reason', 'unknown')}"
+            )
+        ),
         "step_b64": step_b64,
     }
 
