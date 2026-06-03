@@ -326,6 +326,27 @@ def _cmd_leaderboard_agent(contributor: str) -> int:
             print(f"  {sid:<24} {rank_color}{brank:>6}{RESET}  {score_str:>16}  {pctile:>10}")
         print()
 
+    # Show unentered specs so the miner knows what's dragging their score down.
+    # Fetch active round specs and compare against entered set.
+    entered_ids = {b.get("spec_id") for b in bests}
+    rounds_data = _fetch_json("/rounds/active")
+    if rounds_data and isinstance(rounds_data, list):
+        unentered: list[tuple[str, str]] = []  # (round_id, spec_id)
+        for r in rounds_data:
+            for s in r.get("specs", []):
+                if s["id"] not in entered_ids:
+                    unentered.append((r["id"], s["id"]))
+
+        if unentered:
+            print(f"  {BOLD}{YELLOW}Unentered specs — each scoring 1.0 (worst){RESET}")
+            print(f"  {'ROUND':<12} {'SPEC':<24}")
+            print(f"  {'─' * 40}")
+            for rid, sid in sorted(unentered):
+                rk = next((k for k, v in {"r01": "round_001", "r02": "round_002", "r03": "round_003"}.items()
+                           if rid == v), rid[:5])
+                print(f"  {rk:<12} {sid}")
+            print()
+
     print(f"  forge leaderboard --spec <spec_id>   per-spec rankings")
     print(f"  forge leaderboard --history <spec>   SOTA progression")
     print()
