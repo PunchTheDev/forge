@@ -28,6 +28,7 @@ import tempfile
 import time
 import urllib.request
 import urllib.error
+import uuid
 
 API_URL = os.environ.get("FORGE_API_URL", "").rstrip("/")
 ADMIN_KEY = os.environ.get("FORGE_ADMIN_KEY", "")
@@ -94,8 +95,10 @@ def _run_eval(spec: dict) -> dict:
         pass
     os.chmod(step_out, 0o666)
 
+    container_name = f"forge-eval-hidden-{spec_id}-{uuid.uuid4().hex[:8]}"
     cmd = [
         "docker", "run", "--rm",
+        "--name", container_name,
         "--security-opt", "no-new-privileges",
         "--cap-drop", "ALL",
         "--pids-limit", "256",
@@ -113,7 +116,23 @@ def _run_eval(spec: dict) -> dict:
         "--json-compact",
     ]
 
-    proc = subprocess.run(cmd, capture_output=True, text=True)
+    HIDDEN_EVAL_TIMEOUT_SECS = 25 * 60
+    try:
+        proc = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=HIDDEN_EVAL_TIMEOUT_SECS
+        )
+    except subprocess.TimeoutExpired:
+        subprocess.run(["docker", "kill", container_name], capture_output=True)
+        os.unlink(spec_path)
+        try:
+            os.unlink(step_out)
+        except FileNotFoundError:
+            pass
+        print(
+            f"[hidden/{spec_id}] TIMEOUT after {HIDDEN_EVAL_TIMEOUT_SECS // 60} minutes",
+            flush=True,
+        )
+        return {"passed": False, "reason": f"Hidden eval timed out after {HIDDEN_EVAL_TIMEOUT_SECS // 60} minutes"}
     os.unlink(spec_path)
     try:
         os.unlink(step_out)

@@ -9,6 +9,7 @@ import json
 import os
 import subprocess
 import sys
+import uuid
 
 # Per-run wall-clock limit. A single docker run should never take more than
 # 25 minutes (FEA on complex meshes + LLM latency). The overall job cap is
@@ -55,8 +56,10 @@ for idx, spec in enumerate(specs):
             os.chmod(step_out_path, 0o666)
             step_flag = ["--step-out", f"/forge/{step_out_path}"]
 
+        container_name = f"forge-eval-{spec_id}-{run_i}-{uuid.uuid4().hex[:8]}"
         cmd = [
             "docker", "run", "--rm",
+            "--name", container_name,
             "--security-opt", "no-new-privileges",
             "--cap-drop", "ALL",
             "--pids-limit", "256",
@@ -77,11 +80,10 @@ for idx, spec in enumerate(specs):
                 cmd, capture_output=True, text=True, timeout=DOCKER_RUN_TIMEOUT_SECS
             )
         except subprocess.TimeoutExpired:
-            # Kill the container that was left running, best-effort.
+            # Kill the named container so it doesn't linger as a zombie.
             subprocess.run(
-                ["docker", "ps", "-q", "--filter", f"ancestor=forge-eval"],
+                ["docker", "kill", container_name],
                 capture_output=True,
-                text=True,
             )
             print(
                 f"[{spec_id}] run {run_i + 1}/{runs}: TIMEOUT after {DOCKER_RUN_TIMEOUT_SECS}s",
