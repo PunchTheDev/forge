@@ -72,16 +72,24 @@ for idx, spec in enumerate(specs):
         if proc.stderr.strip():
             print(f"[{spec_id}] stderr:\n{proc.stderr.strip()}", flush=True)
 
-        try:
-            result_data = json.loads(out)
-        except (json.JSONDecodeError, ValueError):
-            # Surface the tail of stderr so miners can debug crashes.
-            stderr_tail = proc.stderr.strip()[-400:] if proc.stderr.strip() else ""
+        stderr_tail = proc.stderr.strip()[-400:] if proc.stderr.strip() else ""
+        if proc.returncode != 0 and not out:
+            # Container crashed before producing any output (OOM, segfault, etc.)
             hint = f" | stderr: {stderr_tail}" if stderr_tail else ""
             result_data = {
                 "passed": False,
-                "reason": f"Invalid JSON output: {out[:120]}{hint}",
+                "reason": f"Container exited {proc.returncode}{hint}",
             }
+        else:
+            try:
+                result_data = json.loads(out)
+            except (json.JSONDecodeError, ValueError):
+                # Surface the tail of stderr so miners can debug crashes.
+                hint = f" | stderr: {stderr_tail}" if stderr_tail else ""
+                result_data = {
+                    "passed": False,
+                    "reason": f"Invalid JSON output: {out[:120]}{hint}",
+                }
 
         # Check determinism on first spec
         if prev_score is not None:
