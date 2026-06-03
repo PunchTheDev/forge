@@ -7,6 +7,12 @@ Format: newest entries first.
 
 ## [Unreleased]
 
+## 2026-06-05
+
+### Fixed
+- **Stale `python cli.py` references in CLI output** (PR #196, `cli.py`): `forge new`, `forge rounds`, and help text printed `python cli.py ...` instead of `forge ...`. All updated to current `forge` commands with accurate spec IDs.
+- **`forge submit` leaderboard URL** (PR #197, `cli.py`): was linking to raw API JSON endpoint; now links to the dashboard UI (port 8080). Added `FORGE_DASHBOARD_URL` env var for overriding.
+
 ## 2026-06-04
 
 ### Added
