@@ -25,7 +25,9 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 import urllib.request
+import urllib.error
 
 API_URL = os.environ.get("FORGE_API_URL", "").rstrip("/")
 ADMIN_KEY = os.environ.get("FORGE_ADMIN_KEY", "")
@@ -48,11 +50,24 @@ CONSISTENCY_ALERT_RATIO = 2.0
 workspace = os.getcwd()
 
 
+def _api_request(req: urllib.request.Request, label: str) -> dict:
+    """Execute an API request with 3-attempt exponential backoff (1s → 2s → 4s)."""
+    last_exc: Exception | None = None
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                return json.loads(resp.read())
+        except urllib.error.URLError as e:
+            last_exc = e
+            if attempt < 2:
+                time.sleep(2 ** attempt)
+    raise RuntimeError(f"[{label}] forge-api request failed after 3 attempts: {last_exc}") from last_exc
+
+
 def _api_get(path: str) -> dict:
     url = f"{API_URL}{path}"
     req = urllib.request.Request(url, headers={"Authorization": f"Bearer {ADMIN_KEY}"})
-    with urllib.request.urlopen(req, timeout=15) as resp:
-        return json.loads(resp.read())
+    return _api_request(req, f"GET {path}")
 
 
 def _api_post(path: str, payload: dict) -> dict:
@@ -63,8 +78,7 @@ def _api_post(path: str, payload: dict) -> dict:
         headers={"Authorization": f"Bearer {ADMIN_KEY}", "Content-Type": "application/json"},
         method="POST",
     )
-    with urllib.request.urlopen(req, timeout=15) as resp:
-        return json.loads(resp.read())
+    return _api_request(req, f"POST {path}")
 
 
 def _run_eval(spec: dict) -> dict:
