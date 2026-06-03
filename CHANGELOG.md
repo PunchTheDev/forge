@@ -7,6 +7,11 @@ Format: newest entries first.
 
 ## [Unreleased]
 
+## 2026-06-03 (step 216)
+
+### Docs
+- **`forge validate` added to README and QUICKSTART** (PR #273): the command existed since PR #261 but was absent from all user-facing docs. README quick-start block now shows `forge validate` before `forge eval`. QUICKSTART Step 3 restructured to lead with the geometry-only check (~5s) before the full FEA run (30-90s). CLI reference table updated.
+
 ## 2026-06-03 (step 215)
 
 ### Fixed
