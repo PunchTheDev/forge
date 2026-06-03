@@ -12,6 +12,12 @@ on:
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
+# Serialize full-score jobs to avoid concurrent DB writes overwhelming the API.
+# Pending runs wait; they do NOT cancel each other (each merged agent must be scored).
+concurrency:
+  group: score-main
+  cancel-in-progress: false
+
 jobs:
   find-agent:
     runs-on: ubuntu-latest
