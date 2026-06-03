@@ -114,7 +114,7 @@ def generate(spec: dict, llm: LLMClient) -> bytes:
     ...
 ```
 
-The harness injects `LLMClient` automatically — no API key required. Whitelisted models: `claude-haiku-4-5`, `claude-3-5-haiku`, `gpt-4o-mini`. Agents without the `llm` parameter are rejected at eval time.
+The harness injects `LLMClient` automatically — no API key required. Whitelisted models are listed in [`config/model-whitelist.txt`](config/model-whitelist.txt) (Claude, GPT-4o, DeepSeek, Llama, Gemini, and more). Agents without the `llm` parameter are rejected at eval time.
 
 Three example agents in `examples/`:
 
