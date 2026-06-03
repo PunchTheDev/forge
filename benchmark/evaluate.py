@@ -56,6 +56,7 @@ class EvalResult:
     similarity: float | None = None
     elapsed_seconds: float = 0.0
     step_bytes: bytes | None = None
+    mass_grams: float | None = None           # actual bracket mass; populated for all passing evals
 
 
 def _compute_score(
@@ -230,6 +231,7 @@ def evaluate(
         similarity=similarity_score,
         elapsed_seconds=agent_result.elapsed_seconds,
         step_bytes=step_bytes,
+        mass_grams=geo.mass_grams,
     )
 
 
@@ -279,6 +281,7 @@ def main() -> None:
         "fea_applied_load_n": result.fea_applied_load_n,
         "similarity": result.similarity,
         "elapsed_seconds": result.elapsed_seconds,
+        "mass_grams": result.mass_grams,
     }
 
     if args.json:
