@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "forge-benchmark"
+version = "0.1.0"
+description = "Competitive parametric CAD benchmark on Gittensor SN74"
+requires-python = ">=3.11"
+dependencies = [
+    "httpx>=0.27.0",
+    "numpy>=1.26.0",
+]
+
+# Heavy eval stack (build123d, gmsh) is only needed for local non-Docker testing.
+# The Docker-based eval (default) has everything pre-installed.
+[project.optional-dependencies]
+local = [
+    "build123d>=0.8.0",
+    "gmsh>=4.12.0",
+]
+
+[project.scripts]
+forge = "cli:main"
+
+[tool.setuptools]
+py-modules = ["cli"]
+packages = ["forge", "forge.sdk"]
