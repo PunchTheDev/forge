@@ -7,6 +7,11 @@ Format: newest entries first.
 
 ## [Unreleased]
 
+## 2026-06-03 (step 206)
+
+### Fixed
+- **`forge new` fallback scaffold signature** (PR #259, `cli.py`): when `agents/template/agent.py` is absent, `forge new` generated a one-param scaffold `generate(spec: dict) -> bytes` — rejected by the eval harness. Fixed to `generate(spec: dict, llm: LLMClient) -> bytes` with the required `LLMClient` import. Also fixed f-string interpolation of `{name}` in the docstring (was a raw string).
+
 ## 2026-06-03 (step 205)
 
 ### Added
