@@ -68,29 +68,16 @@ jobs:
           echo "count=$COUNT" >> "$GITHUB_OUTPUT"
           echo "Generated $COUNT catalog specs."
 
-      - name: Create pull request
+      - name: Push branch
         if: steps.check.outputs.count != '0'
-        uses: peter-evans/create-pull-request@v7
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: punch/ingest-${{ github.event.inputs.metric }}-seed${{ github.event.inputs.seed }}
-          commit-message: "Add ${{ steps.check.outputs.count }} Thingiverse catalog specs (${{ github.event.inputs.metric }})"
-          title: "Catalog ingest: ${{ steps.check.outputs.count }} specs (${{ github.event.inputs.metric }}, seed ${{ github.event.inputs.seed }})"
-          body: |
-            ## Summary
-
-            Thingiverse catalog ingest run. ${{ steps.check.outputs.count }} specs generated into `${{ github.event.inputs.out_dir }}`.
-
-            **Parameters:**
-            - Metric: `${{ github.event.inputs.metric }}`
-            - Seed: `${{ github.event.inputs.seed }}`
-            - n: `${{ github.event.inputs.n }}`
-
-            ## Review checklist
-
-            - [ ] Spot-check 2–3 spec JSON files: load, build volume, bolt pattern look reasonable
-            - [ ] Confirm `scoring.metric` matches the intended round metric
-            - [ ] If adding to a round: add spec IDs to `rounds/round_00N.json` and restart API
-
-            Specs in `specs/catalog/` are **not active** until added to a round JSON.
-          labels: maintenance
+        run: |
+          BRANCH="punch/ingest-${{ github.event.inputs.metric }}-seed${{ github.event.inputs.seed }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH" 2>/dev/null || git checkout "$BRANCH"
+          git add "${{ github.event.inputs.out_dir }}"
+          git commit -m "Add ${{ steps.check.outputs.count }} Thingiverse catalog specs (${{ github.event.inputs.metric }})" || echo "Nothing to commit"
+          git push origin "$BRANCH" --force
+          echo ""
+          echo "Branch pushed: $BRANCH"
+          echo "Create PR at: https://github.com/${{ github.repository }}/compare/$BRANCH"
