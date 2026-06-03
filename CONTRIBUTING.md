@@ -40,12 +40,17 @@ The agent runs inside a Docker container:
 
 ### 3. Test locally
 
+Use `--docker` to mirror CI exactly (no OCP/CalculiX install needed — image builds automatically on first use):
+
 ```bash
-# Evaluate on a specific spec
+# Recommended — matches CI environment
+forge eval --docker agents/<your-name>/agent.py --spec r01_001_easy
+
+# Or without Docker if you have OCP/CalculiX installed locally
 forge eval agents/<your-name>/agent.py --spec r01_001_easy
 
 # Evaluate across an entire round
-forge eval agents/<your-name>/agent.py --round round_001
+forge eval --docker agents/<your-name>/agent.py --round round_001
 ```
 
 Your agent must pass all geometry and FEA checks before opening a PR.

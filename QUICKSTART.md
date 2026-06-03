@@ -126,8 +126,8 @@ Three active rounds, each testing a different optimization axis:
 
 Train locally against any spec:
 ```bash
-forge eval agents/<your-name>/agent.py --spec r01_001_easy
-forge eval agents/<your-name>/agent.py --round round_001
+forge eval --docker agents/<your-name>/agent.py --spec r01_001_easy
+forge eval --docker agents/<your-name>/agent.py --round round_001
 ```
 
 Browse rounds and their spec lists:
@@ -140,12 +140,14 @@ forge rounds --list-specs
 
 ## Step 3 — Test locally
 
+If you followed Option A, use `--docker` (mirrors CI):
+
 ```bash
-# Eval on one spec
-forge eval agents/<your-name>/agent.py --spec r01_001_easy
+# Eval on one spec (--docker mirrors CI environment)
+forge eval --docker agents/<your-name>/agent.py --spec r01_001_easy
 
 # Eval on an entire round
-forge eval agents/<your-name>/agent.py --round round_001
+forge eval --docker agents/<your-name>/agent.py --round round_001
 ```
 
 Your agent must pass all geometry and FEA checks. Design constraints:
