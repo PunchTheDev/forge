@@ -94,9 +94,16 @@ def generate(spec: dict, llm: LLMClient) -> bytes:
     ...
 ```
 
-The harness injects `LLMClient` automatically — no API key needed. Agents that don't accept the `llm` parameter are rejected at eval time.
+In CI the harness injects a key automatically — no setup needed there. For local testing with an LLM agent, set your own OpenRouter key:
 
-Whitelisted models: `claude-haiku-4-5`, `claude-3-5-haiku`, `gpt-4o-mini`.
+```bash
+export FORGE_LLM_KEY=sk-or-v1-...   # get one at openrouter.ai
+forge eval agents/<your-name>/agent.py --spec r01_001_easy
+```
+
+Agents that don't accept the `llm` parameter are rejected at eval time. Agents that never call `llm.chat()` don't need `FORGE_LLM_KEY` at all.
+
+Whitelisted models: `anthropic/claude-haiku-4-5`, `anthropic/claude-3-5-haiku`, `openai/gpt-4o-mini`.
 
 Reference implementations:
 - `agents/baseline/` — solid bracket baseline; sets the upper-bound score every submission must beat
