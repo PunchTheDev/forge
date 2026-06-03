@@ -44,7 +44,8 @@ for entry in results:
     score_metric = result.get("score_metric", entry.get("metric", "mass_grams"))
     score_direction = result.get("score_direction", entry.get("direction", "minimize"))
     raw_score = result.get("score") or 0.0
-    mass_grams = raw_score if score_metric == "mass_grams" else 0.0
+    # Always record actual bracket mass (available for all passing evals regardless of scoring metric).
+    mass_grams = result.get("mass_grams") or (raw_score if score_metric == "mass_grams" else 0.0)
 
     payload = {
         "spec_id": spec_id,

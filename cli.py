@@ -124,8 +124,11 @@ def cmd_specs(args: argparse.Namespace) -> int:
     unclaimed_only: bool = getattr(args, "unclaimed", False)
     tier_filter: str | None = getattr(args, "tier", None)
     material_filter: str | None = getattr(args, "material", None)
+    show_all: bool = getattr(args, "all", False)
 
-    # Resolve allowed spec IDs from round manifest if --round given
+    # Resolve allowed spec IDs.
+    # Default (no --round, no --all): show only active-round specs so the 119-spec
+    # full pool (including legacy Thingiverse specs) doesn't obscure the competition.
     allowed_ids: set[str] | None = None
     if round_filter:
         round_file = ROUNDS_DIR / f"{round_filter}.json"
@@ -134,6 +137,15 @@ def cmd_specs(args: argparse.Namespace) -> int:
             return 1
         round_data = json.loads(round_file.read_text())
         allowed_ids = {e["id"] for e in round_data.get("specs", [])}
+    elif not show_all:
+        # Collect all active-round spec IDs from the live API.
+        active_rounds = _fetch_json("/rounds/active") or []
+        if active_rounds:
+            allowed_ids = {
+                s["id"]
+                for r in active_rounds
+                for s in r.get("specs", [])
+            }
 
     data = _fetch_json("/specs")
 
@@ -157,12 +169,16 @@ def cmd_specs(args: argparse.Namespace) -> int:
         label_parts = []
         if round_filter:
             label_parts.append(round_filter)
+        elif not show_all:
+            label_parts.append("active rounds")
         if tier_filter:
             label_parts.append(tier_filter)
         if material_filter:
             label_parts.append(f"material={material_filter}")
         if unclaimed_only:
             label_parts.append("unclaimed only")
+        if show_all:
+            label_parts.append("all specs")
         label = "Specs — " + ", ".join(label_parts) + "  (live)" if label_parts else "Specs  (live)"
         _header(label)
 
@@ -210,6 +226,8 @@ def cmd_specs(args: argparse.Namespace) -> int:
         if has_sota and not unclaimed_only:
             total = len(data)
             print(f"\n  {GREEN}{unclaimed_count} unclaimed{RESET} / {total} shown  — run 'forge specs --unclaimed' to filter")
+        if not show_all and not round_filter:
+            print(f"  (showing active rounds only — use '--all' to include legacy specs)")
         print()
         return 0
 
@@ -1470,6 +1488,7 @@ def main() -> None:
     p_specs.add_argument("--unclaimed", action="store_true", help="Show only specs with no current SOTA")
     p_specs.add_argument("--tier", choices=["easy", "medium", "hard"], help="Filter to one difficulty tier")
     p_specs.add_argument("--material", metavar="MAT", help="Filter by material (e.g. pla, petg, aluminum_6061, stainless_316)")
+    p_specs.add_argument("--all", action="store_true", help="Show all specs including legacy (default: active rounds only)")
     p_specs.set_defaults(func=cmd_specs)
 
     p_rounds = sub.add_parser("rounds", help="List competition rounds and spec sets")
