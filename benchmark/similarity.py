@@ -2,8 +2,12 @@
 STEP geometric similarity check.
 
 Compares two STEP files by sampling random surface points and computing
-a symmetric mean-Hausdorff distance, normalized to a [0, 1] similarity
-score. 1.0 = identical geometry, 0.0 = very different.
+a symmetric mean-Hausdorff distance on PCA-aligned point clouds, normalized
+to a [0, 1] similarity score. 1.0 = identical geometry, 0.0 = very different.
+
+Alignment makes the score rotation- and translation-invariant, so a submission
+that is a rigid rotation or translation of the SOTA design is correctly flagged
+as a near-copy rather than slipping under the 0.95 threshold.
 
 Used to detect submissions that copy or minimally perturb the current SOTA.
 """
@@ -26,6 +30,9 @@ def compute(step_a: bytes, step_b: bytes, n_samples: int = 1000, seed: int = 42)
     """
     Return similarity in [0, 1] between two STEP files.
 
+    Both point clouds are centered and PCA-aligned before comparison, making
+    the score invariant to rigid rotations and translations of the design.
+
     Raises ValueError if either file cannot be tessellated.
     Returns 0.0 if surface sampling yields < 10 points (degenerate shapes).
     """
@@ -35,7 +42,10 @@ def compute(step_a: bytes, step_b: bytes, n_samples: int = 1000, seed: int = 42)
     if len(pts_a) < 10 or len(pts_b) < 10:
         return 0.0
 
-    # Bounding-box diagonal of the combined point cloud — scale reference.
+    pts_a = _canonical_pose(pts_a)
+    pts_b = _canonical_pose(pts_b)
+
+    # Bounding-box diagonal of the combined aligned point cloud — scale reference.
     all_pts = np.vstack([pts_a, pts_b])
     diag = float(np.linalg.norm(all_pts.max(axis=0) - all_pts.min(axis=0)))
     if diag < 1e-6:
@@ -50,6 +60,28 @@ def compute(step_a: bytes, step_b: bytes, n_samples: int = 1000, seed: int = 42)
 
     normalized = mean_h / (diag * _SCALE_FRACTION)
     return float(max(0.0, 1.0 - normalized))
+
+
+def _canonical_pose(pts: np.ndarray) -> np.ndarray:
+    """
+    Center a point cloud at the origin and rotate it to its PCA principal axes.
+
+    This gives a canonical pose that is invariant to rigid translations and
+    rotations, so a rotated copy of a design produces the same aligned cloud.
+    Reflection ambiguity (sign of each principal axis) is resolved by ensuring
+    each axis points in the direction of greatest positive extent.
+    """
+    # Translate to centroid.
+    pts = pts - pts.mean(axis=0)
+
+    # PCA: columns of V are the principal axes (SVD of zero-mean data).
+    _, _, Vt = np.linalg.svd(pts, full_matrices=False)
+    aligned = pts @ Vt.T  # project onto principal axes
+
+    # Resolve reflection: flip each axis so the majority of mass is positive.
+    signs = np.sign(aligned.mean(axis=0))
+    signs[signs == 0] = 1.0
+    return aligned * signs
 
 
 def _sample_surface(step_bytes: bytes, n: int, seed: int) -> np.ndarray:
