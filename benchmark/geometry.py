@@ -55,7 +55,8 @@ def validate(step_bytes: bytes, spec: dict, mat: dict) -> GeometryResult:
     xmin, ymin, zmin, xmax, ymax, zmax = bbox.Get()
     dx, dy, dz = xmax - xmin, ymax - ymin, zmax - zmin
     bvol = spec["constraints"]["build_volume_mm"]
-    if dx > bvol[0] or dy > bvol[1] or dz > bvol[2]:
+    BBOX_TOL = 0.01  # mm — absorbs OCP Bnd_Box floating-point gap
+    if dx > bvol[0] + BBOX_TOL or dy > bvol[1] + BBOX_TOL or dz > bvol[2] + BBOX_TOL:
         return GeometryResult(
             passed=False,
             reason=f"Exceeds build volume: part={dx:.1f}×{dy:.1f}×{dz:.1f} mm, limit={bvol[0]}×{bvol[1]}×{bvol[2]} mm",
