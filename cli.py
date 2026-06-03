@@ -448,7 +448,10 @@ def _cmd_leaderboard_spec(spec_id: str) -> int:
         score = sota.get("score") or sota.get("mass_grams")
         direction = sota.get("score_direction", "minimize")
         if score is not None:
-            print(f"\n  SOTA: {GREEN}{_fmt_score(score, metric)}{RESET}  ({sota.get('contributor', '?')})  [{direction}]")
+            elig = _fetch_json(f"/sota/{spec_id}/eligibility?score={score}")
+            req_pct = elig.get("required_improvement_pct", 0) if isinstance(elig, dict) else 0
+            margin_note = f"  {YELLOW}(beat by ≥{req_pct:.1f}% to claim){RESET}" if req_pct > 0 else ""
+            print(f"\n  SOTA: {GREEN}{_fmt_score(score, metric)}{RESET}  ({sota.get('contributor', '?')})  [{direction}]{margin_note}")
         else:
             print(f"\n  {YELLOW}SOTA: unclaimed — any passing submission wins{RESET}")
     else:
@@ -550,6 +553,7 @@ def cmd_status(args: argparse.Namespace) -> int:
         sota_direction = sota.get("score_direction", "minimize")
         result_metric = result.get("score_metric", "mass_grams")
 
+        margin_str = ""
         if sota_score and mass is not None:
             if sota_direction == "maximize":
                 delta_pct = (mass - sota_score) / sota_score * 100
@@ -563,6 +567,21 @@ def cmd_status(args: argparse.Namespace) -> int:
                     vs_str = f"{GREEN}beats SOTA by {abs(delta):.3g}  ({_fmt_score(sota_score, sota_metric)} → {_fmt_score(mass, result_metric)}){RESET}"
                 else:
                     vs_str = f"{YELLOW}{delta:.3g} above SOTA  ({_fmt_score(sota_score, sota_metric)}){RESET}"
+
+            # Check margin eligibility against the live decay schedule.
+            # Beats SOTA raw ≠ eligible to claim — the margin threshold can block it.
+            beats_raw = (
+                (sota_direction == "maximize" and mass > sota_score)
+                or (sota_direction != "maximize" and mass < sota_score)
+            )
+            if beats_raw:
+                elig = _fetch_json(f"/sota/{spec_id}/eligibility?score={mass}")
+                if isinstance(elig, dict):
+                    required_pct = elig.get("required_improvement_pct", 0)
+                    if elig.get("eligible"):
+                        margin_str = f"{GREEN}margin ok  (≥{required_pct:.1f}% required){RESET}"
+                    else:
+                        margin_str = f"{RED}margin too small  (≥{required_pct:.1f}% required — won't claim SOTA){RESET}"
         elif mass is not None:
             vs_str = "(no live SOTA to compare)"
         else:
@@ -573,6 +592,8 @@ def cmd_status(args: argparse.Namespace) -> int:
         _ok(f"{score_str}  stress={stress}/{allowable} MPa  t={elapsed_str}")
         if vs_str:
             print(f"         {vs_str}")
+        if margin_str:
+            print(f"         {margin_str}")
 
     print()
     return 0 if overall_pass else 1

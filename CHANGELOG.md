@@ -7,6 +7,12 @@ Format: newest entries first.
 
 ## [Unreleased]
 
+## 2026-06-03 (step 237)
+
+### Added
+- **`forge status` margin check** (`cli.py`): when a local eval score beats the current SOTA, `forge status` now also calls `GET /sota/{spec_id}/eligibility` and reports whether the margin requirement is satisfied. Green "margin ok (≥X% required)" or red "margin too small (≥X% required — won't claim SOTA)". Prevents the failure mode where a miner sees "beats SOTA" in status but then fails the eligibility check in CI.
+- **`forge leaderboard --spec` margin hint** (`cli.py`): the SOTA line in `forge leaderboard --spec <id>` now appends "(beat by ≥X% to claim)" based on the live decay schedule. Miners see the required improvement margin before committing to a run.
+
 ## 2026-06-03 (step 236)
 
 ### Added
