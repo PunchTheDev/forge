@@ -7,6 +7,11 @@ Format: newest entries first.
 
 ## [Unreleased]
 
+## 2026-06-03 (step 231)
+
+### Fixed
+- **Failure reason captured in submission notes** (PR #277, `scripts/record_submission.py`, `scripts/record_submissions.py`): failed submissions now include the specific failure stage and reason in the `notes` field (`"CI eval — PR #123 | fail [geometry]: Wall thickness 0.3mm < minimum 1.0mm"`). Previously notes only recorded provenance, leaving miners with no trace of why their agent failed in the submission record.
+
 ## 2026-06-03 (step 217)
 
 ### Fixed
