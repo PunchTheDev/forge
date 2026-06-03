@@ -7,6 +7,15 @@ Format: newest entries first.
 
 ## [Unreleased]
 
+## 2026-06-03 (session 11)
+
+### Added
+- **Geometry unit tests** (PR #244, `tests/test_geometry.py`): 13 tests across three classes covering build-volume pass/fail, wall-thickness enforcement, and `GeometryResult` field correctness. Uses OCC primitive shapes (box, thin plate) constructed in-process — no fixture STEP files needed. Tests skip automatically when OCP is not installed.
+- **Framework CI workflow** (PR #244, `.github/workflows/test.yml`): runs `pytest tests/` on every non-agent PR and push to main. Prevents regressions in the benchmark framework code path.
+
+### Fixed
+- **Dead `GEOMETRY_AVAILABLE` probe in `test_evaluate.py`** (PR #245): the flag was defined and set but never referenced in any `skipif`; moved to `test_geometry.py` where it belongs.
+
 ## 2026-06-03 (session 10)
 
 ### Added
