@@ -2,7 +2,7 @@
   "id": "th_1182945",
   "version": "1.0",
   "name": "Cable Corners... keep cables in corners! [easy]",
-  "description": "A easy-difficulty cantilever bracket in PETG (FDM). Mounts flush to a vertical wall and cantilevers a 19.1 kg load 98 mm from the wall face. Maximize stiffness-to-weight ratio while surviving the load.",
+  "description": "An easy-difficulty cantilever bracket in PETG (FDM). Mounts flush to a vertical wall and cantilevers a 19.1 kg load 98 mm from the wall face. Maximize stiffness-to-weight ratio while surviving the load.",
   "material": "petg",
   "constraints": {
     "load_newtons": 187.49,

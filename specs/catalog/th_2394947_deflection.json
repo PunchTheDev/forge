@@ -2,7 +2,7 @@
   "id": "th_2394947_deflection",
   "version": "1.0",
   "name": "Shelf Holder Set [easy]",
-  "description": "A easy-difficulty cantilever bracket in PETG (FDM). Mounts flush to a vertical wall and cantilevers a 11.8 kg load 72 mm from the wall face. Minimize tip deflection under load \u2014 maximize absolute stiffness regardless of mass.",
+  "description": "An easy-difficulty cantilever bracket in PETG (FDM). Mounts flush to a vertical wall and cantilevers a 11.8 kg load 72 mm from the wall face. Minimize tip deflection under load \u2014 maximize absolute stiffness regardless of mass.",
   "material": "petg",
   "constraints": {
     "load_newtons": 115.54,

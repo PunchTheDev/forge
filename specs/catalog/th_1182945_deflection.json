@@ -2,7 +2,7 @@
   "id": "th_1182945_deflection",
   "version": "1.0",
   "name": "Cable Corners... keep cables in corners! [easy]",
-  "description": "A easy-difficulty cantilever bracket in PLA (FDM). Mounts flush to a vertical wall and cantilevers a 14.9 kg load 61 mm from the wall face. Minimize tip deflection under load \u2014 maximize absolute stiffness regardless of mass.",
+  "description": "An easy-difficulty cantilever bracket in PLA (FDM). Mounts flush to a vertical wall and cantilevers a 14.9 kg load 61 mm from the wall face. Minimize tip deflection under load \u2014 maximize absolute stiffness regardless of mass.",
   "material": "pla",
   "constraints": {
     "load_newtons": 146.25,
