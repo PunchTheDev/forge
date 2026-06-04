@@ -277,7 +277,7 @@ def _name(tier: str, material: str, load_kg: float, arm_mm: float, metric: str =
 def _description(load_kg: float, arm_mm: float, material: str, tier: str, obj_phrase: str) -> str:
     mat_label = _MAT_LABEL_LONG.get(material, material)
     return (
-        f"A {tier}-difficulty cantilever bracket in {mat_label}. "
+        f"A{'n' if tier[0] in 'aeiou' else ''} {tier}-difficulty cantilever bracket in {mat_label}. "
         f"Mounts flush to a vertical wall and cantilevers a {load_kg:.1f} kg load "
         f"{arm_mm:.0f} mm from the wall face. {obj_phrase}"
     )

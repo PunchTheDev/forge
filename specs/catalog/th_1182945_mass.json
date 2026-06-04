@@ -2,7 +2,7 @@
   "id": "th_1182945_mass",
   "version": "1.0",
   "name": "Cable Corners... keep cables in corners! [easy]",
-  "description": "A easy-difficulty cantilever bracket in PLA (FDM). Mounts flush to a vertical wall and cantilevers a 20.8 kg load 70 mm from the wall face. Minimize mass while surviving the load.",
+  "description": "An easy-difficulty cantilever bracket in PLA (FDM). Mounts flush to a vertical wall and cantilevers a 20.8 kg load 70 mm from the wall face. Minimize mass while surviving the load.",
   "material": "pla",
   "constraints": {
     "load_newtons": 204.46,

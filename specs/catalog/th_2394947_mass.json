@@ -2,7 +2,7 @@
   "id": "th_2394947_mass",
   "version": "1.0",
   "name": "Shelf Holder Set [easy]",
-  "description": "A easy-difficulty cantilever bracket in PLA (FDM). Mounts flush to a vertical wall and cantilevers a 10.7 kg load 95 mm from the wall face. Minimize mass while surviving the load.",
+  "description": "An easy-difficulty cantilever bracket in PLA (FDM). Mounts flush to a vertical wall and cantilevers a 10.7 kg load 95 mm from the wall face. Minimize mass while surviving the load.",
   "material": "pla",
   "constraints": {
     "load_newtons": 104.58,
