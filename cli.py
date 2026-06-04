@@ -410,6 +410,65 @@ def _cmd_leaderboard_agent(contributor: str) -> int:
 
     print(f"  forge leaderboard --spec <spec_id>   per-spec rankings")
     print(f"  forge leaderboard --history <spec>   SOTA progression")
+    print(f"  forge leaderboard --round <round>    round-specific standings")
+    print()
+    return 0
+
+
+def _cmd_leaderboard_round(round_id: str) -> int:
+    """Show standings for a single competition round."""
+    data = _fetch_json(f"/rounds/{round_id}/leaderboard")
+    if data is None or not isinstance(data, dict):
+        print(f"{RED}error:{RESET} round '{round_id}' not found or API unreachable.", file=sys.stderr)
+        return 1
+
+    entries = data.get("entries", [])
+    total_specs = data.get("total_specs", 15)
+
+    rounds_all = _fetch_json("/rounds/active")
+    round_info: dict = {}
+    if isinstance(rounds_all, list):
+        for r in rounds_all:
+            if r.get("id") == round_id:
+                round_info = r
+                break
+
+    metric = round_info.get("scoring_metric", "mass_grams")
+    direction = round_info.get("scoring_direction", "minimize")
+    round_name = round_info.get("name", round_id)
+
+    _header(f"{round_name}  (live)")
+    print(f"\n  Metric: {metric} ({direction}) · {total_specs} specs")
+
+    if entries:
+        print(f"\n  {'RANK':<6} {'CONTRIBUTOR':<24} {'SPECS WON':>10}  {'ENTERED':>8}  {'SCORE':>8}")
+        print(f"  {'─' * 62}")
+        for e in entries[:20]:
+            rank = e.get("rank", "?")
+            contrib = e.get("contributor", "?")[:22]
+            wins = e.get("total_wins", 0)
+            entered = e.get("specs_entered", 0)
+            score = e.get("overall_score", 1.0)
+            color = GREEN if rank == 1 else RESET
+            print(f"  {color}{rank:<6} {contrib:<24} {wins:>10}  {entered:>8}  {score:>8.4f}{RESET}")
+    else:
+        print(f"\n  {YELLOW}No submissions yet — any passing submission claims SOTA.{RESET}")
+
+    stats = _fetch_json(f"/rounds/{round_id}/stats")
+    if isinstance(stats, dict):
+        unclaimed = stats.get("specs_unclaimed", 0)
+        print(f"\n  {YELLOW}{unclaimed}/{total_specs} specs unclaimed{RESET}")
+        for tier_name in ("easy", "medium", "hard"):
+            t = stats.get("tiers", {}).get(tier_name, {})
+            t_claimed = t.get("claimed", 0)
+            t_total = t.get("total", 0)
+            if t_total:
+                bar = f"{GREEN}{'█' * t_claimed}{YELLOW}{'░' * (t_total - t_claimed)}{RESET}"
+                print(f"  {tier_name:<8} {bar}  {t_claimed}/{t_total}")
+
+    print()
+    print(f"  forge leaderboard --spec <spec_id>      per-spec rankings")
+    print(f"  forge leaderboard --agent <contributor>  your standings")
     print()
     return 0
 
@@ -422,6 +481,10 @@ def cmd_leaderboard(args: argparse.Namespace) -> int:
     agent_name = getattr(args, "agent", None)
     if agent_name:
         return _cmd_leaderboard_agent(agent_name)
+
+    round_id = getattr(args, "round", None)
+    if round_id:
+        return _cmd_leaderboard_round(round_id)
 
     spec_id = getattr(args, "spec", None)
     if spec_id:
@@ -485,6 +548,7 @@ def cmd_leaderboard(args: argparse.Namespace) -> int:
         print()
         print(f"  forge leaderboard --spec <spec_id>    per-spec rankings")
         print(f"  forge leaderboard --history <spec>    SOTA progression")
+        print(f"  forge leaderboard --round <round_id>  one-round standings")
         print(f"  forge leaderboard --agent <name>      per-spec standings for one contributor")
         print()
         return 0
@@ -1424,6 +1488,7 @@ HELP_TEXT = f"""{BOLD}{CYAN}  forge — Parametric CAD Benchmark CLI{RESET}
     {GREEN}forge rounds{RESET}                   List competition rounds and their spec sets
     {GREEN}forge leaderboard{RESET}              Overall contributor rankings + unclaimed spec summary
     {GREEN}forge leaderboard --spec <id>{RESET}  Per-spec ranking and SOTA for one spec
+    {GREEN}forge leaderboard --round <id>{RESET} Standings for one competition round
     {GREEN}forge leaderboard --agent <name>{RESET} Per-spec standings for a contributor
     {GREEN}forge submit{RESET}                   Validate git and print submission guide
     {GREEN}forge check-deps{RESET}               Verify CalculiX, gmsh, OCP are installed
@@ -1521,6 +1586,7 @@ def main() -> None:
     p_lb.add_argument("--spec", metavar="SPEC_ID", help="Per-spec leaderboard for one spec")
     p_lb.add_argument("--history", metavar="SPEC_ID", help="Show SOTA progression for a spec")
     p_lb.add_argument("--agent", metavar="NAME", help="Per-spec standings for a contributor")
+    p_lb.add_argument("--round", metavar="ROUND_ID", help="Standings for one competition round (e.g. round_001)")
     p_lb.set_defaults(func=cmd_leaderboard)
 
     p_submit = sub.add_parser("submit", help="Validate git setup and print submission guide")
