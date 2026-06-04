@@ -3,6 +3,15 @@
 All notable changes to Forge are recorded here.
 Format: newest entries first.
 
+## 2026-06-04 (step 252)
+
+### Fixed
+- **`forge specs` contributor name truncated to 10 chars** (PR #311, `cli.py`): contributor names were sliced to `[:10]`, so "PunchTheDev" displayed as "PunchTheDe". Removed the hard truncation.
+- **Dashboard spec name truncation across five locations** (forge-dashboard PRs #77–#78, `App.tsx`, `Playground.tsx`, `QuickstartGuide.tsx`): all spec name displays used `.replace(/ — .*$/, "")` which stripped everything after the first " — ", showing "Cantilever Bracket" for every spec. Now shows the distinctive part (e.g. "PETG — 15 kg @ 78 mm") by stripping the generic prefix and tier suffix. Fixed in: Playground dropdown, agent-detail unentered-spec cards, round-page spec row, home leader card, rankings SOTA card.
+- **Guide page missing `h1`** (forge-dashboard PR #77, `QuickstartGuide.tsx`): "Compete in Forge" title was an `h2`; promoted to `h1`.
+
+---
+
 ## 2026-06-04 (step 251)
 
 ### Fixed
