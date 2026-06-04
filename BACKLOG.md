@@ -59,7 +59,7 @@ Status: in progress — see forge-dashboard PRs #85+
 - [x] ~~**Category icons unexplained**~~ — forge-dashboard PR #174 added `cursor-help` to the ⚖/⊕/↕ icons on home pills, home CategoryCard, CategoryPage hero, and RankingsPage tab pills (latter previously had no tooltip at all); HeroStats round pill also got `cursor-help` for its `pill.goal` tooltip.
 - [x] ~~**"open" vs "unclaimed" inconsistency**~~ — done. Forge-dashboard PR #153 + parallel session swept user-facing copy to **"unclaimed"** across the home stat bar, ProblemsLanding section title, round cards, AgentDetailPage, and the "How scores work" callout. Aligns with the amber `unclaimed` badge and the API filter `?unclaimed=true`.
 - [x] ~~**Unentered spec score tooltip**~~ — forge-dashboard PR #174 made the AgentDetail "each auto-scores 1.0 (worst)" sub-label directly hoverable with the dotted-underline cue pattern.
-- [ ] **Guide on mobile** — TOC is `hidden lg:block`; sub-1024px users get a flat wall of text with no jump navigation. Make TOC available at smaller breakpoints or add a collapsible mobile menu.
+- [x] ~~**Guide on mobile**~~ — collapsible mobile TOC was already present (`lg:hidden` Contents button → `TableOfContents` panel). Forge-dashboard PR #180 added auto-close on link click so the menu collapses after smooth-scrolling to the section — previously the open panel pushed the just-clicked section back below the fold on small viewports.
 
 ### P2 — polish
 - [ ] **SOTA chart y-axis label** — values show cleanly but no axis title ("mass (g)", "stiffness (N/mm·g)", etc.)
