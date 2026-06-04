@@ -3,6 +3,17 @@
 All notable changes to Forge are recorded here.
 Format: newest entries first.
 
+## 2026-06-04 (step 253)
+
+### Fixed
+- **`forge submit` step 4 wording** (PR #313, `cli.py`): "review and merge if it passes FEA" → "review and merge if it passes FEA and beats the current SOTA". Passing FEA alone is not sufficient; the submission must also beat the current SOTA to be merged.
+
+### forge-api (separate repo)
+- **Swagger security schemes** (forge-api PR #77, `app/main.py`): `AdminToken` (X-Admin-Token header) on `/admin/submissions/*`; `BearerToken` (Authorization: Bearer) on `/admin/hidden/*`. Lock icons now visible in Swagger UI.
+- **Dashboard** (forge-dashboard PRs #79): SOTA chart smart y-axis domain (pads around data range, no longer anchored at 0); baseline reference line added to SOTA chart; "vs. reference agent" stat now shows amber when SOTA is worse than seed; leaderboard card shows "3/45 specs" for context; Playground H1.
+
+---
+
 ## 2026-06-04 (step 252)
 
 ### Fixed
