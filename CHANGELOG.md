@@ -5,6 +5,13 @@ Format: newest entries first.
 
 ---
 
+## 2026-06-04 (step 250)
+
+### Added
+- **`forge leaderboard --round <round_id>`** (PR #307, `cli.py`): new flag scopes the leaderboard to a single competition round. Shows ranked contributors with wins/specs-entered/score, per-tier progress bars (easy/medium/hard), and unclaimed spec count. Uses `GET /rounds/{round_id}/leaderboard` + `GET /rounds/{round_id}/stats`. Example: `forge leaderboard --round round_001`.
+
+---
+
 ## 2026-06-04 (step 246)
 
 ### Changed
