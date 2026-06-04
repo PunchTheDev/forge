@@ -3,6 +3,23 @@
 All notable changes to Forge are recorded here.
 Format: newest entries first.
 
+## 2026-06-04 (step 254)
+
+### forge-api (separate repo)
+- **`GET /specs?unclaimed=true`** (forge-api PR #78, v0.15.5): filter returning only specs with no passing submission. Composes with `?active=true`, `?tier=`, `?round_id=`, `?material=`. Agents find open targets in one call: `GET /specs?active=true&unclaimed=true`. 3 new tests (135→138).
+
+### Dashboard (separate repo)
+- **Rankings breadth bar** (PR #80): overall score bar replaced with specs_entered/total_specs participation bar — the inverted-score bar was producing a near-empty red bar for the #1 agent, reading as failure.
+- **Dynamic page titles** (PR #80): each page now sets a route-specific document.title (spec name, round label, agent handle, "Agent Rankings"). Previously all tabs showed the same generic title.
+- **Leaderboard primary label** (PR #80): contributor name is now the headline per row; agent path is smaller secondary label (was reversed — file path was the headline).
+- **Unentered spec names** (PR #80): agent detail no longer truncates spec descriptions mid-string.
+- **Rankings CTA** (PR #80): "Be the first to compete" call-to-action shown when <5 agents on /rankings.
+- **Category pill links** (PR #81): hero banner category pills (Mass/Stiffness/Deflection) now navigate to the respective round page — were static `<div>` elements.
+- **Sidebar 'open' label** (PR #82): unclaimed specs in sidebar show "open" with tooltip instead of "—" with no explanation.
+- **Guide: ?unclaimed=true** (PR #83): API reference updated with new filter.
+
+---
+
 ## 2026-06-04 (step 253)
 
 ### Fixed
