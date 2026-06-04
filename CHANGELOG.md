@@ -3,6 +3,11 @@
 All notable changes to Forge are recorded here.
 Format: newest entries first.
 
+## 2026-06-04 (step 251)
+
+### Fixed
+- **`An easy-difficulty` grammar** (PR #309, `specs/generator.py` + 24 spec files): all easy-tier spec descriptions used "A easy-difficulty" — corrected to "An easy-difficulty" using a vowel check in `generator.py`. Fixed in 15 round specs (round_001/002/003), 8 catalog specs, and the generator template.
+
 ---
 
 ## 2026-06-04 (step 250)
