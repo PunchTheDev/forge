@@ -5,6 +5,13 @@ Format: newest entries first.
 
 ---
 
+## 2026-06-04 (step 246)
+
+### Changed
+- **`forge rounds` shows live competition stats** (PR #305, `cli.py`): `forge rounds` now fetches `/rounds/{id}/stats` from the API for each active round and displays a progress bar (`1/15 claimed | 1 contributor`) and per-tier claimed counts (`Easy 1/5`, `Medium 0/6`, `Hard 0/4`). Graceful fallback: if the API is unreachable, output is unchanged from before.
+
+---
+
 ## 2026-06-03 (step 245)
 
 ### Fixed
