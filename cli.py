@@ -1016,18 +1016,40 @@ def cmd_rounds(args: argparse.Namespace) -> int:
         )
         specs_label = f"{len(specs)} ({tier_counts})" if tier_counts else str(len(specs))
 
+        # Fetch live competition stats for this round (graceful fallback if API down).
+        live_stats = _fetch_json(f"/rounds/{rid}/stats") if status == "active" else None
+        if live_stats:
+            claimed = live_stats.get("specs_claimed", 0)
+            total = live_stats.get("specs_total", len(specs))
+            contribs = live_stats.get("contributor_count", 0)
+            bar_filled = claimed
+            bar_empty = total - claimed
+            bar = f"{GREEN}{'█' * bar_filled}{YELLOW}{'░' * bar_empty}{RESET}"
+            live_line = f"  {bar}  {claimed}/{total} claimed  |  {contribs} contributor{'s' if contribs != 1 else ''}"
+        else:
+            live_line = None
+
         status_color = GREEN if status == "active" else YELLOW
         print(f"\n  {BOLD}{rid}{RESET}  {status_color}[{status}]{RESET}")
         print(f"  {name}")
         print(f"  Period: {starts} → {ends}  |  Metric: {metric}  |  Specs: {specs_label}")
+        if live_line:
+            print(live_line)
         print()
 
         for tier in ("easy", "medium", "hard", "unknown"):
             ids = tiers.get(tier)
             if not ids:
                 continue
-            label = f"{tier.capitalize():<8}"
-            print(f"    {CYAN}{label}{RESET}  {', '.join(ids)}")
+            # Show claimed/unclaimed per tier if stats available.
+            if live_stats:
+                tier_data = live_stats.get("tiers", {}).get(tier, {})
+                tier_claimed = tier_data.get("claimed", 0)
+                tier_total = tier_data.get("total", len(ids))
+                tier_label = f"{tier.capitalize():<8}  {CYAN}{tier_claimed}/{tier_total}{RESET}"
+            else:
+                tier_label = f"{CYAN}{tier.capitalize():<8}{RESET}"
+            print(f"    {tier_label}  {', '.join(ids)}")
 
     print()
 
