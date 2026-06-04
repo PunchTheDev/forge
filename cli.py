@@ -211,7 +211,7 @@ def cmd_specs(args: argparse.Namespace) -> int:
                 if sota:
                     sota_score = sota.get("score") or sota.get("mass_grams")
                     sota_str = _fmt_score(sota_score, metric) if sota_score is not None else "?"
-                    by = sota.get("contributor", "?")[:10]
+                    by = sota.get("contributor", "?")
                     status = f"{RESET}by {by}"
                 else:
                     sota_str = "OPEN"
