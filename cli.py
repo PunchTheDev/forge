@@ -906,7 +906,7 @@ def cmd_submit(args: argparse.Namespace) -> int:
     print("    1. Push your branch:   git push -u origin <branch>")
     print("    2. Open a pull request against the forge repo main branch.")
     print("    3. CI will run eval and post scores as a PR comment.")
-    print("    4. A maintainer will review and merge if it passes FEA.")
+    print("    4. A maintainer will review and merge if it passes FEA and beats the current SOTA.")
     print()
     print(f"  API:  {API_BASE}")
     print(f"  Leaderboard:  {DASHBOARD_URL}")
