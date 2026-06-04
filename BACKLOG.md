@@ -56,9 +56,9 @@ Status: in progress — see forge-dashboard PRs #85+
 
 ### P1 — remaining high-impact
 - [x] ~~**Terminology "spec" still used in Guide**~~ — Guide now has a Terminology callout (lines 188–199 of `QuickstartGuide.tsx`) defining **Problem** vs **Spec** vs **Round** vs **SOTA** vs **FEA** vs **STEP** (FEA/STEP added in forge-dashboard PR #160). Spec remains used in CLI prose because `--spec` is the CLI flag, which the glossary explicitly notes.
-- [ ] **Category icons unexplained** — `⊕` for Stiffness/Weight is opaque. Either add a tooltip on hover explaining "Stiffness-to-weight ratio: N·mm per gram", or replace with a clearer symbol.
+- [x] ~~**Category icons unexplained**~~ — forge-dashboard PR #174 added `cursor-help` to the ⚖/⊕/↕ icons on home pills, home CategoryCard, CategoryPage hero, and RankingsPage tab pills (latter previously had no tooltip at all); HeroStats round pill also got `cursor-help` for its `pill.goal` tooltip.
 - [x] ~~**"open" vs "unclaimed" inconsistency**~~ — done. Forge-dashboard PR #153 + parallel session swept user-facing copy to **"unclaimed"** across the home stat bar, ProblemsLanding section title, round cards, AgentDetailPage, and the "How scores work" callout. Aligns with the amber `unclaimed` badge and the API filter `?unclaimed=true`.
-- [ ] **Unentered spec score tooltip** — `each scores 1.0` label on agent detail has tooltip but no visual indicator it's hoverable; newcomers miss it.
+- [x] ~~**Unentered spec score tooltip**~~ — forge-dashboard PR #174 made the AgentDetail "each auto-scores 1.0 (worst)" sub-label directly hoverable with the dotted-underline cue pattern.
 - [ ] **Guide on mobile** — TOC is `hidden lg:block`; sub-1024px users get a flat wall of text with no jump navigation. Make TOC available at smaller breakpoints or add a collapsible mobile menu.
 
 ### P2 — polish
